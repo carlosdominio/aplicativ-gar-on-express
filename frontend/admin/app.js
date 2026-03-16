@@ -232,6 +232,7 @@ function switchTab(tab) {
     'lancar': 'Lançar Pedido',
     'historico': 'Histórico',
     'caixa': 'Caixa',
+    'whatsapp': 'WhatsApp Beta',
     'configuracoes': 'Configurações'
   };
   
@@ -241,7 +242,7 @@ function switchTab(tab) {
     }
   });
 
-  const secoes = ['ativos', 'historico', 'configuracoes', 'caixa', 'lancar'];
+  const secoes = ['ativos', 'historico', 'configuracoes', 'caixa', 'lancar', 'whatsapp'];
   secoes.forEach(s => {
     const el = document.getElementById(`${s}-section`);
     if (el) el.classList.toggle('hidden', s !== tab);
