@@ -989,6 +989,22 @@ async function atualizarIndicadoresTopo() {
 
 let pedidosStatusTaxa = {}; // Armazena se cada pedido cobra taxa ou não {pedidoId: true/false}
 
+// Função para impressão rápida da parcial direto do card
+async function imprimirParcialMesaRapido(idPedido) {
+  const pedido = pedidos.find(p => p.id === idPedido);
+  if (!pedido) return;
+  
+  mostrarToast("🖨️ Gerando Nota Parcial...");
+  try {
+    const res = await fetch(`/api/pedidos/${idPedido}/itens`);
+    const itens = await res.json();
+    imprimirCupom({ ...pedido, isImpressaoParcialMesa: true }, itens);
+  } catch (e) {
+    console.error("Erro na impressão rápida:", e);
+    mostrarAlerta("Erro ao gerar impressão.", "Erro");
+  }
+}
+
 let isRenderingPedidos = false;
 async function exibirPedidos() {
   if (isRenderingPedidos || abaAtiva !== 'ativos') return;
@@ -1061,7 +1077,9 @@ async function exibirPedidos() {
           </div>
           <div style="text-align:right">
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-              <div class="pedido-valor" data-role="pedido-total" style="font-size:1.1rem; color:#27ae60;">Saldo: R$ ${totalExibicao.toFixed(2)}</div>
+              <button class="btn-imprimir-parcial-rapido" onclick="imprimirParcialMesaRapido(${pedido.id})" title="Imprimir Nota Parcial">
+                🖨️ PARCIAL: R$ ${totalExibicao.toFixed(2)}
+              </button>
               
               <div class="toggle-container" title="${pagoParcial > 0 ? 'Bloqueado: Mesa com pagamento parcial' : ''}">
                 <span>10%</span>
@@ -1098,7 +1116,6 @@ async function exibirPedidos() {
         <div class="pedido-footer">
           <div style="display:flex; gap:0.5rem; flex-grow: 1;">
             <button style="background:#3498db; flex: 1;" onclick='abrirModalEdicao(${JSON.stringify(pedido)}, ${JSON.stringify(itens)})'>✏️ EDITAR / ADD ITENS</button>
-            <button style="background:#2c3e50; width: auto;" onclick='imprimirCupom(${JSON.stringify(pedido)}, ${JSON.stringify(itens)})'>🖨️ IMPRIMIR</button>
           </div>
           
           <div class="pedido-actions" style="width: 100%; margin-top: 10px;">
