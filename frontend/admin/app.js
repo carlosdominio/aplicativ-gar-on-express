@@ -955,9 +955,23 @@ async function carregarPedidos() {
     
     // Atualiza os indicadores do topo sempre que carregar os pedidos
     await atualizarIndicadoresTopo();
+    atualizarContadorAtivos();
     
     exibirPedidos();
   } catch (error) { console.error(error); }
+}
+
+function atualizarContadorAtivos() {
+  const badge = document.getElementById('badge-ativos-contador');
+  if (!badge) return;
+  
+  const totalAtivos = pedidos.length;
+  if (totalAtivos > 0) {
+    badge.textContent = totalAtivos;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
 }
 
 async function atualizarIndicadoresTopo() {

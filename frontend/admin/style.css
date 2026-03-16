@@ -685,6 +685,24 @@ button.btn-entregue { background-color: #95a5a6; }
 .item-menu-mini h4 { font-size: 0.8rem; margin: 5px 0; height: 2.4em; overflow: hidden; }
 .item-menu-mini p { font-size: 0.85rem; color: #27ae60; font-weight: bold; }
 
+.badge-contador {
+  background: #e74c3c;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  display: inline-block;
+}
+
+.badge-contador.hidden {
+  display: none;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   header { flex-direction: column; gap: 0.5rem; }
