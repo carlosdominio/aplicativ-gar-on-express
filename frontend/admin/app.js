@@ -49,7 +49,26 @@ let mesaAtual = null;
 let pedidoEmEdicao = null;
 let itensEmEdicao = [];
 let abaAtiva = 'ativos';
+let subAbaAtiva = 'garcom';
 let adminLogado = null;
+
+function switchSubTab(sub) {
+  subAbaAtiva = sub;
+  document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`tab-sub-${sub}`).classList.add('active');
+  
+  document.querySelectorAll('.sub-tab-content').forEach(content => content.classList.add('hidden'));
+  document.getElementById(`group-${sub}`).classList.remove('hidden');
+  
+  // Estilo visual dos botões
+  document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+    btn.style.background = 'transparent';
+    btn.style.color = '#7f8c8d';
+  });
+  const activeBtn = document.getElementById(`tab-sub-${sub}`);
+  activeBtn.style.background = sub === 'garcom' ? '#3498db' : '#27ae60';
+  activeBtn.style.color = 'white';
+}
 let caixaAtual = null;
 
 const audioNotificacao = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -115,8 +134,15 @@ function inicializarConfiguracaoImpressao() {
 
 function iniciarPainelAdmin() {
   inicializarConfiguracaoImpressao();
-  inicializarConfiguracaoSom(); // Carrega preferência de som
+  inicializarConfiguracaoSom(); 
   solicitarPermissaoNotificacao();
+  
+  // Define o estado inicial padrão
+  abaAtiva = 'ativos';
+  subAbaAtiva = 'garcom';
+  switchTab('ativos'); 
+  switchSubTab('garcom');
+
   carregarPedidos();
   carregarCardapio();
   carregarStatusCaixa();
@@ -1004,27 +1030,19 @@ async function imprimirParcialMesaRapido(idPedido) {
 let isRenderingPedidos = false;
 async function exibirPedidos() {
   if (isRenderingPedidos || abaAtiva !== 'ativos') return;
-  const container = document.getElementById('pedidos-list');
-  if (!container) return;
+  const listGarcom = document.getElementById('pedidos-list-garcom');
+  const listBalcao = document.getElementById('pedidos-list-balcao');
+  if (!listGarcom || !listBalcao) return;
   
   isRenderingPedidos = true;
-  container.innerHTML = '';
+  listGarcom.innerHTML = '';
+  listBalcao.innerHTML = '';
 
-  if (pedidos.length === 0) {
-    container.innerHTML = `
-      <div style="text-align: center; padding: 3rem; opacity: 0.4; color: #7f8c8d;">
-        <div style="font-size: 4rem; margin-bottom: 1rem;">🍹</div>
-        <h2 style="font-weight: normal;">Sem pedidos no momento...</h2>
-        <p>Aguardando novos pedidos dos garçons.</p>
-      </div>
-    `;
-    isRenderingPedidos = false;
-    return;
-  }
+  let countGarcom = 0;
+  let countBalcao = 0;
 
   try {
     for (const pedido of pedidos) {
-      // Usa o valor que veio do banco de dados (se disponível) ou padrão true
       if (pedidosStatusTaxa[pedido.id] === undefined) {
         pedidosStatusTaxa[pedido.id] = (pedido.cobrar_taxa !== undefined) ? pedido.cobrar_taxa : true;
       }
@@ -1046,8 +1064,6 @@ async function exibirPedidos() {
       const subtotal = totalEnt + totalPend;
       const taxaServico = cobrarTaxaNoPedido ? (subtotal * 0.10) : 0;
       const pagoParcial = pedido.pago_parcial || 0;
-      
-      // Se o pedido estiver aguardando fechamento, usa o total e ajustes vindos do banco
       const totalConsumo = (subtotal + taxaServico);
       const totalExibicao = (pedido.status === 'aguardando_fechamento' ? pedido.total : (totalConsumo - pagoParcial)) || 0;
       
@@ -1124,8 +1140,24 @@ async function exibirPedidos() {
             }
           </div>
         </div>`;
-      container.appendChild(card);
+      
+      if (pedido.garcom_id === 'ADMIN') {
+        listBalcao.appendChild(card);
+        countBalcao++;
+      } else {
+        listGarcom.appendChild(card);
+        countGarcom++;
+      }
     }
+
+    const bGarcom = document.getElementById('badge-sub-garcom');
+    const bBalcao = document.getElementById('badge-sub-balcao');
+    if (bGarcom) bGarcom.textContent = countGarcom;
+    if (bBalcao) bBalcao.textContent = countBalcao;
+
+    if (countGarcom === 0) listGarcom.innerHTML = '<p style="text-align:center; padding:2rem; opacity:0.5;">Nenhuma mesa aberta.</p>';
+    if (countBalcao === 0) listBalcao.innerHTML = '<p style="text-align:center; padding:2rem; opacity:0.5;">Nenhum pedido no balcão.</p>';
+
   } catch (e) { console.error('Erro ao renderizar pedidos:', e); }
   
   isRenderingPedidos = false;
