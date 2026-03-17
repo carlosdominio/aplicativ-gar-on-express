@@ -743,12 +743,12 @@ button.btn-entregue { background-color: #95a5a6; }
 .pedido-card.destaque-atualizacao { animation: piskarDestaque 3s ease-in-out; border: 3px solid #3498db !important; box-shadow: 0 0 20px rgba(52, 152, 219, 0.4); }
 @keyframes piskarDestaque { 0%, 50%, 100% { background-color: #fff; } 25%, 75% { background-color: #d1ecf1; } }
 
-/* Toggle Switch Estilo */
+/* Toggle Switch Estilo Moderno */
 .switch {
   position: relative;
   display: inline-block;
-  width: 40px;
-  height: 20px;
+  width: 34px;
+  height: 18px;
 }
 
 .switch input { 
@@ -764,9 +764,9 @@ button.btn-entregue { background-color: #95a5a6; }
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 20px;
+  background-color: #bdc3c7;
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 34px;
 }
 
 .slider:before {
@@ -774,23 +774,20 @@ button.btn-entregue { background-color: #95a5a6; }
   content: "";
   height: 14px;
   width: 14px;
-  left: 3px;
-  bottom: 3px;
+  left: 2px;
+  bottom: 2px;
   background-color: white;
-  transition: .4s;
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 input:checked + .slider {
-  background-color: #27ae60;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #27ae60;
+  background-color: #2ecc71;
 }
 
 input:checked + .slider:before {
-  transform: translateX(20px);
+  transform: translateX(16px);
 }
 
 .toggle-container {

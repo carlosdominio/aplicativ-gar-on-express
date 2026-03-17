@@ -51,6 +51,27 @@ let itensEmEdicao = [];
 let abaAtiva = 'ativos';
 let subAbaAtiva = 'garcom';
 let adminLogado = null;
+let tipoDescontoAdmin = 'porcentagem'; // Ativado por padrão como porcentagem
+
+function toggleTipoDesconto(isPorcentagem) {
+  tipoDescontoAdmin = isPorcentagem ? 'porcentagem' : 'real';
+  const label = document.getElementById('label-desconto-admin');
+  const input = document.getElementById('fechamento-desconto-admin');
+  const span = document.getElementById('span-tipo-desconto');
+  
+  if (tipoDescontoAdmin === 'real') {
+    label.textContent = 'Desconto (R$):';
+    if (span) span.textContent = 'R$';
+    input.step = '0.50';
+    input.placeholder = 'Valor em R$';
+  } else {
+    label.textContent = 'Desconto (%):';
+    if (span) span.textContent = '%';
+    input.step = '1';
+    input.placeholder = 'Valor em %';
+  }
+  recalcularTotalFechamentoAdmin();
+}
 
 function switchSubTab(sub) {
   subAbaAtiva = sub;
@@ -1499,6 +1520,20 @@ async function aprovarFechamento(idPedido, idMesa, mesaNomeForcado = null) {
   document.getElementById('fechamento-recebido-admin').value = pedidoParaFecharAdmin.valor_recebido || '';
   document.getElementById('fechamento-divisao-pessoas').value = pedidoParaFecharAdmin.num_pessoas || 1;
   
+  // Reseta tipo de desconto para porcentagem ao abrir (Ativado por padrão)
+  tipoDescontoAdmin = 'porcentagem';
+  const checkTipo = document.getElementById('check-tipo-desconto');
+  if (checkTipo) checkTipo.checked = true;
+  const spanTipo = document.getElementById('span-tipo-desconto');
+  if (spanTipo) spanTipo.textContent = '%';
+  const labelDesconto = document.getElementById('label-desconto-admin');
+  if (labelDesconto) labelDesconto.textContent = 'Desconto (%):';
+  const inputDesconto = document.getElementById('fechamento-desconto-admin');
+  if (inputDesconto) {
+    inputDesconto.step = '1';
+    inputDesconto.placeholder = 'Valor em %';
+  }
+
   const pagoParcial = pedidoParaFecharAdmin.pago_parcial || 0;
   const elPagoContainer = document.getElementById('fechamento-pago-parcial-container');
   const elPagoValor = document.getElementById('fechamento-pago-parcial-admin');
@@ -1542,11 +1577,17 @@ function selecionarTodosItensFechamento(selecionar) {
 function recalcularTotalFechamentoAdmin() {
   const selecionados = itensFechamentoAdmin.filter(i => i.selecionadoFechamento);
   subtotalConsumoAdmin = selecionados.reduce((sum, i) => sum + (i.preco * i.quantidade), 0);
-  
+
   const cobrarTaxa = document.getElementById('fechamento-taxa-admin').checked;
   const taxa = cobrarTaxa ? subtotalConsumoAdmin * 0.10 : 0;
   const acrescimo = parseFloat(document.getElementById('fechamento-acrescimo-admin').value) || 0;
-  const desconto = parseFloat(document.getElementById('fechamento-desconto-admin').value) || 0;
+
+  const descontoInput = parseFloat(document.getElementById('fechamento-desconto-admin').value) || 0;
+  let desconto = descontoInput;
+  if (tipoDescontoAdmin === 'porcentagem') {
+    desconto = (subtotalConsumoAdmin + taxa + acrescimo) * (descontoInput / 100);
+  }
+
   const recebido = parseFloat(document.getElementById('fechamento-recebido-admin').value) || 0;
   const pessoas = parseInt(document.getElementById('fechamento-divisao-pessoas').value) || 1;
   const pagoParcial = (pedidoParaFecharAdmin && pedidoParaFecharAdmin.pago_parcial) ? pedidoParaFecharAdmin.pago_parcial : 0;
@@ -1566,26 +1607,31 @@ async function confirmarPagamentoAdmin() {
   const idPedido = pedidoParaFecharAdmin.id;
   const idMesa = pedidoParaFecharAdmin.mesa_id;
   const selecionados = itensFechamentoAdmin.filter(i => i.selecionadoFechamento);
-  
+
   if (selecionados.length === 0) return await mostrarAlerta("Selecione pelo menos um item para pagar!", "Aviso");
-  
+
   const subtotalLocal = selecionados.reduce((sum, i) => sum + (i.preco * i.quantidade), 0);
   const todosItensSelecionados = selecionados.length === itensFechamentoAdmin.length;
-  
+
   const forma_pagamento = document.getElementById('fechamento-forma-admin').value;
   const acrescimo = parseFloat(document.getElementById('fechamento-acrescimo-admin').value) || 0;
-  const desconto = parseFloat(document.getElementById('fechamento-desconto-admin').value) || 0;
+
+  const descontoInput = parseFloat(document.getElementById('fechamento-desconto-admin').value) || 0;
+  const cobrarTaxa = document.getElementById('fechamento-taxa-admin').checked;
+  const taxaServico = cobrarTaxa ? subtotalLocal * 0.10 : 0;
+
+  let desconto = descontoInput;
+  if (tipoDescontoAdmin === 'porcentagem') {
+    desconto = (subtotalLocal + taxaServico + acrescimo) * (descontoInput / 100);
+  }
+
   const valor_recebido = parseFloat(document.getElementById('fechamento-recebido-admin').value) || 0;
   const num_pessoas = parseInt(document.getElementById('fechamento-divisao-pessoas').value) || 1;
   const pagoParcial = (pedidoParaFecharAdmin && pedidoParaFecharAdmin.pago_parcial) ? pedidoParaFecharAdmin.pago_parcial : 0;
-  
-  const cobrarTaxa = document.getElementById('fechamento-taxa-admin').checked;
-  const taxaServico = cobrarTaxa ? subtotalLocal * 0.10 : 0;
-  
+
   const total = (subtotalLocal + taxaServico + acrescimo - desconto) - pagoParcial;
   const valor_por_pessoa = total / num_pessoas;
   const troco = valor_recebido > total ? valor_recebido - total : 0;
-
   // VALIDAÇÃO OBRIGATÓRIA PARA DINHEIRO
   if (forma_pagamento === 'Dinheiro') {
     if (!valor_recebido || valor_recebido <= 0) {

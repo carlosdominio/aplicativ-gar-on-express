@@ -312,12 +312,23 @@
           <p id="fechamento-pago-parcial-container" style="margin: 5px 0 0 0; font-size: 0.9rem; color: #27ae60; font-weight: bold; display: none;">(-) Já Pago Antecipado: R$ <span id="fechamento-pago-parcial-admin">0,00</span></p>
           <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
-              <label style="display:block; font-size:0.75rem; font-weight:bold; color:#7f8c8d; margin-bottom:3px;">Acréscimo (R$):</label>
-              <input type="number" id="fechamento-acrescimo-admin" value="0" step="0.50" min="0" oninput="recalcularTotalFechamentoAdmin()" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ddd;">
+              <div style="height: 18px; margin-bottom: 2px; display: flex; align-items: center;">
+                <label style="font-size:0.7rem; font-weight:bold; color:#7f8c8d; margin: 0;">Acréscimo (R$):</label>
+              </div>
+              <input type="number" id="fechamento-acrescimo-admin" value="0" step="0.50" min="0" oninput="recalcularTotalFechamentoAdmin()" style="width:100%; padding:5px; border-radius:6px; border:1px solid #ddd; height: 32px; box-sizing: border-box; font-weight: bold; font-size: 0.9rem;">
             </div>
             <div>
-              <label style="display:block; font-size:0.75rem; font-weight:bold; color:#7f8c8d; margin-bottom:3px;">Desconto (R$):</label>
-              <input type="number" id="fechamento-desconto-admin" value="0" step="0.50" min="0" oninput="recalcularTotalFechamentoAdmin()" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ddd;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; height: 18px;">
+                <label id="label-desconto-admin" style="font-size:0.75rem; font-weight:bold; color:#7f8c8d; margin: 0;">Desconto (%):</label>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span id="span-tipo-desconto" style="font-size: 0.7rem; font-weight: bold; color: #7f8c8d;">%</span>
+                  <label class="switch">
+                    <input type="checkbox" id="check-tipo-desconto" checked onchange="toggleTipoDesconto(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+              <input type="number" id="fechamento-desconto-admin" value="0" step="1" min="0" oninput="recalcularTotalFechamentoAdmin()" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ddd; height: 32px; box-sizing: border-box; font-weight: bold; font-size: 0.9rem;">
             </div>
           </div>
           <p style="margin: 15px 0 0 0; font-size: 1.3rem; color: #2c3e50; font-weight:bold;">Total Final: R$ <span id="fechamento-total-admin">0,00</span></p>
