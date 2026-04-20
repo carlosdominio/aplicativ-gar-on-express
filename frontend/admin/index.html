@@ -298,8 +298,13 @@
   <div id="modal-fechamento-admin" class="modal">
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
-        <h2>Fechar Conta - Mesa <span id="fechamento-mesa-admin">--</span></h2>
-        <span class="close" onclick="fecharModalFechamentoAdmin()">&times;</span>
+        <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin:0;">Fechar Conta - Mesa <span id="fechamento-mesa-admin">--</span></h2>
+            <span class="close" onclick="fecharModalFechamentoAdmin()">&times;</span>
+          </div>
+          <button onclick="irParaEdicaoDestePedido()" style="background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; width: fit-content;">✏️ Editar Pedido / Adicionar Itens</button>
+        </div>
       </div>
       <div class="modal-body" style="display: block;">
         <!-- HISTÓRICO DE PAGAMENTOS DESTA MESA -->

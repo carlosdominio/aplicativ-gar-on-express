@@ -1523,6 +1523,139 @@ async function liberarMesa(idPedido, idMesa, temPendentes = false) {
   }
 }
 
+function irParaEdicaoDestePedido() {
+  if (!pedidoParaFecharAdmin) return;
+  fecharModalFechamentoAdmin();
+  fetch(`/api/pedidos/${pedidoParaFecharAdmin.id}/itens`).then(res => res.json()).then(itens => abrirModalEdicao(pedidoParaFecharAdmin, itens));
+}
+
+function abrirModalEdicao(pedido, itens) {
+  pedidoEmEdicao = pedido;
+  itensEmEdicao = itens.map(i => ({ ...i, selecionado: false }));
+  document.getElementById('modal-titulo').innerText = `Editar Pedido: ${pedido.mesa_numero ? 'Mesa ' + pedido.mesa_numero : 'Balcão'}`;
+  renderizarItensEdicao();
+  renderizarMenuEdicao();
+  document.getElementById('modal-edicao').style.display = 'flex';
+}
+
+function fecharModal() {
+  document.getElementById('modal-edicao').style.display = 'none';
+  pedidoEmEdicao = null;
+  itensEmEdicao = [];
+}
+
+function renderizarItensEdicao() {
+  const container = document.getElementById('itens-atuais');
+  if (!container) return;
+  container.innerHTML = itensEmEdicao.map((item, index) => `
+    <div class="item-edicao" style="${item.status === 'entregue' ? 'opacity:0.6;' : ''}">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" ${item.selecionado ? 'checked' : ''} onchange="alternarSelecaoItemEdicao(${index})">
+        <span>${item.quantidade}x ${item.nome}</span>
+        ${item.status === 'entregue' ? '<small>(Entregue)</small>' : ''}
+      </div>
+      <strong>R$ ${(item.preco * item.quantidade).toFixed(2)}</strong>
+    </div>
+  `).join('');
+  
+  const subtotal = itensEmEdicao.reduce((s, i) => s + (i.preco * i.quantidade), 0);
+  document.getElementById('modal-total').textContent = `Total: R$ ${subtotal.toFixed(2)}`;
+}
+
+function alternarSelecaoItemEdicao(index) {
+  itensEmEdicao[index].selecionado = !itensEmEdicao[index].selecionado;
+  renderizarItensEdicao();
+}
+
+function selecionarTodosItens(sel) {
+  itensEmEdicao.forEach(i => i.selecionado = sel);
+  renderizarItensEdicao();
+}
+
+function removerItensSelecionados() {
+  const selecionados = itensEmEdicao.filter(i => i.selecionado);
+  if (selecionados.length === 0) return mostrarAlerta("Selecione itens para remover");
+  
+  itensEmEdicao = itensEmEdicao.filter(i => !i.selecionado);
+  renderizarItensEdicao();
+}
+
+async function renderizarMenuEdicao(categoria = 'todas') {
+  const container = document.getElementById('edit-menu-grid');
+  const catContainer = document.getElementById('edit-menu-categorias');
+  if (!container || !catContainer) return;
+
+  const categorias = ['todas', ...new Set(cardapio.map(i => i.categoria))];
+  catContainer.innerHTML = categorias.map(cat => `
+    <button class="categoria-mini ${cat === categoria ? 'active' : ''}" onclick="renderizarMenuEdicao('${cat}')">${cat === 'todas' ? 'Todos' : cat}</button>
+  `).join('');
+
+  const itens = categoria === 'todas' ? cardapio : cardapio.filter(i => i.categoria === categoria);
+  container.innerHTML = itens.map(item => `
+    <div class="item-menu-mini" onclick="adicionarItemNaEdicao(${item.id})">
+      <img src="${item.imagem}" style="width:30px; height:30px; border-radius:4px;">
+      <div style="flex:1; font-size:0.8rem;">${item.nome}</div>
+      <div style="font-weight:bold; font-size:0.8rem;">R$ ${item.preco.toFixed(2)}</div>
+    </div>
+  `).join('');
+}
+
+function adicionarItemNaEdicao(itemId) {
+  const itemMenu = cardapio.find(i => i.id === itemId);
+  if (!itemMenu) return;
+  
+  const existente = itensEmEdicao.find(i => i.menu_id === itemId && i.status !== 'entregue');
+  if (existente) {
+    existente.quantidade++;
+  } else {
+    itensEmEdicao.push({
+      menu_id: itemMenu.id,
+      nome: itemMenu.nome,
+      preco: itemMenu.preco,
+      quantidade: 1,
+      status: 'pendente',
+      selecionado: false
+    });
+  }
+  renderizarItensEdicao();
+}
+
+async function salvarAlteracoes() {
+  if (!pedidoEmEdicao) return;
+  try {
+    const res = await fetch(`/api/pedidos/${pedidoEmEdicao.id}/atualizar-itens`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itens: itensEmEdicao })
+    });
+    if (res.ok) {
+      mostrarToast("Pedido atualizado!");
+      fecharModal();
+      carregarPedidos();
+    } else {
+      mostrarAlerta("Erro ao salvar alterações");
+    }
+  } catch (e) {
+    mostrarAlerta("Erro de rede");
+  }
+}
+
+async function confirmarCancelamento() {
+  if (!pedidoEmEdicao) return;
+  if (await mostrarConfirmacao("Deseja realmente CANCELAR este pedido inteiro?", "Atenção", "SIM, CANCELAR", "NÃO")) {
+    const res = await fetch(`/api/pedidos/${pedidoEmEdicao.id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelado' })
+    });
+    if (res.ok) {
+      mostrarToast("Pedido cancelado!");
+      fecharModal();
+      carregarPedidos();
+    }
+  }
+}
+
 // LOGICA DE FECHAMENTO NO ADMIN (NOVO)
 let pedidoParaFecharAdmin = null;
 let subtotalConsumoAdmin = 0;
