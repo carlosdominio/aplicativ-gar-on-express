@@ -46,19 +46,17 @@ app.use(require('cors')({
 const JWT_SECRET = process.env.JWT_SECRET || 'seusegredomuitolouco123';
 const saltRounds = 10;
 
-// INICIALIZAÇÃO DO PUSHER (Com verificação)
-let pusher = null;
-if (process.env.PUSHER_APP_ID && process.env.PUSHER_APP_KEY && process.env.PUSHER_APP_SECRET) {
-  pusher = new Pusher({
-    appId: process.env.PUSHER_APP_ID,
-    key: process.env.PUSHER_APP_KEY,
-    secret: process.env.PUSHER_APP_SECRET,
-    cluster: process.env.PUSHER_CLUSTER || 'sa1',
-    useTLS: true
-  });
-} else {
-  console.warn("⚠️ PUSHER NÃO CONFIGURADO: Notificações em tempo real desativadas no backend. Configure o .env.");
-}
+// INICIALIZAÇÃO DO PUSHER (Com as novas chaves do usuário)
+const pusherConfig = {
+  appId: process.env.PUSHER_APP_ID || "2122978",
+  key: process.env.PUSHER_APP_KEY || "5b2b284e309dea9d90fb",
+  secret: process.env.PUSHER_APP_SECRET || "11b8e639d6b1d940871a",
+  cluster: process.env.PUSHER_CLUSTER || "sa1",
+  useTLS: true
+};
+
+let pusher = new Pusher(pusherConfig);
+console.log('📡 PUSHER CONFIGURADO COM SUCESSO (LOCAL/VERCEL)');
 
 const isPostgres = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 let db;
