@@ -1433,9 +1433,18 @@ async function exibirPedidos() {
 
       const card = document.createElement('div');
       const isAguardando = pedido.status === 'aguardando_fechamento';
-      card.className = `pedido-card status-${statusGeral} ${pedido.id === pedidoAtualizadoId ? 'destaque-atualizacao' : ''} ${classeAlertaAtraso} ${isAguardando ? 'alerta-fechamento' : ''}`;
+      card.className = `pedido-card minimized status-${statusGeral} ${pedido.id === pedidoAtualizadoId ? 'destaque-atualizacao' : ''} ${classeAlertaAtraso} ${isAguardando ? 'alerta-fechamento' : ''}`;
       card.dataset.pedidoId = pedido.id;
       card.dataset.mesa = mesaNomeExibicao; // Adicionado para facilitar o filtro exato
+
+      // Toggle minimização ao clicar no card (exceto se clicar em botões/inputs)
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('label')) {
+          return;
+        }
+        card.classList.toggle('minimized');
+      });
+
       card.innerHTML = `
         <div class="pedido-header">
           <div>
