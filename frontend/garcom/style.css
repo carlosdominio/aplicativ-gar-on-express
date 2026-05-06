@@ -578,7 +578,7 @@ button:hover { background-color: #2ecc71; }
 }
 
 /* Ajustes Gerais para Modais no Mobile */
-#modal-resumo-mesa, #modal-fechamento {
+#modal-resumo-mesa, #modal-fechamento-garcom {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -586,8 +586,9 @@ button:hover { background-color: #2ecc71; }
 
 #lista-itens-mesa {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto !important;
   margin-bottom: 1rem;
+  padding-right: 5px;
 }
 
 /* --- Estilos de Estoque --- */
