@@ -5,7 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GarçonExpress - Admin</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="style.css?v=1.0.2">
+  <link rel="stylesheet" href="style.css?v=1.0.3">
+  <style>
+    #historico-list {
+      display: flex !important;
+      gap: 20px !important;
+      align-items: flex-start !important;
+      width: 100% !important;
+      flex-wrap: nowrap !important;
+    }
+    #historico-finalizados, #historico-cancelados {
+      flex: 1 !important;
+      min-width: 300px !important;
+    }
+    @media (max-width: 1000px) {
+      #historico-list {
+        flex-direction: column !important;
+      }
+      #historico-finalizados, #historico-cancelados {
+        width: 100% !important;
+        min-width: 100% !important;
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- Modal de Login Admin -->
