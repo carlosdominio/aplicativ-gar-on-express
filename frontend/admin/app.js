@@ -2483,10 +2483,16 @@ async function confirmarPagamentoAdmin(modo = 'tudo') {
   if (modo !== 'imprimir' && isPagamentoUnicoDinheiro) {
     const valorComparar = modo === 'cota' ? valor_por_pessoa : total;
     if (!valor_recebido || valor_recebido <= 0) {
-      return await mostrarAlerta("⚠️ O campo 'Valor Recebido' é obrigatório para pagamentos em Dinheiro!", "Aviso");
+      await mostrarAlerta("⚠️ O campo 'Valor Recebido' é obrigatório para pagamentos em Dinheiro!", "Aviso");
+      const inputRec = document.getElementById('fechamento-recebido-admin');
+      if (inputRec) { inputRec.focus(); inputRec.select(); }
+      return;
     }
     if (valor_recebido < valorComparar) {
-      return await mostrarAlerta(`⚠️ Valor insuficiente! O valor a pagar é R$ ${valorComparar.toFixed(2)} e você informou R$ ${valor_recebido.toFixed(2)}.`, "Aviso");
+      await mostrarAlerta(`⚠️ Valor insuficiente! O valor a pagar é R$ ${valorComparar.toFixed(2)} e você informou R$ ${valor_recebido.toFixed(2)}.`, "Aviso");
+      const inputRec = document.getElementById('fechamento-recebido-admin');
+      if (inputRec) { inputRec.focus(); inputRec.select(); }
+      return;
     }
   }
 
