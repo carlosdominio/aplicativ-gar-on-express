@@ -491,9 +491,9 @@ function exibirMenuLancar(categoria) {
       <img src="${item.imagem}" alt="${item.nome}" style="filter: ${disponivelReal === 0 ? 'grayscale(1)' : 'none'}; height: 110px; width: 100%; object-fit: cover; display: block; border-bottom: 1px solid #f0f0f0;">
       
       <div style="padding: 12px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
-        <h4 style="margin: 0 0 5px 0; font-size: 0.85rem; color: #2c3e50; line-height: 1.2; font-weight: 700; min-height: 2.8rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${item.nome}</h4>
+        <h4 style="margin: 0 0 2px 0; font-size: 0.85rem; color: #2c3e50; line-height: 1.2; font-weight: 700; min-height: 2.2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.nome}</h4>
         
-        <div style="margin-top: auto; padding-top: 5px;">
+        <div style="padding-top: 2px;">
            <p style="margin: 0 0 8px 0; color: #27ae60; font-weight: 900; font-size: 1.05rem;">R$ ${item.preco.toFixed(2)}</p>
            ${temEstoqueDefinido ? `
              <div style="background: ${disponivelReal <= 0 ? '#fff5f5' : '#f0f9ff'}; padding: 6px; border-radius: 6px; border: 1px solid ${disponivelReal <= 0 ? '#feb2b2' : '#bee3f8'}; width: 100%; box-sizing: border-box; margin-bottom: 5px;">
@@ -1981,9 +1981,9 @@ async function renderizarMenuEdicao(categoria = 'todas') {
       <img src="${item.imagem}" alt="${item.nome}" style="filter: ${estoqueDisponivel === 0 ? 'grayscale(1)' : 'none'}; height: 110px; width: 100%; object-fit: cover; display: block; border-bottom: 1px solid #f0f0f0;">
       
       <div style="padding: 12px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
-        <h4 style="margin: 0 0 5px 0; font-size: 0.85rem; color: #2c3e50; line-height: 1.2; font-weight: 700; min-height: 2.8rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${item.nome}</h4>
+        <h4 style="margin: 0 0 2px 0; font-size: 0.85rem; color: #2c3e50; line-height: 1.2; font-weight: 700; min-height: 2.2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.nome}</h4>
         
-        <div style="margin-top: auto; padding-top: 5px;">
+        <div style="padding-top: 2px;">
            <p style="margin: 0 0 8px 0; color: #27ae60; font-weight: 900; font-size: 1.05rem;">R$ ${item.preco.toFixed(2)}</p>
            ${temEstoqueDefinido ? `
              <div style="background: ${estoqueDisponivel <= 0 ? '#fff5f5' : '#f0f9ff'}; padding: 6px; border-radius: 6px; border: 1px solid ${estoqueDisponivel <= 0 ? '#feb2b2' : '#bee3f8'}; width: 100%; box-sizing: border-box; margin-bottom: 5px;">
