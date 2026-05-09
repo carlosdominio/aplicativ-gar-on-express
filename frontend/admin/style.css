@@ -436,6 +436,34 @@ button.btn-preparando { background-color: #f39c12; }
 button.btn-pronto { background-color: #27ae60; }
 button.btn-entregue { background-color: #95a5a6; }
 
+/* --- Botões Modernos para Modais --- */
+.modal-btn {
+  padding: 14px 25px !important;
+  border-radius: 12px !important;
+  font-weight: 900 !important;
+  font-size: 1rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.15) !important;
+}
+
+.modal-btn:active {
+  transform: translateY(2px) !important;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.15) !important;
+}
+
+.modal-btn-primary { background-color: #27ae60 !important; color: white !important; box-shadow: 0 4px 0 #219150 !important; }
+.modal-btn-secondary { background-color: #34495e !important; color: white !important; box-shadow: 0 4px 0 #2c3e50 !important; }
+.modal-btn-outline { background-color: #fff !important; color: #64748b !important; border: 2px solid #e2e8f0 !important; box-shadow: none !important; }
+.modal-btn-danger { background-color: #e74c3c !important; color: white !important; box-shadow: 0 4px 0 #c0392b !important; }
+
 /* Modal Styles - ISOLADOS PARA NÃO QUEBRAR LAYOUT */
 .modal {
   display: none;
