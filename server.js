@@ -880,6 +880,18 @@ app.post('/api/garcons', async (req, res) => {
     res.json({ success: true }); 
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
+app.put('/api/garcons/:id', async (req, res) => {
+  try {
+    const { nome, usuario, senha, telefone } = req.body;
+    if (senha) {
+      const hashed = await bcrypt.hash(senha, saltRounds);
+      await query('UPDATE garcons SET nome = ?, usuario = ?, senha = ?, telefone = ? WHERE id = ?', [nome, usuario, hashed, telefone, req.params.id]);
+    } else {
+      await query('UPDATE garcons SET nome = ?, usuario = ?, telefone = ? WHERE id = ?', [nome, usuario, telefone, req.params.id]);
+    }
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
 app.delete('/api/garcons/:id', async (req, res) => { 
   try {
     await query('DELETE FROM garcons WHERE id = ?', [req.params.id]); 
