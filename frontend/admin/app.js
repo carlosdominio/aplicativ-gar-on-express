@@ -1184,10 +1184,24 @@ async function exibirHistorico() {
 
   document.getElementById('faturamento-total-dia').innerText = `Faturamento Concluído: R$ ${faturamentoTotal.toFixed(2)}`;
   
-  // RE-APLICA O FILTRO CASO O USUÁRIO ESTEJA BUSCANDO ALGO
-  const campoBusca = document.getElementById('filtro-historico');
-  if (campoBusca && campoBusca.value) {
-      filtrarHistorico(campoBusca.value);
+  // ATUALIZA O DROPDOWN DE FILTRO DO HISTÓRICO
+  const selectFiltro = document.getElementById('filtro-historico-select');
+  if (selectFiltro) {
+      const valorAtual = selectFiltro.value;
+      const opcoes = new Set();
+      historico.forEach(p => {
+          opcoes.add(p.mesa_numero ? `Mesa ${p.mesa_numero}` : 'BALCÃO');
+          if (p.garcom_nome) opcoes.add(p.garcom_nome);
+      });
+
+      let htmlOpcoes = '<option value="">Todas as Mesas / Todos os Garçons</option>';
+      Array.from(opcoes).sort().forEach(opt => {
+          htmlOpcoes += `<option value="${opt}">${opt}</option>`;
+      });
+      selectFiltro.innerHTML = htmlOpcoes;
+      selectFiltro.value = valorAtual; // Mantém a seleção
+      
+      if (valorAtual) filtrarHistorico(valorAtual);
   }
 }
 async function limparHistoricoTotal() {

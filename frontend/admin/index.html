@@ -769,6 +769,19 @@
 
       <!-- Corpo do Modal com Scroll -->
       <div style="padding: 1.2rem; background: #f8fafc; overflow-y: auto; flex: 1;">
+        
+        <!-- Grid de Ações Superiores (Edit e Taxa) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+           <button id="btn-modal-editar" style="background: #34495e; color: white; padding: 12px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">✏️ EDITAR ITENS</button>
+           <div id="modal-taxa-container" style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: space-around; padding: 0 10px;">
+              <span style="font-size: 0.7rem; font-weight: 900; color: #64748b;">10% TAXA</span>
+              <label class="switch" id="modal-taxa-switch-label">
+                <input type="checkbox" id="modal-taxa-checkbox">
+                <span class="slider"></span>
+              </label>
+           </div>
+        </div>
+
         <!-- Seção de Totais e Impressão -->
         <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
           <div id="modal-opcoes-valores">
@@ -782,18 +795,6 @@
         <!-- Lista de Itens (Scroll Interno) -->
         <div id="modal-opcoes-itens-lista" style="margin-bottom: 15px; padding-right: 5px;">
            <!-- Injetado via JS -->
-        </div>
-
-        <!-- Grid de Ações Secundárias -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-           <button id="btn-modal-editar" style="background: #34495e; color: white; padding: 12px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer;">✏️ EDITAR ITENS</button>
-           <div id="modal-taxa-container" style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: space-around; padding: 0 10px;">
-              <span style="font-size: 0.7rem; font-weight: 900; color: #64748b;">10% TAXA</span>
-              <label class="switch" id="modal-taxa-switch-label">
-                <input type="checkbox" id="modal-taxa-checkbox">
-                <span class="slider"></span>
-              </label>
-           </div>
         </div>
       </div>
 
