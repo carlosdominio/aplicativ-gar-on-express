@@ -460,7 +460,13 @@
 
         <div class="modal-form-group">
           <label>Categoria</label>
-          <input type="text" id="menu-cat" placeholder="Ex: BEBIDAS, PORÇÕES">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <select id="menu-cat-select" onchange="alternarNovaCategoria(this.value)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e0; font-weight: bold; background: white;">
+              <!-- Categorias injetadas via JS -->
+            </select>
+            <input type="text" id="menu-cat-novo" placeholder="Digite o nome da nova categoria" class="hidden" style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #3498db; font-weight: bold;">
+            <input type="hidden" id="menu-cat">
+          </div>
         </div>
 
         <div class="modal-row">

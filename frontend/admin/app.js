@@ -935,11 +935,37 @@ async function excluirGarcom(id) {
 // MENU
 let idItemEdicaoMenu = null;
 
+function alternarNovaCategoria(valor) {
+  const inputNovo = document.getElementById('menu-cat-novo');
+  if (valor === 'NOVA_CATEGORIA') {
+    inputNovo.classList.remove('hidden');
+    inputNovo.focus();
+  } else {
+    inputNovo.classList.add('hidden');
+  }
+}
+
 async function abrirModalItemMenu(item = null) {
   idItemEdicaoMenu = item ? item.id : null;
   const modal = document.getElementById('modal-item-menu');
   const titulo = document.getElementById('modal-item-titulo');
   const btn = document.getElementById('btn-acao-menu');
+  const selectCat = document.getElementById('menu-cat-select');
+  const inputNovo = document.getElementById('menu-cat-novo');
+
+  // Popula o Select de categorias com as categorias existentes no cardápio
+  if (selectCat) {
+    const categoriasExistentes = [...new Set(cardapio.map(i => i.categoria.trim().toUpperCase()))].sort();
+    let html = '<option value="">Selecione uma categoria...</option>';
+    categoriasExistentes.forEach(cat => {
+      html += `<option value="${cat}">${cat}</option>`;
+    });
+    html += '<option value="NOVA_CATEGORIA" style="font-weight: bold; color: #27ae60;">➕ CRIAR NOVA CATEGORIA...</option>';
+    selectCat.innerHTML = html;
+  }
+  
+  inputNovo.classList.add('hidden');
+  inputNovo.value = '';
 
   if (item) {
     titulo.innerText = "✏️ Editar Item";
@@ -947,18 +973,29 @@ async function abrirModalItemMenu(item = null) {
     btn.style.background = "#e67e22";
     
     document.getElementById('menu-nome').value = item.nome;
-    document.getElementById('menu-cat').value = item.categoria;
     document.getElementById('menu-preco').value = item.preco;
     document.getElementById('menu-estoque').value = item.estoque;
     document.getElementById('menu-validade').value = item.validade || '';
     document.getElementById('menu-img').value = item.imagem;
+
+    // Tenta selecionar no dropdown
+    const catUpper = item.categoria.trim().toUpperCase();
+    if (selectCat.querySelector(`option[value="${catUpper}"]`)) {
+        selectCat.value = catUpper;
+    } else {
+        // Se a categoria por algum motivo não estiver na lista (ex: todos os itens dela foram deletados)
+        selectCat.value = 'NOVA_CATEGORIA';
+        inputNovo.classList.remove('hidden');
+        inputNovo.value = item.categoria;
+    }
   } else {
     titulo.innerText = "➕ Novo Item no Menu";
     btn.innerText = "🚀 CADASTRAR NO CARDÁPIO";
     btn.style.background = "#27ae60";
     
-    ['menu-nome', 'menu-cat', 'menu-preco', 'menu-img', 'menu-validade'].forEach(id => document.getElementById(id).value = '');
+    ['menu-nome', 'menu-preco', 'menu-img', 'menu-validade'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('menu-estoque').value = '-1';
+    selectCat.value = '';
   }
 
   modal.style.display = 'flex';
@@ -976,7 +1013,15 @@ function fecharModalItemMenu() {
 
 async function processarAcaoMenu() {
   const nome = document.getElementById('menu-nome').value;
-  const categoria = document.getElementById('menu-cat').value;
+  const selectCat = document.getElementById('menu-cat-select').value;
+  const inputNovo = document.getElementById('menu-cat-novo').value;
+  
+  // Define a categoria final
+  let categoria = selectCat;
+  if (selectCat === 'NOVA_CATEGORIA') {
+    categoria = inputNovo.trim();
+  }
+
   const preco = parseFloat(document.getElementById('menu-preco').value);
   const estoque = parseInt(document.getElementById('menu-estoque').value);
   const validade = document.getElementById('menu-validade').value;
@@ -986,7 +1031,7 @@ async function processarAcaoMenu() {
     return await mostrarAlerta("Por favor, preencha o nome, categoria e preço corretamente.", "Aviso");
   }
 
-  const payload = { nome, categoria, preco, imagem, estoque, validade };
+  const payload = { nome, categoria: categoria.toUpperCase(), preco, imagem, estoque, validade };
   const method = idItemEdicaoMenu ? 'PUT' : 'POST';
   const url = idItemEdicaoMenu ? `/api/menu/${idItemEdicaoMenu}` : '/api/menu';
 
