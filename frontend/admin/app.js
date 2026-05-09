@@ -775,6 +775,8 @@ async function abrirCaixa() {
 async function confirmarFechamentoCaixa() {
   if (!await mostrarConfirmacao("Tem certeza que deseja FECHAR O CAIXA e encerrar o expediente?", "Fechar Caixa")) return;
   
+  // Guardamos uma cópia dos dados do caixa antes de fechar para o relatório
+  const dadosCaixaParaRelatorio = { ...caixaAtual };
   const valorFinal = caixaAtual.valor_inicial + caixaAtual.total_dinheiro + caixaAtual.total_pix + caixaAtual.total_cartao;
   
   const res = await fetch('/api/caixa/fechar', {
@@ -784,7 +786,7 @@ async function confirmarFechamentoCaixa() {
   });
   
   if (res.ok) {
-    await mostrarAlerta(`Caixa fechado!\nTotal de Vendas: R$ ${caixaAtual.total_vendas.toFixed(2)}\nDinheiro em Caixa: R$ ${(caixaAtual.valor_inicial + caixaAtual.total_dinheiro).toFixed(2)}`, "Sucesso");
+    await mostrarAlerta(`Caixa fechado com sucesso!\n\nTotal de Vendas: R$ ${dadosCaixaParaRelatorio.total_vendas.toFixed(2)}\nDinheiro em Caixa: R$ ${(dadosCaixaParaRelatorio.valor_inicial + dadosCaixaParaRelatorio.total_dinheiro).toFixed(2)}`, "Sucesso");
     
     // Zera os indicadores de faturamento e vendas no topo imediatamente
     const elFat = document.getElementById('faturamento-resumo');
@@ -792,6 +794,24 @@ async function confirmarFechamentoCaixa() {
     if (elFat) elFat.innerText = `R$ 0,00`;
     if (elVendas) elVendas.innerText = `R$ 0,00`;
     
+    // Pergunta se deseja imprimir o resumo (PDF)
+    // Forçamos a variável global temporariamente para o imprimirResumoDiario usar os dados corretos
+    const caixaOriginal = caixaAtual;
+    caixaAtual = dadosCaixaParaRelatorio;
+    
+    await carregarHistorico(); // Garante que o histórico está carregado
+    
+    if (await mostrarConfirmacao("Deseja imprimir o resumo diário (PDF) do histórico de vendas?", "Imprimir Resumo", "Sim, Imprimir", "Não agora")) {
+        await imprimirResumoDiario();
+    }
+
+    // Pergunta se deseja limpar o histórico
+    if (await mostrarConfirmacao("Deseja LIMPAR o histórico de pedidos entregues e cancelados agora?", "Limpar Histórico", "Sim, Limpar", "Não")) {
+        await limparHistoricoTotal();
+    }
+
+    // Restaura e atualiza o status real
+    caixaAtual = caixaOriginal;
     carregarStatusCaixa();
   } else {
     const err = await res.json();
