@@ -492,7 +492,7 @@ function exibirMenuLancar(categoria) {
       
       <img src="${item.imagem}" alt="${item.nome}" style="filter: ${disponivelReal === 0 ? 'grayscale(1)' : 'none'}; height: 110px; width: 100%; object-fit: cover; display: block; border-bottom: 1px solid #f0f0f0;">
       
-      <div style="padding: 12px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
+      <div style="padding: 20px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
         <h4 style="margin: 0 0 2px 0; font-size: 0.85rem; color: #2c3e50; line-height: 1.2; font-weight: 700; min-height: 2.2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.nome}</h4>
         
         <div style="padding-top: 2px;">
@@ -2215,7 +2215,7 @@ async function renderizarMenuEdicao(categoria = 'todas') {
       
       <img src="${item.imagem}" alt="${item.nome}" style="filter: ${estoqueDisponivel === 0 ? 'grayscale(1)' : 'none'}; height: 110px; width: 100%; object-fit: cover; display: block; border-bottom: 1px solid #f0f0f0;">
       
-      <div style="padding: 12px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
+      <div style="padding: 20px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
         <h4 style="margin: 0 0 2px 0; font-size: 0.85rem; color: #2c3e50; line-height: 1.2; font-weight: 700; min-height: 2.2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.nome}</h4>
         
         <div style="padding-top: 2px;">
