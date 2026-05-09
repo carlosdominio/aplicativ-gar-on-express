@@ -292,7 +292,6 @@ main {
 .pedido-card.minimized .pedido-footer,
 .pedido-card.minimized .status-badge,
 .pedido-card.minimized small,
-.pedido-card.minimized .pedido-cronometro,
 .pedido-card.minimized .pedido-header > div:last-child {
   display: none !important;
 }
@@ -353,9 +352,7 @@ main {
 }
 
 .pedido-card.status-aguardando_fechamento {
-  border-left-color: #9b59b6;
-  background-color: #f5ebfa;
-  animation: pulse-purple 2s infinite;
+  border-left-color: #d4af37;
 }
 
 @keyframes pulse-purple {
@@ -864,11 +861,12 @@ button.btn-entregue { background-color: #95a5a6; }
 
 /* Animações */
 .alerta-fechamento { 
-  animation: pulseDourado 2s infinite ease-in-out !important; 
-  border-left: 8px solid #d4af37 !important; /* Mantém a borda lateral dourada */
-  box-shadow: 0 0 0 3px #d4af37, 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important; /* Sombra externa como borda sem ocupar espaço */
+  background-color: #fff !important; /* Fundo branco fixo */
+  border-left: 8px solid #d4af37 !important; /* Apenas borda dourada na esquerda */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; /* Mesma sombra das outras mesas */
+  opacity: 1 !important;
+  animation: none !important; /* Remove qualquer pulsação */
 }
-@keyframes pulseDourado { 0% { background-color: #fff; } 50% { background-color: #fffdf0; } 100% { background-color: #fff; } }
 .alerta-borda-pisca { animation: piscaBordaVermelha 1.5s infinite ease-in-out !important; border-width: 4px !important; box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
 @keyframes piscaBordaVermelha { 0% { border-color: #e74c3c; } 50% { border-color: #f5f5f5; } 100% { border-color: #e74c3c; } }
 .pedido-card.destaque-atualizacao { animation: piskarDestaque 3s ease-in-out; border: 3px solid #3498db !important; box-shadow: 0 0 20px rgba(52, 152, 219, 0.4); }
