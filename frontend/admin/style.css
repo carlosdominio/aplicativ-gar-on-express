@@ -711,6 +711,56 @@ button.btn-entregue { background-color: #95a5a6; }
 }
 .menu-config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
 
+/* --- Estilos para Formulários dentro de Modais --- */
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.modal-form-group label {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-form-group input, 
+.modal-form-group select, 
+.modal-form-group textarea {
+  padding: 12px 15px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  font-size: 0.95rem !important;
+  color: #1e293b !important;
+  background-color: #ffffff !important;
+  transition: all 0.2s ease !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-form-group input:focus {
+  border-color: #3498db !important;
+  outline: none !important;
+  box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1) !important;
+  background-color: #fff !important;
+}
+
+.modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+@media (max-width: 480px) {
+  .modal-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 /* --- Estilos do Modal de Edição Melhorado --- */
 .edit-modal-grid {
   display: grid;
