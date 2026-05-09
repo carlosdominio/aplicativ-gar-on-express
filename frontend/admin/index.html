@@ -317,50 +317,61 @@
           </div>
           </div>
           <div id="group-balcao" class="sub-tab-content hidden">
-          <div class="kanban-board">
-          <div class="kanban-col" id="col-pendentes-balcao">
-            <h3>🔥 Pendentes <span class="badge-mini" id="count-pendentes-balcao">0</span></h3>
-            <!-- Controles de Paginação Pendentes Balcão -->
-            <div id="nav-pendentes-balcao" style="display:none; justify-content:space-between; align-items:center; margin-bottom:10px; background:#fff; padding:8px; border-radius:10px; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-              <button onclick="mudarPagina('pendentes', 'balcao', -1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">◀</button>
-              <span id="page-info-pendentes-balcao" style="font-weight:bold; font-size:0.85rem; color:#64748b;">1 / 1</span>
-              <button onclick="mudarPagina('pendentes', 'balcao', 1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">▶</button>
+            <div class="kanban-board">
+              <div class="kanban-col" id="col-pendentes-balcao">
+                <h3>🔥 Pendentes <span class="badge-mini" id="count-pendentes-balcao">0</span></h3>
+                <!-- Controles de Paginação Pendentes Balcão -->
+                <div id="nav-pendentes-balcao" style="display:none; justify-content:space-between; align-items:center; margin-bottom:0px; background:#fff; padding:8px; border-radius:10px; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                  <button onclick="mudarPagina('pendentes', 'balcao', -1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">◀</button>
+                  <span id="page-info-pendentes-balcao" style="font-weight:bold; font-size:0.85rem; color:#64748b;">1 / 1</span>
+                  <button onclick="mudarPagina('pendentes', 'balcao', 1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">▶</button>
+                </div>
+                <div id="list-pendentes-balcao" class="pedidos-list"></div>
+              </div>
+              <div class="kanban-col" id="col-servidos-balcao">
+                <h3>🍽️ Em Consumo <span class="badge-mini" id="count-servidos-balcao">0</span></h3>
+                <!-- Controles de Paginação Em Consumo Balcão -->
+                <div id="nav-servidos-balcao" style="display:none; justify-content:space-between; align-items:center; margin-bottom:0px; background:#fff; padding:8px; border-radius:10px; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                  <button onclick="mudarPagina('servidos', 'balcao', -1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">◀</button>
+                  <span id="page-info-servidos-balcao" style="font-weight:bold; font-size:0.85rem; color:#64748b;">1 / 1</span>
+                  <button onclick="mudarPagina('servidos', 'balcao', 1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">▶</button>
+                </div>
+                <div id="list-servidos-balcao" class="pedidos-list"></div>
+              </div>
             </div>
-            <div id="list-pendentes-balcao" class="pedidos-list"></div>
-          </div>
-          <div class="kanban-col" id="col-servidos-balcao">
-            <h3>🍽️ Em Consumo <span class="badge-mini" id="count-servidos-balcao">0</span></h3>
-            <!-- Controles de Paginação Em Consumo Balcão -->
-            <div id="nav-servidos-balcao" style="display:none; justify-content:space-between; align-items:center; margin-bottom:10px; background:#fff; padding:8px; border-radius:10px; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-              <button onclick="mudarPagina('servidos', 'balcao', -1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">◀</button>
-              <span id="page-info-servidos-balcao" style="font-weight:bold; font-size:0.85rem; color:#64748b;">1 / 1</span>
-              <button onclick="mudarPagina('servidos', 'balcao', 1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">▶</button>
-            </div>
-            <div id="list-servidos-balcao" class="pedidos-list"></div>
-          </div>
-          <div class="kanban-col" id="col-fechamento-balcao">
-            <h3>💰 Fechamento <span class="badge-mini" id="count-fechamento-balcao">0</span></h3>
-            <!-- Controles de Paginação Fechamento Balcão -->
-            <div id="nav-fechamento-balcao" style="display:none; justify-content:space-between; align-items:center; margin-bottom:10px; background:#fff; padding:8px; border-radius:10px; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-              <button onclick="mudarPagina('fechamento', 'balcao', -1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">◀</button>
-              <span id="page-info-fechamento-balcao" style="font-weight:bold; font-size:0.85rem; color:#64748b;">1 / 1</span>
-              <button onclick="mudarPagina('fechamento', 'balcao', 1)" style="background:#f1f2f6; color:#2c3e50; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">▶</button>
-            </div>
-            <div id="list-fechamento-balcao" class="pedidos-list"></div>
           </div>    </section>
 
     <section id="historico-section" class="hidden">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2>Histórico de Hoje <span id="data-historico" style="color: #666; font-size: 1rem;"></span></h2>
-        <div style="text-align: right;">
-          <div id="faturamento-total-dia" style="font-weight: bold; font-size: 1.2rem; color: #27ae60;">Faturamento Concluído: R$ 0,00</div>
-          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
-            <button onclick="imprimirResumoDiario()" style="background-color: #3498db; font-size: 0.8rem;">🖨️ Imprimir Resumo</button>
-            <button onclick="limparHistoricoTotal()" style="background-color: #e74c3c; font-size: 0.8rem;">🗑️ Limpar Tudo</button>
+      <!-- Barra de Busca Fixa do Histórico -->
+      <div class="filters-bar" style="position: sticky; top: 135px; z-index: 100; background: white; margin-bottom: 2rem; border-bottom: 3px solid #3498db; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div style="font-weight: 900; color: #2c3e50; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">🔍</span> BUSCAR:
+          </div>
+
+          <div style="flex: 2;">
+            <input type="text" id="filtro-historico" placeholder="Digite o número da mesa ou nome do garçom..." 
+                   oninput="filtrarHistorico(this.value)"
+                   style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 2.5px solid #e2e8f0; font-size: 1rem; font-weight: bold; outline: none; transition: 0.3s; box-sizing: border-box;">
+          </div>
+          
+          <button onclick="document.getElementById('filtro-historico').value=''; filtrarHistorico('');" 
+                  class="modal-btn modal-btn-outline" style="padding: 10px 20px !important; font-size: 0.8rem !important;">
+            LIMPAR BUSCA
+          </button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <h2 style="font-size: 1.2rem; margin: 0;">📅 Histórico de Hoje: <span id="data-historico" style="color: #34495e;"></span></h2>
+        <div style="text-align: right; display: flex; align-items: center; gap: 20px;">
+          <div id="faturamento-total-dia" style="font-weight: 900; font-size: 1.4rem; color: #27ae60;">R$ 0,00</div>
+          <div style="display: flex; gap: 10px;">
+            <button onclick="imprimirResumoDiario()" style="background: #3498db; color: white; padding: 10px 15px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 0 #2980b9;">🖨️ RESUMO</button>
+            <button onclick="limparHistoricoTotal()" style="background: #fff; color: #e74c3c; border: 1.5px solid #e74c3c; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">🗑️ LIMPAR</button>
           </div>
         </div>
       </div>
-      <div id="historico-list">
+
+      <div id="historico-list" style="display: flex; gap: 2rem; align-items: flex-start;">
         <div id="historico-finalizados">
           <h3 style="color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 5px; margin-bottom: 15px;">✅ Pedidos Finalizados</h3>
           <div id="lista-finalizados"></div>
@@ -746,9 +757,9 @@
 
   <!-- Modal de Opções da Mesa (Completo) -->
   <div id="modal-opcoes-mesa" class="modal">
-    <div class="modal-content" style="max-width: 500px; padding: 0; border-radius: 15px; overflow: hidden;">
-      <!-- Header do Modal -->
-      <div id="modal-opcoes-header-bg" style="padding: 1.5rem; color: white; display: flex; justify-content: space-between; align-items: flex-start;">
+    <div class="modal-content" style="max-width: 500px; max-height: 90vh; display: flex; flex-direction: column;">
+      <!-- Header do Modal Fixo -->
+      <div id="modal-opcoes-header-bg" style="padding: 1.5rem; color: white; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0;">
         <div>
           <h2 id="modal-opcoes-titulo" style="margin: 0; font-size: 1.8rem; font-weight: 900;">Mesa</h2>
           <p id="modal-opcoes-info" style="margin: 5px 0 0 0; opacity: 0.9; font-size: 0.9rem; font-weight: bold;"></p>
@@ -756,7 +767,8 @@
         <span class="close" onclick="fecharModalOpcoes()" style="color: white; opacity: 0.8; font-size: 2rem;">&times;</span>
       </div>
 
-      <div style="padding: 1.2rem; background: #f8fafc;">
+      <!-- Corpo do Modal com Scroll -->
+      <div style="padding: 1.2rem; background: #f8fafc; overflow-y: auto; flex: 1;">
         <!-- Seção de Totais e Impressão -->
         <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
           <div id="modal-opcoes-valores">
@@ -768,11 +780,11 @@
         </div>
 
         <!-- Lista de Itens (Scroll Interno) -->
-        <div id="modal-opcoes-itens-lista" style="max-height: 350px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
+        <div id="modal-opcoes-itens-lista" style="margin-bottom: 15px; padding-right: 5px;">
            <!-- Injetado via JS -->
         </div>
 
-        <!-- Grid de Ações -->
+        <!-- Grid de Ações Secundárias -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
            <button id="btn-modal-editar" style="background: #34495e; color: white; padding: 12px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer;">✏️ EDITAR ITENS</button>
            <div id="modal-taxa-container" style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: space-around; padding: 0 10px;">
@@ -783,11 +795,11 @@
               </label>
            </div>
         </div>
+      </div>
 
-        <!-- Botões de Ação Principal (Footer) -->
-        <div id="modal-opcoes-footer-acoes" style="margin-top: 15px;">
+      <!-- Footer Fixo com Ações Principais (Sempre Visível) -->
+      <div id="modal-opcoes-footer-acoes" style="padding: 1.2rem; background: #fff; border-top: 2px solid #e2e8f0; flex-shrink: 0;">
            <!-- Injetado via JS (Entregar Tudo / Fechar Conta) -->
-        </div>
       </div>
     </div>
   </div>
