@@ -1407,9 +1407,34 @@ function aplicarFiltrosVisuais() {
       const info = document.getElementById(`page-info-${col}-${group}`);
       
       if (nav && info) {
-        if (totalItens > ITENS_POR_PAGINA_ATIVOS) {
+        // SEMPRE VISÍVEL nas colunas Pedidos e Fechamento (pedido do usuário)
+        // Para 'servidos', mantém visível apenas se houver mais que ITENS_POR_PAGINA_ATIVOS
+        const sempreVisivel = (col === 'pendentes' || col === 'fechamento');
+        
+        if (sempreVisivel || totalItens > ITENS_POR_PAGINA_ATIVOS) {
           nav.style.display = 'flex';
-          info.textContent = `${paginaAtualAtivos[group][col]} / ${totalPaginas}`;
+          
+          const pagExibicao = totalPaginas === 0 ? 0 : paginaAtualAtivos[group][col];
+          info.textContent = `${pagExibicao} / ${totalPaginas}`;
+          
+          // Desativa botões se não houver para onde navegar
+          const buttons = nav.querySelectorAll('button');
+          if (buttons.length >= 2) {
+            const btnPrev = buttons[0];
+            const btnNext = buttons[1];
+            
+            const podeVoltar = paginaAtualAtivos[group][col] > 1;
+            const podeAvancar = paginaAtualAtivos[group][col] < totalPaginas;
+            
+            btnPrev.disabled = !podeVoltar;
+            btnNext.disabled = !podeAvancar;
+            btnPrev.style.opacity = podeVoltar ? '1' : '0.2';
+            btnNext.style.opacity = podeAvancar ? '1' : '0.2';
+            btnPrev.style.cursor = podeVoltar ? 'pointer' : 'default';
+            btnNext.style.cursor = podeAvancar ? 'pointer' : 'default';
+            btnPrev.style.pointerEvents = podeVoltar ? 'auto' : 'none';
+            btnNext.style.pointerEvents = podeAvancar ? 'auto' : 'none';
+          }
         } else {
           nav.style.display = 'none';
         }
