@@ -1234,6 +1234,12 @@ input:checked + .slider:before {
   min-width: 0;
 }
 
+#lista-finalizados, #lista-cancelados {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem; /* Espaço entre cada card no histórico */
+}
+
 @media (max-width: 1024px) {
   #historico-list {
     flex-direction: column;
