@@ -3104,7 +3104,9 @@ function mostrarAlerta(msg, titulo = "Aviso") {
     
     document.getElementById('btn-sistema-confirmar').onclick = () => {
       modal.style.display = 'none';
-      document.body.classList.remove('modal-open');
+      if (abaAtiva !== 'lancar' && abaAtiva !== 'ativos') {
+          document.body.classList.remove('modal-open');
+      }
       resolve(true);
     };
   });
@@ -3125,13 +3127,17 @@ function mostrarConfirmacao(msg, titulo = "Confirmação", txtConfirmar = "Confi
     
     document.getElementById('btn-sistema-confirmar').onclick = () => {
       modal.style.display = 'none';
-      document.body.classList.remove('modal-open');
+      if (abaAtiva !== 'lancar' && abaAtiva !== 'ativos') {
+          document.body.classList.remove('modal-open');
+      }
       resolve(true);
     };
     
     document.getElementById('btn-sistema-cancelar').onclick = () => {
       modal.style.display = 'none';
-      document.body.classList.remove('modal-open');
+      if (abaAtiva !== 'lancar' && abaAtiva !== 'ativos') {
+          document.body.classList.remove('modal-open');
+      }
       resolve(false);
     };
   });

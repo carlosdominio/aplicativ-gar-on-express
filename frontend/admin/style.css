@@ -281,8 +281,8 @@ main {
 }
 
 .pedido-card.minimized {
-  max-height: 60px;
-  padding: 12px;
+  max-height: 50px; /* Reduzido de 60px para garantir que caibam 4 ou mais */
+  padding: 8px; /* Reduzido de 12px */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -912,7 +912,7 @@ button.btn-entregue { background-color: #95a5a6; }
   display: flex;
   flex-direction: column;
   gap: 0.5rem; /* Reduzido de 1.2rem para aproximar as mesas */
-  height: calc(100vh - 275px); /* Ajuste leve na altura */
+  height: calc(100vh - 230px); /* Aumentado o espaço disponível para caberem 4 mesas */
   overflow-y: auto; /* Scroll apenas aqui */
   padding-right: 5px;
   
