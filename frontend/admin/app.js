@@ -970,6 +970,9 @@ async function abrirModalItemMenu(item = null) {
     btn.innerText = "💾 SALVAR ALTERAÇÕES";
     btn.style.background = "#e67e22";
     
+    const btnExcluir = document.getElementById('btn-excluir-item-menu');
+    if (btnExcluir) btnExcluir.classList.remove('hidden');
+
     document.getElementById('menu-nome').value = item.nome;
     document.getElementById('menu-preco').value = item.preco;
     document.getElementById('menu-estoque').value = item.estoque;
@@ -991,6 +994,9 @@ async function abrirModalItemMenu(item = null) {
     btn.innerText = "🚀 CADASTRAR NO CARDÁPIO";
     btn.style.background = "#27ae60";
     
+    const btnExcluir = document.getElementById('btn-excluir-item-menu');
+    if (btnExcluir) btnExcluir.classList.add('hidden');
+    
     ['menu-nome', 'menu-preco', 'menu-img', 'menu-validade'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('menu-estoque').value = '-1';
     selectCat.value = '';
@@ -998,6 +1004,25 @@ async function abrirModalItemMenu(item = null) {
 
   modal.style.display = 'flex';
   document.body.classList.add('modal-open');
+}
+
+async function excluirDoMenuAtual() {
+    if (!idItemEdicaoMenu) return;
+    if (await mostrarConfirmacao("Deseja realmente excluir este item do cardápio permanentemente?", "Excluir Item")) {
+        try {
+            const res = await fetch(`/api/menu/${idItemEdicaoMenu}`, { method: 'DELETE' });
+            if (res.ok) {
+                mostrarToast("✅ Item removido do cardápio!");
+                fecharModalItemMenu();
+                carregarCardapio();
+            } else {
+                const err = await res.json();
+                mostrarAlerta("Erro ao excluir: " + (err.error || "Erro desconhecido"));
+            }
+        } catch (e) {
+            mostrarAlerta("Erro de conexão ao excluir item.");
+        }
+    }
 }
 
 function fecharModalItemMenu() {
@@ -3780,6 +3805,29 @@ async function imprimirRelatorioCaixa() {
 // --- LOGICA DO NOVO MODAL DE OPÇÕES DA MESA ---
 let pedidoEmOpcoes = null;
 
+async function confirmarCancelamentoDesdeOpcoes() {
+    if (!pedidoEmOpcoes) return;
+
+    if (await mostrarConfirmacao("⚠️ DESEJA REALMENTE CANCELAR TODO O PEDIDO?\n\nA mesa será liberada e o pedido irá para o histórico como CANCELADO.", "Atenção", "SIM, CANCELAR", "NÃO")) {
+        try {
+            const res = await fetch(`/api/pedidos/${pedidoEmOpcoes.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'cancelado' })
+            });
+            if (res.ok) {
+                mostrarToast("✅ Pedido cancelado!");
+                fecharModalOpcoes();
+                carregarPedidos();
+            } else {
+                mostrarAlerta("Erro ao cancelar pedido.");
+            }
+        } catch (e) {
+            mostrarAlerta("Erro de conexão ao cancelar.");
+        }
+    }
+}
+
 async function abrirModalOpcoes(pedidoId) {
   const pedido = pedidos.find(p => p.id == pedidoId);
   if (!pedido) return;
@@ -3791,6 +3839,12 @@ async function abrirModalOpcoes(pedidoId) {
   // 1. DADOS BÁSICOS E CORES
   document.getElementById('modal-opcoes-titulo').innerText = mesaNome;
   document.getElementById('modal-opcoes-info').innerText = `Pedido #${pedido.id} | Garçom: ${pedido.garcom_id || 'Admin'}`;
+  
+  // Exibir observação do pedido se existir
+  const infoExtra = document.getElementById('modal-opcoes-info-extra');
+  if (infoExtra) {
+    infoExtra.innerHTML = pedido.observacao ? `<div style="background:#fff3cd; color:#856404; padding:8px 12px; border-radius:8px; margin-top:10px; font-weight:bold; font-size:0.9rem; border:1px solid #ffeeba;">📝 OBS: ${pedido.observacao}</div>` : '';
+  }
   
   const headerBg = document.getElementById('modal-opcoes-header-bg');
   const itens = await fetch(`/api/pedidos/${pedidoId}/itens`).then(res => res.json());
@@ -3857,7 +3911,10 @@ async function abrirModalOpcoes(pedidoId) {
     itensPendentes.forEach(i => {
       htmlItens += `
         <div style="border-left:4px solid #e74c3c; background:white; border-radius:8px; padding:8px 12px; margin-bottom:6px; border:1px solid #fee2e2; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-weight: 700; font-size: 0.9rem;">${i.quantidade}x ${i.nome}</span>
+          <div style="flex: 1;">
+            <span style="font-weight: 700; font-size: 0.9rem;">${i.quantidade}x ${i.nome}</span>
+            ${i.observacao ? `<br><small style="color:#d35400; font-weight:bold; font-size:0.75rem;">📝 ${i.observacao}</small>` : ''}
+          </div>
           <span style="font-size: 0.8rem; font-weight: 900; color: #e74c3c;">R$ ${(i.preco * i.quantidade * (cobrarTaxaNoPedido ? 1.1 : 1)).toFixed(2)}</span>
         </div>
       `;
@@ -3868,7 +3925,10 @@ async function abrirModalOpcoes(pedidoId) {
     itensEntregues.forEach(i => {
       htmlItens += `
         <div style="border-left:4px solid #27ae60; background:white; border-radius:8px; padding:8px 12px; margin-bottom:6px; border:1px solid #dcfce7; display:flex; justify-content:space-between; align-items:center; opacity: 0.7;">
-          <span style="font-size: 0.85rem;">${i.quantidade}x ${i.nome}</span>
+          <div style="flex: 1;">
+            <span style="font-size: 0.85rem;">${i.quantidade}x ${i.nome}</span>
+            ${i.observacao ? `<br><small style="color:#d35400; font-weight:bold; font-size:0.7rem;">📝 ${i.observacao}</small>` : ''}
+          </div>
           <span style="font-size: 0.75rem; font-weight: bold; color: #27ae60;">R$ ${(i.preco * i.quantidade * (cobrarTaxaNoPedido ? 1.1 : 1)).toFixed(2)}</span>
         </div>
       `;

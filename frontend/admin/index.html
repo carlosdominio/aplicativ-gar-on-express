@@ -448,7 +448,10 @@
       <!-- Header Fixo -->
       <div id="modal-item-header" style="background: #2c3e50; padding: 1rem 1.5rem; color: white; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
         <h2 id="modal-item-titulo" style="margin: 0; font-size: 1.2rem; font-weight: 900; text-transform: uppercase;">Novo Item</h2>
-        <span class="close" onclick="fecharModalItemMenu()" style="color: white; opacity: 0.8; font-size: 2rem;">&times;</span>
+        <div style="display: flex; gap: 15px; align-items: center;">
+          <button id="btn-excluir-item-menu" class="hidden" onclick="excluirDoMenuAtual()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ff7675; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s;" onmouseover="this.style.background='rgba(231, 76, 60, 0.2)'" onmouseout="this.style.background='transparent'" title="Excluir este item permanentemente">🗑️</button>
+          <span class="close" onclick="fecharModalItemMenu()" style="color: white; opacity: 0.8; font-size: 2rem;">&times;</span>
+        </div>
       </div>
 
       <!-- Corpo com Scroll -->
@@ -492,7 +495,7 @@
       </div>
 
       <!-- Footer Fixo com Botões (Sempre Visível) -->
-      <div style="padding: 1rem 1.5rem; background: #fff; border-top: 2px solid #e2e8f0; display: flex; gap: 12px; flex-shrink: 0;">
+      <div style="padding: 0.8rem 1.5rem; background: #fff; border-top: 2px solid #e2e8f0; display: flex; gap: 12px; flex-shrink: 0;">
         <button id="btn-acao-menu" onclick="processarAcaoMenu()" class="modal-btn modal-btn-primary" style="flex: 2;">💾 SALVAR NO CARDÁPIO</button>
         <button onclick="fecharModalItemMenu()" class="modal-btn modal-btn-outline" style="flex: 1;">CANCELAR</button>
       </div>
@@ -772,7 +775,10 @@
             <h2 id="modal-opcoes-titulo" style="margin: 0; font-size: 1.8rem; font-weight: 900;">Mesa</h2>
             <p id="modal-opcoes-info" style="margin: 5px 0 0 0; opacity: 0.9; font-size: 0.9rem; font-weight: bold;"></p>
           </div>
-          <span class="close" onclick="fecharModalOpcoes()" style="color: white; opacity: 0.8; font-size: 2rem;">&times;</span>
+          <div style="display: flex; gap: 15px; align-items: center;">
+            <button onclick="confirmarCancelamentoDesdeOpcoes()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ff7675; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s;" onmouseover="this.style.background='rgba(231, 76, 60, 0.2)'" onmouseout="this.style.background='transparent'" title="CANCELAR TODO O PEDIDO">🗑️</button>
+            <span class="close" onclick="fecharModalOpcoes()" style="color: white; opacity: 0.8; font-size: 2rem;">&times;</span>
+          </div>
         </div>
 
         <!-- Botões de Configuração no Topo -->
