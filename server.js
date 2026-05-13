@@ -455,6 +455,21 @@ app.put('/api/pedidos/:id/marcar-entregue', async (req, res) => {
   const { id } = req.params;
   try {
     await query("UPDATE pedido_itens SET status = 'entregue' WHERE pedido_id = ?", [id]);
+    
+    // Consolidação de itens duplicados (mesmo menu_id e observação)
+    const itens = (await query("SELECT id, menu_id, quantidade, observacao FROM pedido_itens WHERE pedido_id = ? AND status = 'entregue'", [id])).rows;
+    const vistos = {};
+    for (const item of itens) {
+      const chave = `${item.menu_id}_${item.observacao || ''}`;
+      if (vistos[chave]) {
+        // Soma quantidade ao primeiro visto e remove o atual
+        await query("UPDATE pedido_itens SET quantidade = quantidade + ? WHERE id = ?", [item.quantidade, vistos[chave].id]);
+        await query("DELETE FROM pedido_itens WHERE id = ?", [item.id]);
+      } else {
+        vistos[chave] = item;
+      }
+    }
+
     await query("UPDATE pedidos SET status = 'servido' WHERE id = ?", [id]);
     await notifyStatus(id, null, 'servido');
     await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
@@ -465,13 +480,25 @@ app.put('/api/pedidos/:id/marcar-entregue', async (req, res) => {
 app.put('/api/itens/:id/pronto', async (req, res) => {
   const { id } = req.params;
   try {
-    const item = (await query("SELECT pedido_id FROM pedido_itens WHERE id = ?", [id])).rows[0];
+    const item = (await query("SELECT pedido_id, menu_id, quantidade, observacao FROM pedido_itens WHERE id = ?", [id])).rows[0];
     if (!item) return res.status(404).json({ error: 'Item não encontrado' });
-    
-    await query("UPDATE pedido_itens SET status = 'entregue' WHERE id = ?", [id]);
-    
-    // Verifica se ainda existem itens pendentes no pedido
-    const pendentes = (await query("SELECT id FROM pedido_itens WHERE pedido_id = ? AND status = 'pendente'", [item.pedido_id])).rows;
+
+    // Tenta encontrar um item idêntico que já foi entregue para mesclar
+    const itemExistente = (await query(
+      "SELECT id, quantidade FROM pedido_itens WHERE pedido_id = ? AND menu_id = ? AND status = 'entregue' AND (observacao = ? OR (observacao IS NULL AND ? IS NULL)) AND id != ?", 
+      [item.pedido_id, item.menu_id, item.observacao, item.observacao, id]
+    )).rows[0];
+
+    if (itemExistente) {
+      // Mescla com o item existente e remove o atual
+      await query("UPDATE pedido_itens SET quantidade = quantidade + ? WHERE id = ?", [item.quantidade, itemExistente.id]);
+      await query("DELETE FROM pedido_itens WHERE id = ?", [id]);
+    } else {
+      // Apenas marca como entregue
+      await query("UPDATE pedido_itens SET status = 'entregue' WHERE id = ?", [id]);
+    }
+
+    // Verifica se ainda existem itens pendentes no pedido    const pendentes = (await query("SELECT id FROM pedido_itens WHERE pedido_id = ? AND status = 'pendente'", [item.pedido_id])).rows;
     if (pendentes.length === 0) {
       await query("UPDATE pedidos SET status = 'servido' WHERE id = ?", [item.pedido_id]);
       await notifyStatus(item.pedido_id, null, 'servido');
@@ -955,7 +982,17 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
       }
     }
     await query('UPDATE pedidos SET status = ? WHERE id = ?', [status, id]);
-    const pm = (await query("SELECT mesa_id FROM pedidos WHERE id = ?", [id])).rows[0];
+    const pm = (await query("SELECT p.mesa_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
+    
+    if (status === 'cancelado') {
+      const mesaNum = pm ? pm.numero || 'BALCÃO' : 'BALCÃO';
+      await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
+        pedido_id: id, 
+        mesa_numero: mesaNum,
+        mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi CANCELADO pelo Admin.` 
+      });
+    }
+
     if ((status === 'cancelado' || status === 'entregue') && pm && pm.mesa_id) await query("UPDATE mesas SET status = 'livre' WHERE id = ?", [pm.mesa_id]);
     await notifyStatus(id, null, status);
     await safePusherTrigger('garconnexpress', 'menu-atualizado', {});

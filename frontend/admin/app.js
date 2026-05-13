@@ -257,11 +257,36 @@ async function mudarQtdItem(index, qtd) {
   }
 
   if (novaQtd > 0) {
-    // Se a quantidade aumentou, resetamos para 'pendente' para que a cozinha prepare as novas unidades
     if (novaQtd > itemNoPedido.quantidade) {
-        itemNoPedido.status = 'pendente';
+        // Se o item já foi entregue ou está pronto, não alteramos este item diretamente.
+        // Adicionamos a diferença como um novo item 'pendente'.
+        if (itemNoPedido.status === 'entregue' || itemNoPedido.status === 'pronto') {
+            const diferenca = novaQtd - itemNoPedido.quantidade;
+            const existPendente = itensEmEdicao.find(i => 
+                i.menu_id === itemNoPedido.menu_id && 
+                i.status === 'pendente' && 
+                (i.observacao || '') === (itemNoPedido.observacao || '')
+            );
+            if (existPendente) {
+                existPendente.quantidade += diferenca;
+            } else {
+                itensEmEdicao.push({
+                    ...itemNoPedido,
+                    id: undefined,
+                    quantidade: diferenca,
+                    status: 'pendente',
+                    selecionado: false
+                });
+            }
+            // Não alteramos a quantidade do item original aqui, pois ele mantém o que já foi entregue
+        } else {
+            // Se já era pendente, apenas aumenta a quantidade
+            itemNoPedido.quantidade = novaQtd;
+        }
+    } else {
+        // Redução de quantidade: diminui o item atual
+        itemNoPedido.quantidade = novaQtd;
     }
-    itensEmEdicao[index].quantidade = novaQtd; 
     renderizarItensEdicao(); 
     renderizarMenuEdicao(); // Re-renderiza cardápio para atualizar estoque disponível
   }
