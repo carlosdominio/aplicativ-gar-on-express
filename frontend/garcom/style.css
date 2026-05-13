@@ -211,9 +211,21 @@ main {
   box-shadow: 0 0 15px rgba(231, 76, 60, 0.6) !important;
 }
 
+.pedido-pronto-alert {
+  animation: pisca-pronto 0.8s infinite alternate !important;
+  border: 3px solid #fff !important;
+  box-shadow: 0 0 15px rgba(52, 152, 219, 0.6) !important;
+  background-color: #3498db !important;
+}
+
 @keyframes pisca-alerta {
   from { background-color: #f39c12; transform: scale(1); }
   to { background-color: #e74c3c; transform: scale(1.05); }
+}
+
+@keyframes pisca-pronto {
+  from { background-color: #3498db; transform: scale(1); }
+  to { background-color: #2ecc71; transform: scale(1.05); }
 }
 
 .mesa.fechando { background-color: #9b59b6; color: white; border: none; cursor: not-allowed; opacity: 0.9; pointer-events: none; }

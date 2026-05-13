@@ -98,13 +98,13 @@ function mostrarAlerta(msg, titulo = "Aviso") {
   });
 }
 
-function mostrarConfirmacao(msg, titulo = "Confirmação") {
+function mostrarConfirmacao(msg, titulo = "Confirmação", txtConfirmar = "Confirmar", txtCancelar = "Cancelar") {
   return new Promise(resolve => {
     document.getElementById('modal-sistema-titulo').innerText = titulo;
     document.getElementById('modal-sistema-mensagem').innerText = msg;
     document.getElementById('btn-sistema-cancelar').classList.remove('hidden');
-    document.getElementById('btn-sistema-cancelar').innerText = "Cancelar";
-    document.getElementById('btn-sistema-confirmar').innerText = "Confirmar";
+    document.getElementById('btn-sistema-cancelar').innerText = txtCancelar;
+    document.getElementById('btn-sistema-confirmar').innerText = txtConfirmar;
     document.getElementById('btn-sistema-confirmar').style.background = "#e74c3c";
 
     const modal = document.getElementById('modal-sistema');
@@ -203,6 +203,19 @@ async function configurarPusher() {
     const channel = pusher.subscribe('garconnexpress');
     console.log('📺 Inscrito no canal: garconnexpress');
   
+  channel.bind('pedido-pronto', (data) => {
+    console.log('📢 Evento recebido: pedido-pronto', data);
+    // Tenta tocar som se possível
+    const audio = new Audio('/notificacao.mp3');
+    audio.play().catch(e => console.log('Erro som:', e));
+    
+    // Mostra apenas alerta informativo (sem o botão de entregar agora no modal)
+    mostrarAlerta(data.mensagem, "👨‍🍳 COZINHA: PEDIDO PRONTO!");
+
+    clearTimeout(timeoutPusher);
+    timeoutPusher = setTimeout(() => carregarMesas(), 500);
+  });
+
   channel.bind('novo-pedido', (data) => {
     console.log('📢 Evento recebido: novo-pedido', data);
     clearTimeout(timeoutPusher);
@@ -309,6 +322,12 @@ function exibirMesas() {
         statusTexto = `OCUPADA (${mesa.garcom_id})`;
       }
       
+      // DESTAQUE PARA PEDIDO PRONTO NA COZINHA
+      if (mesa.pedido_status === 'pronto') {
+        classeAlerta = 'pedido-pronto-alert';
+        statusTexto = '🔥 PRONTO PARA ENTREGA';
+      }
+
       if (mesa.pedido_created_at) {
         const minutos = calcularMinutos(mesa.pedido_created_at);
         cronometroHtml = `<div class="cronometro">⏱️ ${minutos} min</div>`;

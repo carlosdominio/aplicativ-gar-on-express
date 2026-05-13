@@ -55,6 +55,9 @@
             <span class="slider round"></span>
           </label>
         </div>
+        <button onclick="window.open('/cozinha', '_blank')" class="btn-whatsapp-header" style="background: #e67e22; border-color: #d35400;">
+          👨‍🍳 Painel Cozinha
+        </button>
         <a href="https://web.whatsapp.com" target="_blank" class="btn-whatsapp-header">
           💬 WhatsApp Web
         </a>
@@ -428,6 +431,17 @@
           <div id="lista-garcons-config" style="display: flex; flex-direction: column; gap: 0.8rem;"></div>
         </div>
 
+        <!-- Configuração Global de Cozinha -->
+        <div class="config-card">
+          <h3>⚙️ Configurações do Painel de Cozinha</h3>
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Marque as categorias que devem ser enviadas automaticamente para a cozinha:</p>
+          <div id="lista-categorias-cozinha-config" style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; max-height: 300px; overflow-y: auto;">
+            <!-- Injetado via JS -->
+            <p style="text-align:center; opacity:0.5;">Carregando categorias...</p>
+          </div>
+          <button onclick="salvarConfigCategoriasCozinha()" style="width: 100%; margin-top: 15px; background: #2c3e50;">SALVAR CONFIGURAÇÃO</button>
+        </div>
+
         <!-- Gerenciamento de Cardápio -->
         <div class="config-card config-card-full">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem;">
@@ -489,10 +503,16 @@
         </div>
 
         <div class="modal-form-group">
-          <label>Link da Imagem (Opcional)</label>
+          <label>URL da Imagem</label>
           <input type="text" id="menu-img" placeholder="https://...">
         </div>
-      </div>
+
+        <div class="modal-form-group" style="flex-direction: row; align-items: center; gap: 10px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">
+          <input type="checkbox" id="menu-enviar-cozinha" style="width: 20px; height: 20px; cursor: pointer;" checked>
+          <label for="menu-enviar-cozinha" style="margin: 0; cursor: pointer; font-weight: bold; color: #2c3e50;">👨‍🍳 Enviar para Cozinha (Cozinha/Copa)</label>
+        </div>
+        </div>
+
 
       <!-- Footer Fixo com Botões (Sempre Visível) -->
       <div style="padding: 0.8rem 1.5rem; background: #fff; border-top: 2px solid #e2e8f0; display: flex; gap: 12px; flex-shrink: 0;">

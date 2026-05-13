@@ -285,7 +285,9 @@ async function initDb() {
       await addCol('pedidos', 'valor_por_pessoa', 'REAL');
       await addCol('menu', 'estoque', 'INTEGER DEFAULT -1');
       await addCol('menu', 'validade', 'DATE');
+      await addCol('menu', 'enviar_cozinha', 'BOOLEAN DEFAULT TRUE');
       await addCol('garcons', 'telefone', 'TEXT');
+
       await addCol('pagamentos', 'recebido', 'REAL DEFAULT 0');
       await addCol('pagamentos', 'troco', 'REAL DEFAULT 0');
     }
@@ -376,6 +378,7 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 app.get('/', (req, res) => res.redirect('/garcom'));
 app.get('/garcom', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'garcom', 'index.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'admin', 'index.html')));
+app.get('/cozinha', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'cozinha', 'index.html')));
 
 // Middlewares de Autenticação JWT
 function isAuthenticated(req, res, next) {
@@ -419,12 +422,61 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
+app.put('/api/pedidos/:id/cozinha-pronto', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Marca todos os itens pendentes como 'pronto'
+    await query("UPDATE pedido_itens SET status = 'pronto' WHERE pedido_id = ? AND status = 'pendente'", [id]);
+    
+    // Verifica se todos os itens estão pelo menos como 'pronto' ou 'entregue'
+    const itens = (await query("SELECT status FROM pedido_itens WHERE pedido_id = ?", [id])).rows;
+    const todosProntos = itens.every(i => i.status === 'pronto' || i.status === 'entregue');
+    
+    if (todosProntos) {
+      await query("UPDATE pedidos SET status = 'pronto' WHERE id = ?", [id]);
+    }
+
+    // Notifica admin e garçom
+    const pedido = (await query("SELECT m.numero as mesa_numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
+    const mesaNum = pedido ? pedido.mesa_numero || 'BALCÃO' : 'BALCÃO';
+    
+    await safePusherTrigger('garconnexpress', 'pedido-pronto', { 
+      pedido_id: id, 
+      mesa_numero: mesaNum,
+      mensagem: `👨‍🍳 Pedido da Mesa ${mesaNum} está pronto!` 
+    });
+
+    await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.put('/api/pedidos/:id/marcar-entregue', async (req, res) => {
   const { id } = req.params;
   try {
     await query("UPDATE pedido_itens SET status = 'entregue' WHERE pedido_id = ?", [id]);
     await query("UPDATE pedidos SET status = 'servido' WHERE id = ?", [id]);
     await notifyStatus(id, null, 'servido');
+    await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/itens/:id/pronto', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = (await query("SELECT pedido_id FROM pedido_itens WHERE id = ?", [id])).rows[0];
+    if (!item) return res.status(404).json({ error: 'Item não encontrado' });
+    
+    await query("UPDATE pedido_itens SET status = 'entregue' WHERE id = ?", [id]);
+    
+    // Verifica se ainda existem itens pendentes no pedido
+    const pendentes = (await query("SELECT id FROM pedido_itens WHERE pedido_id = ? AND status = 'pendente'", [item.pedido_id])).rows;
+    if (pendentes.length === 0) {
+      await query("UPDATE pedidos SET status = 'servido' WHERE id = ?", [item.pedido_id]);
+      await notifyStatus(item.pedido_id, null, 'servido');
+    }
+    
     await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -477,6 +529,47 @@ app.post('/api/caixa/fechar', async (req, res) => {
 
 app.get('/api/pedidos', ensureDbInitialized, async (req, res) => {
   res.json((await query(`SELECT p.*, m.numero as mesa_numero, g.nome as garcom_nome FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id LEFT JOIN garcons g ON p.garcom_id = g.usuario WHERE p.status NOT IN ('entregue', 'cancelado') ORDER BY p.created_at DESC`)).rows);
+});
+
+app.get('/api/pedidos/cozinha', ensureDbInitialized, async (req, res) => {
+  try {
+    // Busca as categorias configuradas para a cozinha
+    const config = await query("SELECT valor FROM sistema_config WHERE chave = 'categorias_cozinha'");
+    const categoriasCozinha = config.rows[0]?.valor ? JSON.parse(config.rows[0].valor) : [];
+
+    let whereClause = `pi.status = 'pendente' AND (
+      m.enviar_cozinha = ${isPostgres ? 'TRUE' : '1'} 
+      OR m.enviar_cozinha IS NULL`;
+
+    if (categoriasCozinha.length > 0) {
+      // Adiciona filtro por categoria se houver categorias configuradas
+      const catList = categoriasCozinha.map(c => `'${c.replace(/'/g, "''")}'`).join(',');
+      whereClause += ` OR m.categoria IN (${catList})`;
+    }
+    
+    whereClause += `)`;
+
+    const result = await query(`
+      SELECT 
+        pi.id as item_id, 
+        pi.quantidade, 
+        pi.observacao, 
+        m.nome as item_nome, 
+        m.categoria, 
+        p.id as pedido_id, 
+        p.created_at, 
+        mes.numero as mesa_numero 
+      FROM pedido_itens pi 
+      JOIN menu m ON pi.menu_id = m.id 
+      JOIN pedidos p ON pi.pedido_id = p.id 
+      LEFT JOIN mesas mes ON p.mesa_id = mes.id 
+      WHERE ${whereClause}
+      ORDER BY p.created_at ASC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get('/api/pedidos/:id/pagamentos', async (req, res) => {
@@ -616,9 +709,9 @@ app.put('/api/pedidos/:id/atualizar-itens', async (req, res) => {
     const total = (pedido && pedido.cobrar_taxa) ? Math.round(novoSub * 1.10 * 100) / 100 : novoSub;
     
     // Determina o status do pedido com base nos itens:
-    // Se houver algum item 'pendente', o status do pedido deve ser 'recebido'.
+    // Se houver algum item 'pendente' ou 'pronto', o status do pedido deve ser 'recebido'.
     // Caso contrário (todos entregues), o status deve ser 'servido'.
-    const temPendente = itens.some(i => i.status === 'pendente');
+    const temPendente = itens.some(i => i.status === 'pendente' || i.status === 'pronto');
     const novoStatusPedido = temPendente ? 'recebido' : 'servido';
     const agora = new Date().toISOString();
     
@@ -846,10 +939,11 @@ app.get('/api/menu', ensureDbInitialized, async (req, res) => {
 });
 
 app.put('/api/menu/:id', async (req, res) => {
-  const { nome, categoria, preco, imagem, estoque, validade } = req.body;
+  const { nome, categoria, preco, imagem, estoque, validade, enviar_cozinha } = req.body;
   const dataValidade = validade && validade.trim() !== "" ? validade : null;
+  const envCozinha = enviar_cozinha !== undefined ? (isPostgres ? enviar_cozinha : (enviar_cozinha ? 1 : 0)) : (isPostgres ? true : 1);
   try {
-    await query('UPDATE menu SET nome = ?, categoria = ?, preco = ?, imagem = ?, estoque = ?, validade = ? WHERE id = ?', [nome, categoria, preco, imagem, estoque, dataValidade, req.params.id]);
+    await query('UPDATE menu SET nome = ?, categoria = ?, preco = ?, imagem = ?, estoque = ?, validade = ?, enviar_cozinha = ? WHERE id = ?', [nome, categoria, preco, imagem, estoque, dataValidade, envCozinha, req.params.id]);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -857,8 +951,9 @@ app.put('/api/menu/:id', async (req, res) => {
 });
 
 app.post('/api/menu', async (req, res) => {
-  const { nome, categoria, preco, imagem, estoque, validade } = req.body;
-  try { await query('INSERT INTO menu (nome, categoria, preco, imagem, estoque, validade) VALUES (?, ?, ?, ?, ?, ?)', [nome, categoria, preco, imagem, estoque || -1, validade || null]); res.json({ success: true }); }
+  const { nome, categoria, preco, imagem, estoque, validade, enviar_cozinha } = req.body;
+  const envCozinha = enviar_cozinha !== undefined ? (isPostgres ? enviar_cozinha : (enviar_cozinha ? 1 : 0)) : (isPostgres ? true : 1);
+  try { await query('INSERT INTO menu (nome, categoria, preco, imagem, estoque, validade, enviar_cozinha) VALUES (?, ?, ?, ?, ?, ?, ?)', [nome, categoria, preco, imagem, estoque || -1, validade || null, envCozinha]); res.json({ success: true }); }
   catch (error) { res.status(500).json({ error: error.message }); }
 });
 app.delete('/api/menu/:id', async (req, res) => { try { await query('DELETE FROM menu WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (error) { res.status(500).json({ error: error.message }); } });
@@ -1016,6 +1111,26 @@ app.post('/api/whatsapp-toggle', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+app.get('/api/config/categorias-cozinha', async (req, res) => {
+  try {
+    const config = await query("SELECT valor FROM sistema_config WHERE chave = 'categorias_cozinha'");
+    res.json(config.rows[0]?.valor ? JSON.parse(config.rows[0].valor) : []);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/config/categorias-cozinha', async (req, res) => {
+  const { categorias } = req.body;
+  try {
+    const valor = JSON.stringify(categorias);
+    await query("INSERT INTO sistema_config (chave, valor) VALUES ('categorias_cozinha', ?) ON CONFLICT(chave) DO UPDATE SET valor = EXCLUDED.valor", [valor]);
+    // Fallback para SQLite que não suporta ON CONFLICT da mesma forma se não for versão recente
+    if (!isPostgres) {
+       await query("INSERT OR REPLACE INTO sistema_config (chave, valor) VALUES ('categorias_cozinha', ?)", [valor]);
+    }
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.get('/api/diag', async (req, res) => {

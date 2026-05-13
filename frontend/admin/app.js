@@ -818,7 +818,61 @@ async function confirmarFechamentoCaixa() {
 }
 
 async function carregarDadosConfig() {
-  await Promise.all([exibirMesasConfig(), exibirGarconsConfig(), exibirMenuConfig()]);
+  await Promise.all([exibirMesasConfig(), exibirGarconsConfig(), exibirMenuConfig(), exibirConfigCategoriasCozinha()]);
+}
+
+// CONFIGURAÇÃO DE CATEGORIAS DA COZINHA
+async function exibirConfigCategoriasCozinha() {
+  const container = document.getElementById('lista-categorias-cozinha-config');
+  if (!container) return;
+
+  try {
+    // Busca todas as categorias existentes no menu
+    const resMenu = await fetch('/api/menu');
+    const menu = await resMenu.json();
+    const categorias = [...new Set(menu.map(item => item.categoria))].sort();
+
+    // Busca as categorias configuradas para a cozinha
+    const resConfig = await fetch('/api/config/categorias-cozinha');
+    const configuradas = await resConfig.json();
+
+    if (categorias.length === 0) {
+      container.innerHTML = '<p style="text-align:center; opacity:0.5; padding:10px;">Nenhuma categoria encontrada no cardápio.</p>';
+      return;
+    }
+
+    container.innerHTML = categorias.map(cat => `
+      <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <input type="checkbox" id="check-cat-cozinha-${cat}" class="check-cat-cozinha" value="${cat}" ${configuradas.includes(cat) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
+        <label for="check-cat-cozinha-${cat}" style="margin: 0; font-weight: bold; color: #2c3e50; cursor: pointer; flex: 1;">${cat}</label>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('Erro ao carregar config de cozinha:', e);
+    container.innerHTML = '<p style="color:red; padding:10px;">Erro ao carregar configurações.</p>';
+  }
+}
+
+async function salvarConfigCategoriasCozinha() {
+  const checks = document.querySelectorAll('.check-cat-cozinha:checked');
+  const categorias = Array.from(checks).map(c => c.value);
+
+  try {
+    const res = await fetch('/api/config/categorias-cozinha', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categorias })
+    });
+
+    if (res.ok) {
+      await mostrarAlerta("✅ Configuração de cozinha salva com sucesso!", "Sucesso");
+    } else {
+      throw new Error('Falha ao salvar');
+    }
+  } catch (e) {
+    console.error(e);
+    await mostrarAlerta("❌ Erro ao salvar configuração.", "Erro");
+  }
 }
 
 // MESAS
@@ -978,6 +1032,7 @@ async function abrirModalItemMenu(item = null) {
     document.getElementById('menu-estoque').value = item.estoque;
     document.getElementById('menu-validade').value = item.validade || '';
     document.getElementById('menu-img').value = item.imagem;
+    document.getElementById('menu-enviar-cozinha').checked = (item.enviar_cozinha === true || item.enviar_cozinha === 1 || item.enviar_cozinha === null);
 
     // Tenta selecionar no dropdown
     const catUpper = item.categoria.trim().toUpperCase();
@@ -1049,12 +1104,13 @@ async function processarAcaoMenu() {
   const estoque = parseInt(document.getElementById('menu-estoque').value);
   const validade = document.getElementById('menu-validade').value;
   const imagem = document.getElementById('menu-img').value || 'https://placehold.co/100';
+  const enviar_cozinha = document.getElementById('menu-enviar-cozinha').checked;
 
   if (!nome || !categoria || isNaN(preco) || isNaN(estoque)) {
     return await mostrarAlerta("Por favor, preencha o nome, categoria e preço corretamente.", "Aviso");
   }
 
-  const payload = { nome, categoria: categoria.toUpperCase(), preco, imagem, estoque, validade };
+  const payload = { nome, categoria: categoria.toUpperCase(), preco, imagem, estoque, validade, enviar_cozinha };
   const method = idItemEdicaoMenu ? 'PUT' : 'POST';
   const url = idItemEdicaoMenu ? `/api/menu/${idItemEdicaoMenu}` : '/api/menu';
 
@@ -1736,8 +1792,10 @@ async function exibirPedidos() {
 
       const itens = await fetch(`/api/pedidos/${pedido.id}/itens`).then(res => res.json());
       const itensPendentes = itens.filter(i => i.status === 'pendente');
+      const itensProntos = itens.filter(i => i.status === 'pronto');
       const itensEntregues = itens.filter(i => i.status === 'entregue');
-      const hasPend = itensPendentes.length > 0;
+      
+      const hasPend = (itensPendentes.length > 0 || itensProntos.length > 0);
       const statusGeral = hasPend ? 'recebido' : 'servido';
 
       let minutosCronometro = null;
@@ -1764,10 +1822,11 @@ async function exibirPedidos() {
 
       const card = document.createElement('div');
       const isAguardando = pedido.status === 'aguardando_fechamento';
+      const isPronto = pedido.status === 'pronto';
       const pedidoIdStr = String(pedido.id);
       const isExpanded = expandedPedidoIds.has(pedidoIdStr);
 
-      card.className = `pedido-card ${isExpanded ? '' : 'minimized'} status-${statusGeral} ${pedido.id === pedidoAtualizadoId ? 'destaque-atualizacao' : ''} ${classeAlertaAtraso} ${isAguardando ? 'alerta-fechamento' : ''}`;
+      card.className = `pedido-card ${isExpanded ? '' : 'minimized'} status-${statusGeral} ${pedido.id === pedidoAtualizadoId ? 'destaque-atualizacao' : ''} ${classeAlertaAtraso} ${isAguardando ? 'alerta-fechamento' : ''} ${isPronto ? 'pedido-pronto-admin' : ''}`;
       card.dataset.pedidoId = pedido.id;
       card.dataset.mesa = mesaNomeExibicao; // Adicionado para facilitar o filtro exato
 
@@ -3278,6 +3337,16 @@ async function configurarPusher() {
     const channel = pusherInstancia.subscribe('garconnexpress');
     console.log('📺 Admin inscrito no canal: garconnexpress');
 
+  channel.bind('pedido-pronto', (data) => {
+    console.log('📢 Admin: Pedido pronto!', data);
+    tocarNotificacao(); iniciarPiscarTitulo();
+    exibirNotificacaoNativa('👨‍🍳 PEDIDO PRONTO', data.mensagem, `mesa-${data.mesa_id}`);
+    
+    // Mostra apenas alerta informativo (sem o botão de entregar agora no modal)
+    mostrarAlerta(data.mensagem, "👨‍🍳 Cozinha");
+
+    clearTimeout(timeoutPusher); timeoutPusher = setTimeout(() => carregarPedidos(), 500);
+  });
 
   channel.bind('novo-pedido', (data) => {
     console.log('📢 Admin: Novo pedido recebido!', data);
@@ -3855,7 +3924,7 @@ async function abrirModalOpcoes(pedidoId) {
   
   const headerBg = document.getElementById('modal-opcoes-header-bg');
   const itens = await fetch(`/api/pedidos/${pedidoId}/itens`).then(res => res.json());
-  const hasPend = itens.some(i => i.status === 'pendente');
+  const hasPend = itens.some(i => i.status === 'pendente' || i.status === 'pronto');
   const isAguardando = pedido.status === 'aguardando_fechamento';
   
   // Cores dinâmicas conforme status
@@ -3909,20 +3978,22 @@ async function abrirModalOpcoes(pedidoId) {
   };
 
   // 4. LISTA DE ITENS
-  const itensPendentes = itens.filter(i => i.status === 'pendente');
+  const itensPendentes = itens.filter(i => i.status === 'pendente' || i.status === 'pronto');
   const itensEntregues = itens.filter(i => i.status === 'entregue');
   
   let htmlItens = '';
   if (itensPendentes.length > 0) {
     htmlItens += `<small style="color: #e74c3c; font-weight: 900; display:block; margin-bottom:5px;">⏳ PENDENTES:</small>`;
     itensPendentes.forEach(i => {
+      const isPronto = i.status === 'pronto';
       htmlItens += `
-        <div style="border-left:4px solid #e74c3c; background:white; border-radius:8px; padding:8px 12px; margin-bottom:6px; border:1px solid #fee2e2; display:flex; justify-content:space-between; align-items:center;">
+        <div style="border-left:4px solid ${isPronto ? '#2ecc71' : '#e74c3c'}; background:white; border-radius:8px; padding:8px 12px; margin-bottom:6px; border:1px solid ${isPronto ? '#d4edda' : '#fee2e2'}; display:flex; justify-content:space-between; align-items:center;">
           <div style="flex: 1;">
             <span style="font-weight: 700; font-size: 0.9rem;">${i.quantidade}x ${i.nome}</span>
+            ${isPronto ? '<br><small style="color:#27ae60; font-weight:bold;">🔥 PRONTO</small>' : ''}
             ${i.observacao ? `<br><small style="color:#d35400; font-weight:bold; font-size:0.75rem;">📝 ${i.observacao}</small>` : ''}
           </div>
-          <span style="font-size: 0.8rem; font-weight: 900; color: #e74c3c;">R$ ${(i.preco * i.quantidade * (cobrarTaxaNoPedido ? 1.1 : 1)).toFixed(2)}</span>
+          <span style="font-size: 0.8rem; font-weight: 900; color: ${isPronto ? '#27ae60' : '#e74c3c'};">R$ ${(i.preco * i.quantidade * (cobrarTaxaNoPedido ? 1.1 : 1)).toFixed(2)}</span>
         </div>
       `;
     });
@@ -3952,9 +4023,10 @@ async function abrirModalOpcoes(pedidoId) {
       </button>
     `;
   } else {
+    // SEMPRE MOSTRA OS DOIS BOTÕES SE NÃO ESTIVER AGUARDANDO FECHAMENTO, PARA EVITAR MUDANÇAS REPETINAS
     htmlFooter = `
       <div style="display:flex; gap:10px;">
-        ${hasPend ? `<button onclick="fecharModalOpcoes(); marcarPedidoEntregue(${pedidoId})" style="background:#e67e22; flex: 1.5; color:white; border:none; padding:15px; font-weight:bold; border-radius:10px; box-shadow:0 4px 0 #d35400; cursor:pointer;">🚚 ENTREGAR TUDO</button>` : ''}
+        <button onclick="fecharModalOpcoes(); marcarPedidoEntregue(${pedidoId})" style="background:#e67e22; flex: 1.5; color:white; border:none; padding:15px; font-weight:bold; border-radius:10px; box-shadow:0 4px 0 #d35400; cursor:pointer; ${!hasPend ? 'opacity:0.5; pointer-events:none;' : ''}">🚚 ENTREGAR TUDO</button>
         <button onclick="fecharModalOpcoes(); aprovarFechamento(${pedidoId}, ${mesaId})" style="background:#7f8c8d; flex: 1; color:white; border:none; padding:15px; font-weight:bold; border-radius:10px; box-shadow:0 4px 0 #707b7c; cursor:pointer; font-size:0.8rem;">🔓 LIBERAR MESA</button>
       </div>
     `;
