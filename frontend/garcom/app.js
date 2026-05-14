@@ -154,9 +154,14 @@ async function iniciarApp() {
   configurarEventos();
   configurarPusher();
   
-  // Atualiza os cronômetros das mesas a cada 60 segundos sem recarregar da API
+  // Atualiza os cronômetros das mesas a cada 1 segundo (visual apenas)
   setInterval(() => {
     exibirMesas();
+  }, 1000);
+
+  // Recarrega os dados das mesas a cada 60 segundos para garantir sincronia
+  setInterval(() => {
+    carregarMesas();
   }, 60000);
 }
 
@@ -284,22 +289,17 @@ async function carregarMesas() {
 
 function calcularMinutos(dataIso) {
   if (!dataIso) return 0;
-  let d = dataIso;
-  // Se for string no formato YYYY-MM-DD HH:MM:SS (padrão do backend)
-  // Adicionamos 'Z' para que o navegador trate como UTC e converta para o fuso local
-  if (typeof d === 'string' && d.includes('-') && d.includes(':') && !d.includes('Z') && !d.includes('+')) {
-    d = d.replace(' ', 'T') + 'Z';
+  try {
+    const data = new Date(dataIso);
+    const agora = new Date();
+    const diffMs = agora - data;
+    // Se a diferença for negativa (relógio do cliente atrasado em relação ao servidor), retorna 0
+    const minutos = Math.floor(diffMs / 60000);
+    return minutos > 0 ? minutos : 0;
+  } catch (e) {
+    return 0;
   }
-  const data = new Date(d);
-  const agora = new Date();
-  const diffMs = agora - data;
-  return Math.floor(diffMs / 60000);
 }
-
-// Atualiza a cada 60 segundos
-setInterval(() => {
-  exibirMesas();
-}, 60000);
 
 function exibirMesas() {
   const grid = document.getElementById('mesas-grid');
