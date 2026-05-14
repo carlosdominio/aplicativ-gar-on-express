@@ -128,14 +128,19 @@ let caixaAtual = null;
 const audioNotificacao = new Audio('/notificacao.mp3');
 let audioDesbloqueado = false;
 document.addEventListener('click', () => {
-  if (!audioDesbloqueado) {
-    audioNotificacao.muted = true;
-    audioNotificacao.play().then(() => {
-      audioDesbloqueado = true;
+  if (audioDesbloqueado) return;
+  audioDesbloqueado = true;
+  
+  audioNotificacao.muted = true;
+  audioNotificacao.play().then(() => {
+    audioNotificacao.pause();
+    audioNotificacao.currentTime = 0;
+    // Só desmuda se o som estiver ativo globalmente no Admin
+    if (somAtivoAdmin) {
       audioNotificacao.muted = false;
-      console.log('🔊 Áudio desbloqueado!');
-    }).catch(e => console.log('Erro ao desbloquear áudio:', e));
-  }
+    }
+    console.log('🔊 Áudio preparado!');
+  }).catch(e => console.log('Erro ao preparar áudio:', e));
 }, { once: true });
 let intervalPiscaTitulo = null;
 const tituloOriginal = "Admin - GarçomExpress";
@@ -3462,7 +3467,14 @@ async function configurarPusher() {
 
     exibirNotificacaoNativa(tit, msg, tagMesa);
     mostrarToast(tit);
+    tocarNotificacao(); // Toca som para qualquer atualização de status
     clearTimeout(timeoutPusher); timeoutPusher = setTimeout(() => carregarPedidos(), 500);
+  });
+
+  channel.bind('status-caixa-atualizado', (data) => {
+    console.log('📢 Admin: Status do caixa atualizado', data);
+    tocarNotificacao();
+    // Adicione aqui qualquer função de recarga de caixa se necessário
   });
 
   channel.bind('menu-atualizado', (data) => {
@@ -3498,6 +3510,8 @@ function atualizarIconeSomAdmin() {
     label.innerText = somAtivoAdmin ? (somWindows ? '🔊 WINDOWS' : '🎵 MP3') : '🔕 MUDO';
     label.style.color = somAtivoAdmin ? '#2ecc71' : '#bdc3c7';
   }
+  // Sincroniza o mudo do objeto de áudio
+  audioNotificacao.muted = !somAtivoAdmin;
 }
 
 function alternarSomAdmin() {

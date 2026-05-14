@@ -260,6 +260,13 @@ async function configurarPusher() {
             if (data && data.status === 'cancelado') {
                 const idParaCancelar = data.pedido_id || data.id;
                 mostrarNotificacaoCancelamento(data.mensagem || `Pedido #${idParaCancelar} CANCELADO pelo Admin`, idParaCancelar);
+            } else if (data && (data.status === 'itens_atualizados' || data.status === 'itens_adicionados')) {
+                // Se o pedido está na tela, avisa que mudou
+                const card = document.getElementById(`pedido-card-${data.pedido_id || data.id}`);
+                if (card) {
+                    tocarCampainha();
+                    console.log('🔔 Som tocado: Itens atualizados em pedido na tela');
+                }
             }
             clearTimeout(timeoutPusher);
             timeoutPusher = setTimeout(carregarPedidos, 500);

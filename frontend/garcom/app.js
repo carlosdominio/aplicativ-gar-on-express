@@ -189,6 +189,8 @@ async function atualizarStatusCaixa() {
 
 let timeoutPusher = null;
 let somAtivo = localStorage.getItem('garcom_som_ativo') !== 'false';
+let audioDesbloqueado = false;
+const audioNotificacao = new Audio('/notificacao.mp3');
 
 function atualizarIconeSom() {
   const check = document.getElementById('check-som');
@@ -200,6 +202,8 @@ function atualizarIconeSom() {
     label.innerText = somAtivo ? '🔔 SOM' : '🔕 MUDO';
     label.style.color = somAtivo ? '#2ecc71' : '#bdc3c7';
   }
+  // Sincroniza o mudo do objeto de áudio
+  audioNotificacao.muted = !somAtivo;
 }
 
 function alternarSom() {
@@ -261,20 +265,29 @@ async function configurarPusher() {
 
   // Desbloqueia áudio no primeiro clique do usuário
   document.addEventListener('click', () => {
-    const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-home-standard-ding-dong-109.mp3');
-    audio.muted = true;
-    audio.play().then(() => {
-      console.log('🔊 Áudio desbloqueado!');
-    }).catch(e => console.log('Erro ao desbloquear áudio:', e));
+    if (audioDesbloqueado) return;
+    audioDesbloqueado = true;
+    
+    audioNotificacao.muted = true;
+    audioNotificacao.play().then(() => {
+        audioNotificacao.pause();
+        audioNotificacao.currentTime = 0;
+        if (somAtivo) {
+            audioNotificacao.muted = false;
+        }
+        console.log('🔊 Áudio preparado!');
+    }).catch(e => console.log('Erro ao preparar áudio:', e));
   }, { once: true });
 
   channel.bind('status-caixa-atualizado', (data) => {
     console.log('📢 Evento recebido: status-caixa-atualizado', data);
+    tocarCampainha();
     atualizarStatusCaixa();
   });
 
   channel.bind('status-atualizado', (data) => {
     console.log('📢 Evento recebido: status-atualizado', data);
+    tocarCampainha();
     // Debounce de 500ms para evitar recargas excessivas se vários eventos chegarem juntos
     clearTimeout(timeoutPusher);
     timeoutPusher = setTimeout(() => {
