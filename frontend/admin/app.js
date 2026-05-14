@@ -125,7 +125,7 @@ function switchSubTab(sub) {
 }
 let caixaAtual = null;
 
-const audioNotificacao = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-home-standard-ding-dong-109.mp3');
+const audioNotificacao = new Audio('/notificacao.mp3');
 let audioDesbloqueado = false;
 document.addEventListener('click', () => {
   if (!audioDesbloqueado) {
