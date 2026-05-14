@@ -9,15 +9,24 @@ let somAtivo = localStorage.getItem('cozinha_som_ativo') !== 'false';
 let audioDesbloqueado = false;
 
 function atualizarIconeSom() {
-    const btn = document.getElementById('btn-toggle-som');
-    if (btn) {
-        btn.innerHTML = somAtivo ? '🔔' : '🔕';
-        btn.style.opacity = somAtivo ? '1' : '0.5';
+    const check = document.getElementById('check-som');
+    const label = document.getElementById('label-som');
+    if (check) {
+        check.checked = somAtivo;
+    }
+    if (label) {
+        label.innerText = somAtivo ? '🔔 SOM' : '🔕 MUDO';
+        label.style.color = somAtivo ? '#2ecc71' : '#bdc3c7';
     }
 }
 
 function alternarSom() {
-    somAtivo = !somAtivo;
+    const check = document.getElementById('check-som');
+    if (check) {
+        somAtivo = check.checked;
+    } else {
+        somAtivo = !somAtivo;
+    }
     localStorage.setItem('cozinha_som_ativo', somAtivo);
     atualizarIconeSom();
 }
@@ -266,6 +275,7 @@ async function configurarPusher() {
 // Inicialização
 carregarPedidos();
 configurarPusher();
+atualizarIconeSom();
 
 // Atualizar tempos a cada segundo para o efeito de cronômetro
 setInterval(atualizarCronometros, 1000);

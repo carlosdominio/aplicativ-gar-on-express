@@ -48,11 +48,11 @@
         <span id="caixa-status-badge-admin" class="badge-caixa" style="display:none; width:fit-content;"></span>
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
-        <div style="display:flex; align-items:center; gap:8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);">
-          <span style="font-size: 0.7rem; font-weight: bold; color: #fff;">🔊 SOM WINDOWS</span>
-          <label class="switch" style="width: 40px; height: 20px;">
-            <input type="checkbox" id="toggle-som-windows" onchange="alternarSomWindows(this.checked)">
-            <span class="slider round"></span>
+        <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);">
+          <span id="label-som-admin" style="font-size: 0.7rem; font-weight: bold; color: #fff;">🔊 SOM</span>
+          <label class="switch" style="width: 32px; height: 16px;">
+            <input type="checkbox" id="check-som-admin" onchange="alternarSomAdmin()">
+            <span class="slider"></span>
           </label>
         </div>
         <button onclick="window.open('/cozinha', '_blank')" class="btn-whatsapp-header" style="background: #e67e22; border-color: #d35400;">

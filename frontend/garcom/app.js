@@ -151,6 +151,7 @@ async function iniciarApp() {
   await carregarMenu();
   await carregarMesas();
   await atualizarStatusCaixa();
+  atualizarIconeSom();
   configurarEventos();
   configurarPusher();
   
@@ -190,15 +191,24 @@ let timeoutPusher = null;
 let somAtivo = localStorage.getItem('garcom_som_ativo') !== 'false';
 
 function atualizarIconeSom() {
-  const btn = document.getElementById('btn-toggle-som');
-  if (btn) {
-    btn.innerHTML = somAtivo ? '🔔' : '🔕';
-    btn.style.opacity = somAtivo ? '1' : '0.5';
+  const check = document.getElementById('check-som');
+  const label = document.getElementById('label-som');
+  if (check) {
+    check.checked = somAtivo;
+  }
+  if (label) {
+    label.innerText = somAtivo ? '🔔 SOM' : '🔕 MUDO';
+    label.style.color = somAtivo ? '#2ecc71' : '#bdc3c7';
   }
 }
 
 function alternarSom() {
-  somAtivo = !somAtivo;
+  const check = document.getElementById('check-som');
+  if (check) {
+    somAtivo = check.checked;
+  } else {
+    somAtivo = !somAtivo;
+  }
   localStorage.setItem('garcom_som_ativo', somAtivo);
   atualizarIconeSom();
 }

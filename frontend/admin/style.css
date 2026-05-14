@@ -1158,8 +1158,8 @@ button.btn-entregue { background-color: #95a5a6; }
 .switch {
   position: relative;
   display: inline-block;
-  width: 34px;
-  height: 18px;
+  width: 32px;
+  height: 16px;
 }
 
 .switch input { 
@@ -1175,28 +1175,23 @@ button.btn-entregue { background-color: #95a5a6; }
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: rgba(0,0,0,0.1);
   transition: .4s;
-}
-
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.1);
 }
 
 .slider:before {
   position: absolute;
   content: "";
-  height: 14px;
-  width: 14px;
+  height: 10px;
+  width: 10px;
   left: 2px;
   bottom: 2px;
   background-color: white;
   transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  border-radius: 50%;
 }
 
 input:checked + .slider {

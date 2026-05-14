@@ -3482,13 +3482,38 @@ function tocarNotificacao() {
 }
 
 function inicializarConfiguracaoSom() {
-  const somWindows = localStorage.getItem('admin_som_windows') === 'true';
-  const toggle = document.getElementById('toggle-som-windows');
-  if (toggle) toggle.checked = somWindows;
+  atualizarIconeSomAdmin();
+}
+
+let somAtivoAdmin = localStorage.getItem('admin_som_ativo') !== 'false';
+
+function atualizarIconeSomAdmin() {
+  const check = document.getElementById('check-som-admin');
+  const label = document.getElementById('label-som-admin');
+  if (check) {
+    check.checked = somAtivoAdmin;
+  }
+  if (label) {
+    const somWindows = localStorage.getItem('admin_som_windows') === 'true';
+    label.innerText = somAtivoAdmin ? (somWindows ? '🔊 WINDOWS' : '🎵 MP3') : '🔕 MUDO';
+    label.style.color = somAtivoAdmin ? '#2ecc71' : '#bdc3c7';
+  }
+}
+
+function alternarSomAdmin() {
+  const check = document.getElementById('check-som-admin');
+  if (check) {
+    somAtivoAdmin = check.checked;
+  } else {
+    somAtivoAdmin = !somAtivoAdmin;
+  }
+  localStorage.setItem('admin_som_ativo', somAtivoAdmin);
+  atualizarIconeSomAdmin();
 }
 
 function alternarSomWindows(ativo) {
   localStorage.setItem('admin_som_windows', ativo);
+  atualizarIconeSomAdmin();
   mostrarToast(ativo ? "🔊 Som padrão do Windows ativado" : "🎵 Som personalizado (MP3) ativado");
 }
 
