@@ -838,10 +838,23 @@ app.post('/api/pedidos', async (req, res) => {
     }
     const msgWpp = `🚀 *NOVO PEDIDO #${pedidoId}*\n📍 Mesa: ${mesaNum}\n📝 Itens:\n${itensNomes.join('\n')}\n💰 Total: R$ ${total.toFixed(2)}`;
 
+    // Verifica se o pedido tem itens para a cozinha
+    let temItemCozinha = false;
+    for (const item of itens) {
+      const m = (await query("SELECT enviar_cozinha FROM menu WHERE id = ?", [item.menu_id])).rows[0];
+      if (m && (m.enviar_cozinha === true || m.enviar_cozinha === 1 || m.enviar_cozinha === 'true')) {
+        temItemCozinha = true;
+        break;
+      }
+    }
+
     // Dispara notificações em paralelo
     await Promise.all([
       notifyStatus(pedidoId, mesa_id, 'recebido', mesaNum),
-      safePusherTrigger('garconnexpress', 'novo-pedido', { pedido: { id: pedidoId, mesa_id, mesa_numero: mesaNum, status: 'recebido' } }),
+      safePusherTrigger('garconnexpress', 'novo-pedido', { 
+        para_cozinha: temItemCozinha,
+        pedido: { id: pedidoId, mesa_id, mesa_numero: mesaNum, status: 'recebido' } 
+      }),
       sendWhatsAppMessage(msgWpp)
     ]);
 

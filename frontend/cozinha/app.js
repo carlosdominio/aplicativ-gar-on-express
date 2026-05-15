@@ -233,7 +233,11 @@ async function configurarPusher() {
 
         canal.bind('novo-pedido', (data) => {
             console.log('Novo pedido recebido!', data);
-            tocarCampainha();
+            
+            // SÓ TOCA O SOM SE O PEDIDO FOR REALMENTE PARA A COZINHA
+            if (data && data.para_cozinha === true) {
+                tocarCampainha();
+            }
             
             clearTimeout(timeoutPusher);
             timeoutPusher = setTimeout(carregarPedidos, 50);
