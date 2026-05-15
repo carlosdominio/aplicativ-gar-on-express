@@ -635,6 +635,11 @@ async function finalizarEDesocupar() {
 
   try {
     const resItens = await fetch(`/api/pedidos/${pedidoAbertoNaMesa.id}/itens`);
+    if (!resItens.ok) {
+      const errorText = await resItens.text();
+      console.error("Erro do servidor:", errorText);
+      return await mostrarAlerta("O servidor demorou para responder (Timeout). Tente novamente em alguns segundos.", "Erro de Conexão");
+    }
     const itens = await resItens.json();
     const temPendentes = itens.some(i => i.status === 'pendente');
 

@@ -229,7 +229,10 @@ async function initDb() {
     `CREATE TABLE IF NOT EXISTS garcons (id SERIAL PRIMARY KEY, nome TEXT NOT NULL, usuario TEXT UNIQUE NOT NULL, senha TEXT NOT NULL DEFAULT '123', telefone TEXT)`,
     `CREATE TABLE IF NOT EXISTS usuarios_admin (id SERIAL PRIMARY KEY, usuario TEXT UNIQUE NOT NULL, senha TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS sistema_config (chave TEXT PRIMARY KEY, valor TEXT)`,
-    `CREATE TABLE IF NOT EXISTS fluxo_caixa (id SERIAL PRIMARY KEY, data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP, data_fechamento TIMESTAMP, valor_inicial REAL NOT NULL, valor_final REAL, status TEXT DEFAULT 'aberto', total_dinheiro REAL DEFAULT 0, total_pix REAL DEFAULT 0, total_cartao REAL DEFAULT 0, total_vendas REAL DEFAULT 0)`
+    `CREATE TABLE IF NOT EXISTS fluxo_caixa (id SERIAL PRIMARY KEY, data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP, data_fechamento TIMESTAMP, valor_inicial REAL NOT NULL, valor_final REAL, status TEXT DEFAULT 'aberto', total_dinheiro REAL DEFAULT 0, total_pix REAL DEFAULT 0, total_cartao REAL DEFAULT 0, total_vendas REAL DEFAULT 0)`,
+    `CREATE INDEX IF NOT EXISTS idx_pedido_itens_pedido_id ON pedido_itens(pedido_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_pedidos_mesa_id ON pedidos(mesa_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_pedidos_status ON pedidos(status)`
   ];
   
   // Executa queries sequencialmente para evitar sobrecarga de conexões
@@ -321,31 +324,37 @@ async function retryWithDelay(fn, maxRetries = 3, delay = 1000) {
 }
 
 let dbInitialized = false;
+let dbInitializationPromise = null;
 
 // Função para inicializar banco de forma lazy
 async function lazyInitDb() {
   if (dbInitialized) return true;
-  
-  try {
-    console.log('🔄 Inicializando banco de dados (lazy)...');
-    await retryWithDelay(async () => {
-      await db.query('SELECT 1');
-    }, 5, 2000);
-    
-    await retryWithDelay(async () => {
-      await initDb();
-    }, 3, 1000);
-    
-    dbInitialized = true;
-    console.log('✅ Banco de dados inicializado com sucesso (lazy)');
-    return true;
-  } catch (e) {
-    console.error('❌ Erro ao inicializar banco (lazy):', e.message);
-    dbInitError = e;
-    return false;
-  }
-}
+  if (dbInitializationPromise) return dbInitializationPromise;
 
+  dbInitializationPromise = (async () => {
+    try {
+      console.log('🔄 Inicializando banco de dados (lazy)...');
+      await retryWithDelay(async () => {
+        if (isPostgres) await db.query('SELECT 1');
+      }, 5, 2000);
+
+      await retryWithDelay(async () => {
+        await initDb();
+      }, 3, 1000);
+
+      dbInitialized = true;
+      console.log('✅ Banco de dados inicializado com sucesso (lazy)');
+      return true;
+    } catch (e) {
+      console.error('❌ Erro ao inicializar banco (lazy):', e.message);
+      dbInitError = e;
+      dbInitializationPromise = null; // Permite tentar novamente em próxima requisição
+      return false;
+    }
+  })();
+
+  return dbInitializationPromise;
+}
 // Middleware para garantir que o banco está inicializado
 async function ensureDbInitialized(req, res, next) {
   if (!isPostgres) {
@@ -569,7 +578,12 @@ app.post('/api/caixa/fechar', async (req, res) => {
 });
 
 app.get('/api/pedidos', ensureDbInitialized, async (req, res) => {
-  res.json((await query(`SELECT p.*, m.numero as mesa_numero, g.nome as garcom_nome FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id LEFT JOIN garcons g ON p.garcom_id = g.usuario WHERE p.status NOT IN ('entregue', 'cancelado') ORDER BY p.created_at DESC`)).rows);
+  try {
+    const result = await query(`SELECT p.*, m.numero as mesa_numero, g.nome as garcom_nome FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id LEFT JOIN garcons g ON p.garcom_id = g.usuario WHERE p.status NOT IN ('entregue', 'cancelado') ORDER BY p.created_at DESC`);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get('/api/pedidos/cozinha', ensureDbInitialized, async (req, res) => {
@@ -637,8 +651,12 @@ app.get('/api/pedidos/:id/pagamentos', async (req, res) => {
 });
 
 app.get('/api/pedidos/historico', async (req, res) => {
-
-  res.json((await query(`SELECT p.*, m.numero as mesa_numero, g.nome as garcom_nome FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id LEFT JOIN garcons g ON p.garcom_id = g.usuario WHERE p.status IN ('entregue', 'cancelado') ORDER BY p.created_at DESC LIMIT 50`)).rows);
+  try {
+    const result = await query(`SELECT p.*, m.numero as mesa_numero, g.nome as garcom_nome FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id LEFT JOIN garcons g ON p.garcom_id = g.usuario WHERE p.status IN ('entregue', 'cancelado') ORDER BY p.created_at DESC LIMIT 50`);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 app.delete('/api/pedidos/limpar', async (req, res) => {
   try {
@@ -649,7 +667,13 @@ app.delete('/api/pedidos/limpar', async (req, res) => {
 });
 
 app.get('/api/pedidos/:id/itens', async (req, res) => { 
-  res.json((await query(`SELECT pi.*, m.nome, m.preco, m.enviar_cozinha FROM pedido_itens pi JOIN menu m ON pi.menu_id = m.id WHERE pi.pedido_id = ? ORDER BY pi.status DESC, pi.id ASC`, [req.params.id])).rows); 
+  try {
+    const result = await query(`SELECT pi.*, m.nome, m.preco, m.enviar_cozinha FROM pedido_itens pi JOIN menu m ON pi.menu_id = m.id WHERE pi.pedido_id = ? ORDER BY pi.status DESC, pi.id ASC`, [req.params.id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Erro ao buscar itens do pedido:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.delete('/api/pedidos/itens/:id', async (req, res) => {
