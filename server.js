@@ -666,7 +666,7 @@ app.delete('/api/pedidos/limpar', async (req, res) => {
   } catch (error) { res.status(500).json({ error: "Erro ao limpar: " + error.message }); }
 });
 
-app.get('/api/pedidos/:id/itens', async (req, res) => { 
+app.get('/api/pedidos/:id/itens', ensureDbInitialized, async (req, res) => { 
   try {
     const result = await query(`SELECT pi.*, m.nome, m.preco, m.enviar_cozinha FROM pedido_itens pi JOIN menu m ON pi.menu_id = m.id WHERE pi.pedido_id = ? ORDER BY pi.status DESC, pi.id ASC`, [req.params.id]);
     res.json(result.rows);

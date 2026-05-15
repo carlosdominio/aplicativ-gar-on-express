@@ -35,10 +35,13 @@ console.error = function(...args) {
     }
 
     try {
+      console.log(`🌐 FETCH INICIADO: ${args[0]}`, args[1] || {});
       const response = await originalFetch(...args);
 
       if (!response.ok) {
         console.error(`❌ ERRO DE FETCH [${response.status}] URL:`, args[0]);
+        const text = await response.clone().text().catch(() => 'Erro ao ler corpo da resposta');
+        console.error('📄 CORPO DO ERRO:', text.substring(0, 200));
       }
 
       if ((response.status === 401 || response.status === 403) && !args[0].includes('/api/login')) {
