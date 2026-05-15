@@ -3422,6 +3422,38 @@ function calcularTrocoMultiPag(index, valorCota) {
   }
 }
 
+let somMP3Ativo = localStorage.getItem('admin_som_mp3_ativo') !== 'false';
+let somWindowsAtivo = localStorage.getItem('admin_som_windows_ativo') !== 'false';
+
+function atualizarIconesSom() {
+  const checkMP3 = document.getElementById('check-som-mp3');
+  const checkWin = document.getElementById('check-som-windows');
+  if (checkMP3) checkMP3.checked = somMP3Ativo;
+  if (checkWin) checkWin.checked = somWindowsAtivo;
+}
+
+function alternarSomMP3() {
+  somMP3Ativo = document.getElementById('check-som-mp3').checked;
+  localStorage.setItem('admin_som_mp3_ativo', somMP3Ativo);
+  if (audioNotificacao) audioNotificacao.muted = !somMP3Ativo;
+}
+
+function alternarSomWindows() {
+  somWindowsAtivo = document.getElementById('check-som-windows').checked;
+  localStorage.setItem('admin_som_windows_ativo', somWindowsAtivo);
+}
+
+function tocarSomNotificacao(tipo = 'campainha') {
+  if (tipo === 'campainha' && somMP3Ativo) {
+    audioNotificacao.currentTime = 0;
+    audioNotificacao.play().catch(e => console.warn('Erro ao tocar campainha:', e));
+  } else if (tipo === 'windows' && somWindowsAtivo) {
+    // Som nativo curto ou bleep para representar o Windows
+    const winAudio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+    winAudio.play().catch(e => console.warn('Erro ao tocar som Windows:', e));
+  }
+}
+
 async function carregarCardapio() {
   const res = await fetch('/api/menu');
   cardapio = await res.json();
@@ -3572,10 +3604,11 @@ async function configurarPusher() {
   } catch (e) { console.warn('Pusher init error:', e); }
 }
 
-function tocarNotificacao() {
+function tocarNotificacao(tipo = 'ambos') {
   const somMP3 = localStorage.getItem('admin_som_mp3_ativo') !== 'false';
-  
-  if (audioDesbloqueado && somMP3) {
+  const somWin = localStorage.getItem('admin_som_windows') === 'true';
+
+  if (audioDesbloqueado && somMP3 && (tipo === 'ambos' || tipo === 'campainha')) {
     audioNotificacao.currentTime = 0;
     audioNotificacao.play().catch(e => {
         console.warn('Erro ao tocar som MP3 (tentando nova instância):', e);
@@ -3583,8 +3616,12 @@ function tocarNotificacao() {
         fallbackAudio.play().catch(err => console.error('Falha crítica de áudio:', err));
     });
   }
-}
 
+  if (somWin && (tipo === 'ambos' || tipo === 'windows')) {
+      const winAudio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+      winAudio.play().catch(e => console.warn('Erro ao tocar som Windows:', e));
+  }
+}
 function inicializarConfiguracaoSom() {
   atualizarIconeSomAdmin();
 }

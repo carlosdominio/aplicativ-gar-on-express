@@ -191,54 +191,55 @@ async function atualizarStatusCaixa() {
 }
 
 let timeoutPusher = null;
-let somAtivo = localStorage.getItem('garcom_som_ativo') !== 'false';
+let somMP3Ativo = localStorage.getItem('garcom_som_mp3_ativo') !== 'false';
+let somWindowsAtivo = localStorage.getItem('garcom_som_windows_ativo') !== 'false';
 let audioDesbloqueado = false;
 const audioNotificacao = new Audio('/notificacao.mp3');
 
-function atualizarIconeSom() {
-  const check = document.getElementById('check-som');
-  const label = document.getElementById('label-som');
-  if (check) {
-    check.checked = somAtivo;
-  }
-  if (label) {
-    label.innerText = somAtivo ? '🔔 SOM' : '🔕 MUDO';
-    label.style.color = somAtivo ? '#2ecc71' : '#bdc3c7';
-  }
-  // Sincroniza o mudo do objeto de áudio
-  audioNotificacao.muted = !somAtivo;
+function atualizarIconesSom() {
+  const checkMP3 = document.getElementById('check-som-mp3');
+  const checkWin = document.getElementById('check-som-windows');
+  if (checkMP3) checkMP3.checked = somMP3Ativo;
+  if (checkWin) checkWin.checked = somWindowsAtivo;
+  if (audioNotificacao) audioNotificacao.muted = !somMP3Ativo;
 }
 
-function alternarSom() {
-  const check = document.getElementById('check-som');
-  if (check) {
-    somAtivo = check.checked;
-  } else {
-    somAtivo = !somAtivo;
-  }
-  localStorage.setItem('garcom_som_ativo', somAtivo);
-  atualizarIconeSom();
+function alternarSomMP3() {
+  somMP3Ativo = document.getElementById('check-som-mp3').checked;
+  localStorage.setItem('garcom_som_mp3_ativo', somMP3Ativo);
+  if (audioNotificacao) audioNotificacao.muted = !somMP3Ativo;
+  if (somMP3Ativo) tocarSomNotificacao('campainha');
 }
 
-function tocarCampainha() {
-  if (!somAtivo) return;
-  const audio = new Audio('/notificacao.mp3');
-  audio.play().catch(e => console.log('Erro som:', e));
+function alternarSomWindows() {
+  somWindowsAtivo = document.getElementById('check-som-windows').checked;
+  localStorage.setItem('garcom_som_windows_ativo', somWindowsAtivo);
+  if (somWindowsAtivo) tocarSomNotificacao('windows');
+}
+
+function tocarSomNotificacao(tipo = 'campainha') {
+  if (tipo === 'campainha' && somMP3Ativo && audioDesbloqueado) {
+    audioNotificacao.currentTime = 0;
+    audioNotificacao.play().catch(e => console.warn('Erro ao tocar campainha:', e));
+  } else if (tipo === 'windows' && somWindowsAtivo) {
+    const winAudio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+    winAudio.play().catch(e => console.warn('Erro ao tocar som Windows:', e));
+  }
 }
 
 async function configurarPusher() {
   try {
     const configRes = await fetch('/api/pusher-config');
     const pusherConfig = await configRes.json();
-    
+
     console.log('📡 Inicializando Pusher no garçom...', pusherConfig.key);
     const pusher = new Pusher(pusherConfig.key, {
       cluster: pusherConfig.cluster,
       forceTLS: true
-    });    
+    });
     pusher.connection.bind('connected', () => {
       console.log('✅ Conectado ao Pusher com sucesso!');
-      atualizarIconeSom(); // Garante que o ícone carregue no estado correto
+      atualizarIconesSom();
     });
 
     pusher.connection.bind('error', function(err) {
@@ -247,25 +248,33 @@ async function configurarPusher() {
 
     const channel = pusher.subscribe('garconnexpress');
     console.log('📺 Inscrito no canal: garconnexpress');
-  
-  channel.bind('pedido-pronto', (data) => {
-    console.log('📢 Evento recebido: pedido-pronto', data);
-    tocarCampainha();
-    
-    // Mostra apenas alerta informativo (sem o botão de entregar agora no modal)
-    mostrarAlerta(data.mensagem, "👨‍🍳 COZINHA: PEDIDO PRONTO!");
 
-    clearTimeout(timeoutPusher);
-    timeoutPusher = setTimeout(() => carregarMesas(), 50);
-  });
+    channel.bind('pedido-pronto', (data) => {
+      console.log('📢 Evento recebido: pedido-pronto', data);
+      // Garçom sempre toca para pedidos prontos
+      tocarSomNotificacao('campainha');
+      tocarSomNotificacao('windows');
 
-  channel.bind('novo-pedido', (data) => {
-    console.log('📢 Evento recebido: novo-pedido', data);
-    // Removemos tocarCampainha() daqui pois o som de novo pedido deve tocar no ADM
-    clearTimeout(timeoutPusher);
-    timeoutPusher = setTimeout(() => carregarMesas(), 50);
-  });
+      // Mostra apenas alerta informativo
+      mostrarAlerta(data.mensagem, "👨‍🍳 COZINHA: PEDIDO PRONTO!");
 
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarMesas(), 50);
+    });
+
+    channel.bind('novo-pedido', (data) => {
+      console.log('📢 Evento recebido: novo-pedido', data);
+      // Garçom NÃO toca som para novo pedido (apenas ADM/Cozinha)
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarMesas(), 50);
+    });
+
+    channel.bind('status-atualizado', (data) => {
+      console.log('📢 Status atualizado no garçom:', data);
+      // Garçom NÃO toca som para status (ADM já notificou)
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarMesas(), 50);
+    });
   // Desbloqueia áudio no primeiro clique do usuário
   document.addEventListener('click', () => {
     if (audioDesbloqueado) return;
