@@ -289,7 +289,7 @@ async function configurarPusher() {
 // Inicialização
 carregarPedidos();
 configurarPusher();
-atualizarIconesSom();
+atualizarIconeSom();
 
 // Atualizar tempos a cada segundo para o efeito de cronômetro
 setInterval(atualizarCronometros, 1000);
