@@ -258,7 +258,7 @@ async function configurarPusher() {
 
   channel.bind('novo-pedido', (data) => {
     console.log('📢 Evento recebido: novo-pedido', data);
-    tocarCampainha();
+    // Removemos tocarCampainha() daqui pois o som de novo pedido deve tocar no ADM
     clearTimeout(timeoutPusher);
     timeoutPusher = setTimeout(() => carregarMesas(), 500);
   });
@@ -281,13 +281,13 @@ async function configurarPusher() {
 
   channel.bind('status-caixa-atualizado', (data) => {
     console.log('📢 Evento recebido: status-caixa-atualizado', data);
-    tocarCampainha();
+    // Removemos tocarCampainha() daqui
     atualizarStatusCaixa();
   });
 
   channel.bind('status-atualizado', (data) => {
     console.log('📢 Evento recebido: status-atualizado', data);
-    tocarCampainha();
+    // Removemos tocarCampainha() daqui para evitar barulho no garçom ao lançar pedido
     // Debounce de 500ms para evitar recargas excessivas se vários eventos chegarem juntos
     clearTimeout(timeoutPusher);
     timeoutPusher = setTimeout(() => {

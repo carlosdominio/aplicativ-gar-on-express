@@ -136,7 +136,8 @@ document.addEventListener('click', () => {
     audioNotificacao.pause();
     audioNotificacao.currentTime = 0;
     // Só desmuda se o som estiver ativo globalmente no Admin
-    if (somAtivoAdmin) {
+    const somMP3 = localStorage.getItem('admin_som_mp3_ativo') !== 'false';
+    if (somMP3) {
       audioNotificacao.muted = false;
     }
     console.log('🔊 Áudio preparado!');
@@ -3484,51 +3485,53 @@ async function configurarPusher() {
   } catch (e) { console.warn('Pusher init error:', e); }
 }
 
-function tocarNotificacao() { 
-  const somWindows = localStorage.getItem('admin_som_windows') === 'true';
-  // Só toca o MP3 se o Som do Windows NÃO estiver ativado
-  if (audioDesbloqueado && !somWindows) { 
-    audioNotificacao.currentTime = 0; 
-    audioNotificacao.play().catch(e => console.error(e)); 
-  } 
+function tocarNotificacao() {
+  const somMP3 = localStorage.getItem('admin_som_mp3_ativo') !== 'false';
+  
+  if (audioDesbloqueado && somMP3) {
+    audioNotificacao.currentTime = 0;
+    audioNotificacao.play().catch(e => {
+        console.warn('Erro ao tocar som MP3 (tentando nova instância):', e);
+        const fallbackAudio = new Audio('/notificacao.mp3');
+        fallbackAudio.play().catch(err => console.error('Falha crítica de áudio:', err));
+    });
+  }
 }
 
 function inicializarConfiguracaoSom() {
   atualizarIconeSomAdmin();
 }
 
-let somAtivoAdmin = localStorage.getItem('admin_som_ativo') !== 'false';
-
 function atualizarIconeSomAdmin() {
-  const check = document.getElementById('check-som-admin');
-  const label = document.getElementById('label-som-admin');
-  if (check) {
-    check.checked = somAtivoAdmin;
-  }
-  if (label) {
-    const somWindows = localStorage.getItem('admin_som_windows') === 'true';
-    label.innerText = somAtivoAdmin ? (somWindows ? '🔊 WINDOWS' : '🎵 MP3') : '🔕 MUDO';
-    label.style.color = somAtivoAdmin ? '#2ecc71' : '#bdc3c7';
-  }
-  // Sincroniza o mudo do objeto de áudio
-  audioNotificacao.muted = !somAtivoAdmin;
+  const checkMP3 = document.getElementById('check-som-mp3');
+  const checkWin = document.getElementById('check-som-windows');
+  
+  const somMP3 = localStorage.getItem('admin_som_mp3_ativo') !== 'false';
+  const somWin = localStorage.getItem('admin_som_windows') === 'true';
+
+  if (checkMP3) checkMP3.checked = somMP3;
+  if (checkWin) checkWin.checked = somWin;
+
+  // Sincroniza o mudo do objeto de áudio principal
+  audioNotificacao.muted = !somMP3;
 }
 
-function alternarSomAdmin() {
-  const check = document.getElementById('check-som-admin');
-  if (check) {
-    somAtivoAdmin = check.checked;
-  } else {
-    somAtivoAdmin = !somAtivoAdmin;
-  }
-  localStorage.setItem('admin_som_ativo', somAtivoAdmin);
+function alternarSomMP3() {
+  const check = document.getElementById('check-som-mp3');
+  const ativo = check ? check.checked : true;
+  localStorage.setItem('admin_som_mp3_ativo', ativo);
   atualizarIconeSomAdmin();
+  if (ativo) tocarNotificacao(); // Som de teste
 }
 
-function alternarSomWindows(ativo) {
+function alternarSomWindows() {
+  const check = document.getElementById('check-som-windows');
+  const ativo = check ? check.checked : false;
   localStorage.setItem('admin_som_windows', ativo);
   atualizarIconeSomAdmin();
-  mostrarToast(ativo ? "🔊 Som padrão do Windows ativado" : "🎵 Som personalizado (MP3) ativado");
+  if (ativo) {
+    exibirNotificacaoNativa("🔊 TESTE DE SOM", "O som do Windows está agora ativado para notificações.");
+  }
 }
 
 function mostrarToast(msg) {
@@ -3537,7 +3540,7 @@ function mostrarToast(msg) {
   t.className = 'toast-notificacao';
   t.textContent = msg; // Usar textContent em vez de innerText/innerHTML
   document.body.appendChild(t);
-  setTimeout(() => { t.classList.add('show'); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 500); }, 8000); }, 100);
+  setTimeout(() => { t.classList.add('show'); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 500); }, 4000); }, 100);
 }
 
 // FUNÇÕES DE SISTEMA (SUBSTITUIÇÃO DE ALERT/CONFIRM)
