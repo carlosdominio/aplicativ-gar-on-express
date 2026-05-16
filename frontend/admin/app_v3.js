@@ -3472,16 +3472,17 @@ let pedidoAtualizadoId = null;
 
 async function configurarPusher() {
   if (pusherInstancia) return;
-  
+
   try {
     const configRes = await fetch('/api/pusher-config');
     const pusherConfig = await configRes.json();
-    
+
     console.log('📡 Inicializando Pusher no Admin...', pusherConfig.key);
     pusherInstancia = new Pusher(pusherConfig.key, {
       cluster: pusherConfig.cluster,
       forceTLS: true
-    });    
+    });
+
     pusherInstancia.connection.bind('connected', () => {
       console.log('✅ Admin conectado ao Pusher com sucesso!');
     });
@@ -3493,91 +3494,82 @@ async function configurarPusher() {
     const channel = pusherInstancia.subscribe('garconnexpress');
     console.log('📺 Admin inscrito no canal: garconnexpress');
 
-  channel.bind('pedido-pronto', (data) => {
-    console.log('📢 Admin: Pedido pronto!', data);
-    tocarNotificacao(); iniciarPiscarTitulo();
-    exibirNotificacaoNativa('👨‍🍳 PEDIDO PRONTO', data.mensagem, `mesa-${data.mesa_id}`);
-    
-    // Mostra apenas alerta informativo (sem o botão de entregar agora no modal)
-    mostrarAlerta(data.mensagem, "👨‍🍳 Cozinha");
+    // EVENTO: NOVO PEDIDO
+    channel.bind('novo-pedido', (data) => {
+      console.log('📢 Admin: Novo pedido recebido!', data);
+      tocarNotificacao(); 
+      iniciarPiscarTitulo();
 
-    clearTimeout(timeoutPusher); timeoutPusher = setTimeout(() => carregarPedidos(), 50);
-  });
+      const mesaNum = (data && data.pedido) ? data.pedido.mesa_numero : 'X';
+      const mesaId = (data && data.pedido) ? data.pedido.mesa_id : 'geral';
 
-  channel.bind('novo-pedido', (data) => {
-    console.log('📢 Admin: Novo pedido recebido!', data);
-    tocarNotificacao(); iniciarPiscarTitulo();
-    exibirNotificacaoNativa('🚀 NOVO PEDIDO', `Mesa ${data.pedido.mesa_numero} acabou de fazer um pedido.`, `mesa-${data.pedido.mesa_id}`);
-    mostrarToast(`🚀 NOVO PEDIDO: Mesa ${data.pedido.mesa_numero}`);
-    clearTimeout(timeoutPusher); timeoutPusher = setTimeout(() => carregarPedidos(), 50);
-  });
+      exibirNotificacaoNativa('🚀 NOVO PEDIDO', `Mesa ${mesaNum} acabou de fazer um pedido.`, `mesa-${mesaId}`);
+      mostrarToast(`🚀 NOVO PEDIDO: Mesa ${mesaNum}`);
 
-  channel.bind('status-atualizado', (data) => {
-    console.log('📢 Admin: Status atualizado recebido!', data);
-    if (!data) return;
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+    });
 
-    const mesaData = data.mesa_numero || data.mesa_id || 'X';
-    const nMesa = isNaN(mesaData) ? mesaData : `Mesa ${mesaData}`;
-    const tagMesa = `mesa-${data.mesa_id}`;
+    // EVENTO: PEDIDO PRONTO (COZINHA)
+    channel.bind('pedido-pronto', (data) => {
+      console.log('📢 Admin: Pedido pronto!', data);
+      tocarNotificacao(); 
+      iniciarPiscarTitulo();
+      exibirNotificacaoNativa('👨‍🍳 PEDIDO PRONTO', data.mensagem, `mesa-${data.mesa_id}`);
+      mostrarAlerta(data.mensagem, "👨‍🍳 Cozinha");
 
-    // Se for liberação de mesa
-    if (data.status === 'liberada') {
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+    });
+
+    // EVENTO: STATUS ATUALIZADO (GERAL)
+    channel.bind('status-atualizado', (data) => {
+      console.log('📢 Admin: Status atualizado recebido!', data);
+      if (!data) return;
+
+      const mesaData = data.mesa_numero || data.mesa_id || 'X';
+      const nMesa = isNaN(mesaData) ? mesaData : `Mesa ${mesaData}`;
+      const tagMesa = `mesa-${data.mesa_id}`;
+
+      if (data.status === 'liberada') {
         tocarNotificacao();
         exibirNotificacaoNativa('✅ Mesa Liberada', `${nMesa} está livre para o próximo cliente.`, tagMesa);
         mostrarToast(`✅ ${nMesa} liberada`);
-        clearTimeout(timeoutPusher); timeoutPusher = setTimeout(() => carregarPedidos(), 50);
-        return;
-    }
-
-    if (data.status === 'itens_adicionados') {
+      } 
+      else if (data.status === 'itens_adicionados') {
         tocarNotificacao();
         exibirNotificacaoNativa('📝 Novos itens!', `${nMesa} adicionou novos produtos ao pedido.`, tagMesa);
         mostrarToast(`📝 ${nMesa} adicionou itens`);
         pedidoAtualizadoId = data.pedido_id;
-        clearTimeout(timeoutPusher); timeoutPusher = setTimeout(() => carregarPedidos(), 50);
-        return;
-    }
+      }
+      else if (data.status === 'aguardando_fechamento') {
+        tocarNotificacao();
+        exibirNotificacaoNativa('🛎️ Fechamento', `${nMesa} solicitou a conta.`, tagMesa);
+        mostrarToast(`🛎️ Fechamento: ${nMesa}`);
+      }
+      else if (data.status === 'cancelado') {
+        tocarNotificacao();
+        exibirNotificacaoNativa('❌ Cancelado', `${nMesa}: Pedido cancelado.`, tagMesa);
+        mostrarToast(`❌ ${nMesa} cancelado`);
+      }
 
-    let tit = 'Atualização!';
-    let msg = 'Verifique o painel de pedidos.';
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+    });
 
-    if (data.status === 'aguardando_fechamento') {
-        tit = `🛎️ Fechamento ${nMesa}`;
-        msg = 'O cliente solicitou o fechamento da conta.';
-        tocarNotificacao(); // Agora toca som no fechamento!
-    }
-    else if (data.status === 'servido') {
-        tit = `🚚 ${nMesa} servida!`;
-        msg = 'Todos os itens pendentes foram entregues.';
-    }
-    else if (data.status === 'itens_atualizados') {
-        tit = `📝 Pedido da ${nMesa} editado`;
-        msg = 'A lista de itens do pedido foi alterada.';
-    }
-    else if (data.status === 'cancelado') {
-        tit = `❌ Pedido da ${nMesa} CANCELADO`;
-        msg = 'O pedido foi removido do sistema.';
-    }
+    // EVENTO: MENU ATUALIZADO
+    channel.bind('menu-atualizado', (data) => {
+      console.log('📢 Admin: Menu atualizado recebido!', data);
+      carregarCardapio();
+      // Recarrega pedidos também para garantir sincronia de estoque na tela
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+    });
 
-    exibirNotificacaoNativa(tit, msg, tagMesa);
-    mostrarToast(tit);
-    tocarNotificacao(); // Toca som para qualquer atualização de status
-    clearTimeout(timeoutPusher); timeoutPusher = setTimeout(() => carregarPedidos(), 50);
-  });
-
-  channel.bind('status-caixa-atualizado', (data) => {
-    console.log('📢 Admin: Status do caixa atualizado', data);
-    tocarNotificacao();
-    // Adicione aqui qualquer função de recarga de caixa se necessário
-  });
-
-  channel.bind('menu-atualizado', (data) => {
-    console.log('📢 Admin: Menu atualizado recebido!', data);
-    carregarCardapio();
-  });
-  } catch (e) { console.warn('Pusher init error:', e); }
+  } catch (e) {
+    console.warn('❌ Erro na inicialização do Pusher:', e);
+  }
 }
-
 function tocarNotificacao(tipo = 'ambos') {
   const somMP3 = localStorage.getItem('admin_som_mp3_ativo') !== 'false';
   const somWin = localStorage.getItem('admin_som_windows') === 'true';
