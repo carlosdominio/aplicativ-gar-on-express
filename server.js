@@ -716,6 +716,54 @@ app.get('/api/pedidos/:id/pagamentos', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+app.get('/api/pedidos/historico-detalhado', ensureDbInitialized, async (req, res) => {
+  try {
+    const pedidosRes = await query(`
+      SELECT p.*, m.numero as mesa_numero, g.nome as garcom_nome 
+      FROM pedidos p 
+      LEFT JOIN mesas m ON p.mesa_id = m.id 
+      LEFT JOIN garcons g ON p.garcom_id = g.usuario 
+      WHERE p.status IN ('entregue', 'cancelado') 
+      ORDER BY p.created_at DESC 
+      LIMIT 50
+    `);
+    
+    const pedidos = pedidosRes.rows;
+    if (pedidos.length === 0) return res.json([]);
+
+    const ids = pedidos.map(p => p.id);
+    const idList = ids.join(',');
+
+    // Busca itens e pagamentos de todos os pedidos de uma vez
+    const [itensRes, pagamentosRes] = await Promise.all([
+      query(`SELECT pi.*, m.nome, m.preco FROM pedido_itens pi JOIN menu m ON pi.menu_id = m.id WHERE pi.pedido_id IN (${idList})`),
+      query(`SELECT * FROM pagamentos WHERE pedido_id IN (${idList}) ORDER BY data ASC`)
+    ]);
+
+    const itensMap = {};
+    itensRes.rows.forEach(it => {
+      if (!itensMap[it.pedido_id]) itensMap[it.pedido_id] = [];
+      itensMap[it.pedido_id].push(it);
+    });
+
+    const pagamentosMap = {};
+    pagamentosRes.rows.forEach(pg => {
+      if (!pagamentosMap[pg.pedido_id]) pagamentosMap[pg.pedido_id] = [];
+      pagamentosMap[pg.pedido_id].push(pg);
+    });
+
+    const resultado = pedidos.map(p => ({
+      ...p,
+      itens: itensMap[p.id] || [],
+      pagamentos: pagamentosMap[p.id] || []
+    }));
+
+    res.json(resultado);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/pedidos/historico', async (req, res) => {
   try {
     const result = await query(`SELECT p.*, m.numero as mesa_numero, g.nome as garcom_nome FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id LEFT JOIN garcons g ON p.garcom_id = g.usuario WHERE p.status IN ('entregue', 'cancelado') ORDER BY p.created_at DESC LIMIT 50`);

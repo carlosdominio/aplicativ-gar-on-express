@@ -1341,7 +1341,7 @@ async function excluirCategoria(categoria) {
 }
 
 async function carregarHistorico() {
-  const res = await fetch('/api/pedidos/historico');
+  const res = await fetch('/api/pedidos/historico-detalhado');
   if (!res.ok) return;
   historico = await res.json();
   exibirHistorico();
@@ -1357,7 +1357,6 @@ async function exibirHistorico() {
   containerFinalizados.innerHTML = '';
   containerCancelados.innerHTML = '';
 
-  // SEMPRE GARANTE QUE OS CONTAINERS ESTEJAM VISÍVEIS PARA MANTER A DIVISÃO
   document.getElementById('historico-finalizados').style.display = 'block';
   document.getElementById('historico-cancelados').style.display = 'block';
 
@@ -1369,9 +1368,8 @@ async function exibirHistorico() {
   if (historico.length === 0) {
     containerFinalizados.innerHTML = '<p style="text-align:center; padding: 1.5rem; opacity: 0.5; font-weight:bold;">Nenhum pedido finalizado hoje.</p>';
     containerCancelados.innerHTML = '<p style="text-align:center; padding: 1.5rem; opacity: 0.5; font-weight:bold;">Nenhum pedido cancelado hoje.</p>';
-    document.getElementById('faturamento-total-dia').innerText = `Faturamento Concluído: R$ 0,00`;
+    document.getElementById('faturamento-total-dia').innerText = `R$ 0,00`;
     
-    // Limpa o select de filtros quando não há histórico
     const selectFiltro = document.getElementById('filtro-historico-select');
     if (selectFiltro) {
       selectFiltro.innerHTML = '<option value="">Todas as Mesas / Todos os Garçons</option>';
@@ -1384,19 +1382,15 @@ async function exibirHistorico() {
     const valorConsolidado = (pedido.total || 0) + (pedido.pago_parcial || 0);
     if (pedido.status === 'entregue') faturamentoTotal += valorConsolidado;
 
-    // Busca itens e pagamentos em paralelo
-    const [itens, pagamentos] = await Promise.all([
-      fetch(`/api/pedidos/${pedido.id}/itens`).then(res => res.json()),
-      fetch(`/api/pedidos/${pedido.id}/pagamentos`).then(res => res.json())
-    ]);
+    const itens = pedido.itens || [];
+    const pagamentos = pedido.pagamentos || [];
 
     const card = document.createElement('div');
     card.className = `pedido-card status-${pedido.status}`;
     const mesaNomeExibicao = pedido.mesa_numero ? `Mesa ${pedido.mesa_numero}` : 'BALCÃO';
 
-    // Gerar HTML dos pagamentos se houver
     let htmlPagamentos = '';
-    if (pagamentos && pagamentos.length > 0) {
+    if (pagamentos.length > 0) {
       htmlPagamentos = `
         <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; text-align: left;">
           <h4 style="margin: 0 0 5px 0; font-size: 0.85rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 3px;">💳 Resumo de Pagamentos</h4>
@@ -1408,7 +1402,7 @@ async function exibirHistorico() {
           `).join('')}
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 5px; padding-top: 3px; border-top: 1px dashed #ced4da; font-weight: bold; color: #212529;">
             <span>TOTAL PAGO:</span>
-            <span>R$ ${pedido.pago_parcial.toFixed(2)}</span>
+            <span>R$ ${(pedido.pago_parcial || 0).toFixed(2)}</span>
           </div>
         </div>
       `;
@@ -1447,7 +1441,6 @@ async function exibirHistorico() {
     }
   }
 
-  // Se uma das colunas estiver vazia (mas a outra não), coloca a mensagem de placeholder
   if (containerFinalizados.children.length === 0) {
       containerFinalizados.innerHTML = '<p style="text-align:center; padding: 1rem; opacity: 0.5;">Nenhum pedido finalizado.</p>';
   }
@@ -1457,7 +1450,6 @@ async function exibirHistorico() {
 
   document.getElementById('faturamento-total-dia').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
 
-  // ATUALIZA O DROPDOWN DE FILTRO DO HISTÓRICO
   const selectFiltro = document.getElementById('filtro-historico-select');
   if (selectFiltro) {
     const valorAtual = selectFiltro.value;
@@ -1473,7 +1465,7 @@ async function exibirHistorico() {
       htmlOpcoes += `<option value="${opt}">${opt}</option>`;
     });
     selectFiltro.innerHTML = htmlOpcoes;
-    selectFiltro.value = valorAtual; // Mantém a seleção
+    selectFiltro.value = valorAtual;
 
     if (valorAtual) filtrarHistorico(valorAtual);
   }
@@ -1492,8 +1484,20 @@ function filtrarHistorico(valor) {
   cards.forEach(card => {
     const h3 = card.querySelector('h3');
     const mesaTexto = h3 ? h3.innerText.toLowerCase() : '';
-    const textoGeral = card.innerText.toLowerCase();
-    const matches = !busca || mesaTexto.includes(busca) || textoGeral.includes(busca);
+    const textoCompleto = card.innerText.toLowerCase();
+
+    let matches = false;
+    if (!busca) {
+      matches = true;
+    } else {
+      // Se a busca começa com "mesa ", tentamos match exato no nome da mesa (ex: "Mesa 1" não bate com "Mesa 10")
+      if (busca.startsWith('mesa ')) {
+        matches = (mesaTexto === busca);
+      } else {
+        // Busca geral por texto (garçom, itens, observação, etc)
+        matches = textoCompleto.includes(busca);
+      }
+    }
 
     if (matches) {
       card.style.display = 'block';
@@ -1506,8 +1510,15 @@ function filtrarHistorico(valor) {
 
   const msgFin = document.getElementById('lista-finalizados').querySelector('p');
   const msgCan = document.getElementById('lista-cancelados').querySelector('p');
-  if (msgFin) msgFin.style.display = (finalizadosVisiveis === 0) ? 'block' : 'none';
-  if (msgCan) msgCan.style.display = (canceladosVisiveis === 0) ? 'block' : 'none';
+
+  if (msgFin) {
+    msgFin.style.display = (finalizadosVisiveis === 0) ? 'block' : 'none';
+    if (finalizadosVisiveis === 0) msgFin.innerText = busca ? 'Nenhum finalizado encontrado para esta busca.' : 'Nenhum pedido finalizado hoje.';
+  }
+  if (msgCan) {
+    msgCan.style.display = (canceladosVisiveis === 0) ? 'block' : 'none';
+    if (canceladosVisiveis === 0) msgCan.innerText = busca ? 'Nenhum cancelado encontrado para esta busca.' : 'Nenhum pedido cancelado hoje.';
+  }
 }
 
 async function limparHistoricoTotal() {
