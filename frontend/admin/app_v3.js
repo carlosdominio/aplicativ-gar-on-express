@@ -2206,61 +2206,7 @@ async function removerItensSelecionados() {
 
 // Funções de edição de itens consolidadas na parte inferior do arquivo
 
-function filtrarHistorico(valor) {
-  const busca = valor.toLowerCase().trim();
-  const listContainer = document.getElementById('historico-list');
-  if (!listContainer) return;
-
-  const cards = listContainer.querySelectorAll('.pedido-card');
-
-  let finalizadosVisiveis = 0;
-  let canceladosVisiveis = 0;
-
-  cards.forEach(card => {
-    // Captura todo o texto do card (Mesa, Garçom, Itens, Observações)
-    const texto = card.innerText.toLowerCase();
-
-    // Tenta extrair o número da mesa se houver (ex: Mesa 6 -> 6)
-    const h3 = card.querySelector('h3');
-    const mesaTexto = h3 ? h3.innerText.toLowerCase() : '';
-
-    // Verifica se a busca bate com o texto geral OU se o usuário digitou um número que bate com o número da mesa
-    const matchesTexto = texto.includes(busca);
-    const matchesMesaDireta = busca.length > 0 && mesaTexto.includes(busca);
-
-    const matches = !busca || matchesTexto || matchesMesaDireta;
-
-    if (matches) {
-      card.style.display = 'block';
-      if (card.classList.contains('status-cancelado')) canceladosVisiveis++;
-      else finalizadosVisiveis++;
-    } else {
-      card.style.display = 'none';
-    }
-  });
-
-  // Atualiza mensagens de "Nenhum pedido" dinamicamente
-  const msgFin = document.getElementById('lista-finalizados').querySelector('p');
-  const msgCan = document.getElementById('lista-cancelados').querySelector('p');
-
-  if (msgFin) {
-    if (finalizadosVisiveis === 0) {
-      msgFin.style.display = 'block';
-      msgFin.innerText = busca ? 'Nenhum finalizado encontrado para esta busca.' : 'Nenhum pedido finalizado hoje.';
-    } else {
-      msgFin.style.display = 'none';
-    }
-  }
-
-  if (msgCan) {
-    if (canceladosVisiveis === 0) {
-      msgCan.style.display = 'block';
-      msgCan.innerText = busca ? 'Nenhum cancelado encontrado para esta busca.' : 'Nenhum pedido cancelado hoje.';
-    } else {
-      msgCan.style.display = 'none';
-    }
-  }
-}async function excluirPedido(id) {
+async function excluirPedido(id) {
   if (await mostrarConfirmacao("⚠️ EXCLUIR PERMANENTEMENTE?\n\nIsso removerá o pedido do banco de dados e do histórico. Esta ação não pode ser desfeita.", "Excluir Registro")) {
     const res = await fetch(`/api/pedidos/${id}`, { method: 'DELETE' });
     if (res.ok) {
