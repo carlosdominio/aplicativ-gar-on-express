@@ -62,6 +62,24 @@ function tocarSomNotificacao(tipo = 'campainha') {
     tocarCampainha();
 }
 
+function mostrarToast(mensagem, tipo = 'sucesso') {
+    const toastExistente = document.querySelector('.toast-notificacao');
+    if (toastExistente) toastExistente.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notificacao ${tipo === 'erro' ? 'cancelado' : ''}`;
+    toast.innerText = mensagem;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 500);
+        }, 4000);
+    }, 100);
+}
+
 async function carregarPedidos() {
     try {
         const res = await fetch('/api/pedidos/cozinha');        
@@ -195,12 +213,11 @@ async function marcarComoPronto(pedidoId, btn) {
     btn.disabled = true;
 
     try {
-        // Agora a cozinha marca como 'pronto' em vez de 'entregue'
-        // Isso notificará o admin/garçom para eles fazerem a entrega física.
         const res = await fetch(`/api/pedidos/${pedidoId}/cozinha-pronto`, { method: 'PUT' });
         const result = await res.json();
         
         if (result.success) {
+            mostrarToast(`✅ Pedido #${pedidoId} enviado!`);
             carregarPedidos();
         } else {
             alert('Erro ao concluir pedido: ' + (result.error || 'Erro desconhecido'));
@@ -220,16 +237,13 @@ function mostrarNotificacaoCancelamento(mensagem, pedidoId) {
     
     let estavaNaTela = false;
 
-    // REMOÇÃO IMEDIATA E AGRESSIVA DO DOM
     if (pedidoId) {
-        // Tenta encontrar pelo ID do card
         const card = document.getElementById(`pedido-card-${pedidoId}`);
         if (card) {
-            card.remove(); // Remove completamente do DOM na hora
+            card.remove();
             estavaNaTela = true;
         }
         
-        // Reforço: Procura qualquer elemento que mencione o ID do pedido se o card não foi achado pelo ID fixo
         const todosCards = document.querySelectorAll('.card-pedido');
         todosCards.forEach(c => {
             if (c.innerText.includes(`#${pedidoId}`)) {
@@ -239,8 +253,8 @@ function mostrarNotificacaoCancelamento(mensagem, pedidoId) {
         });
     }
 
-    // SÓ EXIBE O MODAL E TOCA SOM SE O PEDIDO ESTAVA REALMENTE NA TELA DA COZINHA
     if (estavaNaTela) {
+        mostrarToast(`❌ PEDIDO CANCELADO: Mesa ${mensagem.split('Mesa ')[1] || pedidoId}`, 'erro');
         const modal = document.getElementById('modal-cancelamento');
         const modalMsg = document.getElementById('modal-mensagem');
         
@@ -271,8 +285,9 @@ async function configurarPusher() {
         canal.bind('novo-pedido', (data) => {
             console.log('Novo pedido recebido!', data);
             
-            // SÓ TOCA O SOM SE O PEDIDO FOR REALMENTE PARA A COZINHA
             if (data && data.para_cozinha === true) {
+                const mesa = data.mesa_numero || 'BALCÃO';
+                mostrarToast(`🍳 NOVO PEDIDO: Mesa ${mesa}`);
                 tocarSomNotificacao('campainha');
                 tocarSomNotificacao('windows');
             }
@@ -293,6 +308,7 @@ async function configurarPusher() {
         });
 
         canal.bind('menu-atualizado', () => {
+            mostrarToast('🔄 Cardápio atualizado');
             clearTimeout(timeoutPusher);
             timeoutPusher = setTimeout(carregarPedidos, 50);
         });
@@ -303,11 +319,11 @@ async function configurarPusher() {
                 const idParaCancelar = data.pedido_id || data.id;
                 mostrarNotificacaoCancelamento(data.mensagem || `Pedido #${idParaCancelar} CANCELADO pelo Admin`, idParaCancelar);
             } else if (data && (data.status === 'itens_atualizados' || data.status === 'itens_adicionados')) {
-                // Se o pedido está na tela, avisa que mudou
                 const card = document.getElementById(`pedido-card-${data.pedido_id || data.id}`);
                 if (card) {
+                    const mesa = data.mesa_numero || 'X';
+                    mostrarToast(`📝 Mesa ${mesa}: Itens atualizados`);
                     tocarSomNotificacao('campainha');
-                    console.log('🔔 Som tocado: Itens atualizados em pedido na tela');
                 }
             }
             clearTimeout(timeoutPusher);

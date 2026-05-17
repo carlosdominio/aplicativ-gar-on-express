@@ -183,6 +183,35 @@ main {
     font-size: 2rem;
 }
 
+/* Toasts de Notificação */
+.toast-notificacao {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background-color: #27ae60;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-weight: bold;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+.toast-notificacao.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-notificacao.cancelado {
+    background-color: #e74c3c;
+}
+
 @media (max-width: 600px) {
     header {
         padding: 0.8rem 1rem;
