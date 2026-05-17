@@ -286,7 +286,7 @@ async function configurarPusher() {
             console.log('Novo pedido recebido!', data);
             
             if (data && data.para_cozinha === true) {
-                const mesa = data.mesa_numero || 'BALCÃO';
+                const mesa = (data.pedido && data.pedido.mesa_numero) || data.mesa_numero || 'BALCÃO';
                 mostrarToast(`🍳 NOVO PEDIDO: Mesa ${mesa}`);
                 tocarSomNotificacao('campainha');
                 tocarSomNotificacao('windows');
