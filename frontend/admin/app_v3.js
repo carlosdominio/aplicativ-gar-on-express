@@ -3586,6 +3586,13 @@ async function configurarPusher() {
       timeoutPusher = setTimeout(() => carregarPedidos(), 100);
     });
 
+    channel.bind('estoque-baixo', (data) => {
+      console.log('📢 Admin: Estoque baixo!', data);
+      mostrarToast(data.mensagem);
+      tocarNotificacao('windows');
+      exibirNotificacaoNativa('⚠️ ESTOQUE BAIXO', data.mensagem, `estoque-${data.id}`);
+    });
+
     // EVENTO: PEDIDO CANCELADO (Fallback)
     channel.bind('pedido-cancelado', (data) => {
         console.log('📢 Admin: Pedido cancelado (evento direto)', data);
