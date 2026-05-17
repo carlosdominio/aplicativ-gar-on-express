@@ -213,8 +213,9 @@ function alternarSom() {
   atualizarIconeSom();
 }
 
-function tocarCampainha() {
+function tocarCampainha(suave = false) {
   if (somAtivo && audioDesbloqueado) {
+    audioNotificacao.volume = suave ? 0.4 : 1.0;
     audioNotificacao.currentTime = 0;
     audioNotificacao.play().catch(e => console.warn('Erro ao tocar áudio:', e));
   }
@@ -263,17 +264,25 @@ async function configurarPusher() {
 
     channel.bind('status-atualizado', (data) => {
       console.log('📢 Status atualizado no garçom:', data);
-      // Garçom NÃO toca som para status (ADM já notificou)
+      
       clearTimeout(timeoutPusher);
       timeoutPusher = setTimeout(() => {
         console.log('🔄 Recarregando mesas devido a atualização de status...');
         carregarMesas();
         if (data) {
           const nMesa = data.mesa_numero || data.mesa_id || 'X';
-          if (data.status === 'liberada') mostrarToast(`✅ Mesa ${nMesa} liberada`);
-          else if (data.status === 'servido') mostrarToast(`🚚 Pedido da Mesa ${nMesa} entregue!`);
-          else if (data.status === 'itens_atualizados') mostrarToast(`📝 Pedido da Mesa ${nMesa} atualizado pelo Admin`);
-          else if (data.status === 'cancelado') mostrarToast(`❌ Pedido da Mesa ${nMesa} CANCELADO pelo Admin`);
+          let msg = '';
+          
+          if (data.status === 'liberada') msg = `✅ Mesa ${nMesa} liberada`;
+          else if (data.status === 'servido') msg = `🚚 Pedido da Mesa ${nMesa} entregue!`;
+          else if (data.status === 'itens_atualizados') msg = `📝 Pedido da Mesa ${nMesa} atualizado pelo Admin`;
+          else if (data.status === 'cancelado') msg = `❌ Pedido da Mesa ${nMesa} CANCELADO pelo Admin`;
+
+          if (msg) {
+            mostrarToast(msg);
+            // Toca som suave para notificações vindas do Admin ou sistema
+            tocarCampainha(true);
+          }
         }
       }, 50);
     });
