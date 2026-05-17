@@ -2624,7 +2624,6 @@ async function confirmarCancelamento() {
       body: JSON.stringify({ status: 'cancelado' })
     });
     if (res.ok) {
-      mostrarToast("Pedido cancelado!");
       fecharModal();
       carregarPedidos();
     }
@@ -2803,7 +2802,6 @@ async function confirmarCancelamentoDesdeFechamento() {
       body: JSON.stringify({ status: 'cancelado' }) 
     });
     if (res.ok) { 
-      mostrarToast("❌ Pedido cancelado!"); 
       fecharModalFechamentoAdmin(); 
       carregarPedidos(); 
     }
@@ -3588,18 +3586,9 @@ async function configurarPusher() {
 
     channel.bind('estoque-baixo', (data) => {
       console.log('📢 Admin: Estoque baixo!', data);
-      mostrarToast(data.mensagem);
+      mostrarToast(data.mensagem, 'estoque');
       tocarNotificacao('windows');
       exibirNotificacaoNativa('⚠️ ESTOQUE BAIXO', data.mensagem, `estoque-${data.id}`);
-    });
-
-    // EVENTO: PEDIDO CANCELADO (Fallback)
-    channel.bind('pedido-cancelado', (data) => {
-        console.log('📢 Admin: Pedido cancelado (evento direto)', data);
-        tocarNotificacao();
-        mostrarToast(`❌ Pedido cancelado`);
-        clearTimeout(timeoutPusher);
-        timeoutPusher = setTimeout(() => carregarPedidos(), 100);
     });
 
     // EVENTO: MENU ATUALIZADO
@@ -3688,13 +3677,31 @@ function alternarSomWindows() {
     mostrarToast("🔇 Som do Windows DESATIVADO");
   }
 }
-function mostrarToast(msg) {
-  const old = document.querySelector('.toast-notificacao'); if (old) old.remove();
-  const t = document.createElement('div'); 
+function mostrarToast(msg, tipo = 'sucesso') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const t = document.createElement('div');
   t.className = 'toast-notificacao';
-  t.textContent = msg; // Usar textContent em vez de innerText/innerHTML
-  document.body.appendChild(t);
-  setTimeout(() => { t.classList.add('show'); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 500); }, 4000); }, 100);
+  if (tipo === 'estoque') t.classList.add('estoque-alerta');
+  if (tipo === 'erro') t.classList.add('erro');
+
+  t.textContent = msg;
+  container.appendChild(t);
+
+  // Animação de entrada
+  setTimeout(() => { 
+    t.classList.add('show'); 
+    // Auto-remove após 5 segundos
+    setTimeout(() => { 
+      t.classList.remove('show'); 
+      setTimeout(() => t.remove(), 500); 
+    }, 5000); 
+  }, 100);
 }
 
 // FUNÇÕES DE SISTEMA (SUBSTITUIÇÃO DE ALERT/CONFIRM)
@@ -4145,7 +4152,6 @@ async function confirmarCancelamentoDesdeOpcoes() {
                 body: JSON.stringify({ status: 'cancelado' })
             });
             if (res.ok) {
-                mostrarToast("✅ Pedido cancelado!");
                 fecharModalOpcoes();
                 carregarPedidos();
             } else {

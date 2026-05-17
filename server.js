@@ -889,7 +889,7 @@ app.post('/api/pedidos', async (req, res) => {
     for (const item of itens) {
       await query('INSERT INTO pedido_itens (pedido_id, menu_id, quantidade, observacao, status) VALUES (?, ?, ?, ?, ?)', [pedidoId, item.menu_id, item.quantidade, item.observacao || '', 'pendente']);
       await query("UPDATE menu SET estoque = CASE WHEN estoque = -1 THEN -1 ELSE estoque - ? END WHERE id = ?", [item.quantidade, item.menu_id]);
-      verificarEstoqueBaixo(item.menu_id);
+      await verificarEstoqueBaixo(item.menu_id);
     }
     let mesaNum = 'BALCÃO';
     if (mesa_id) { 
@@ -949,7 +949,7 @@ app.put('/api/pedidos/:id/atualizar-itens', async (req, res) => {
     for (const item of itens) {
       await query("INSERT INTO pedido_itens (pedido_id, menu_id, quantidade, observacao, status) VALUES (?, ?, ?, ?, ?)", [id, item.menu_id, item.quantidade, item.observacao || '', item.status || 'pendente']);
       await query("UPDATE menu SET estoque = CASE WHEN estoque = -1 THEN -1 ELSE estoque - ? END WHERE id = ?", [item.quantidade, item.menu_id]);
-      verificarEstoqueBaixo(item.menu_id);
+      await verificarEstoqueBaixo(item.menu_id);
       const pMenu = (await query("SELECT preco FROM menu WHERE id = ?", [item.menu_id])).rows[0];
       if (pMenu) novoSub += (pMenu.preco * item.quantidade);
     }
@@ -994,7 +994,7 @@ app.put('/api/pedidos/:id/adicionar', async (req, res) => {
       if (exist.rows.length > 0) await query('UPDATE pedido_itens SET quantidade = ? WHERE id = ?', [exist.rows[0].quantidade + item.quantidade, exist.rows[0].id]);
       else await query('INSERT INTO pedido_itens (pedido_id, menu_id, quantidade, observacao, status) VALUES (?, ?, ?, ?, ?)', [id, item.menu_id, item.quantidade, item.observacao || '', 'pendente']);
       await query("UPDATE menu SET estoque = CASE WHEN estoque = -1 THEN -1 ELSE estoque - ? END WHERE id = ?", [item.quantidade, item.menu_id]);
-      verificarEstoqueBaixo(item.menu_id);
+      await verificarEstoqueBaixo(item.menu_id);
     }
     const tItens = (await query("SELECT i.quantidade, m.preco FROM pedido_itens i JOIN menu m ON i.menu_id = m.id WHERE i.pedido_id = ?", [id])).rows;
     const sub = tItens.reduce((sum, i) => sum + (i.preco * i.quantidade), 0);

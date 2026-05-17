@@ -679,28 +679,51 @@ button.btn-entregue { background-color: #95a5a6; }
   margin-bottom: 1.5rem;
 }
 
-.toast-notificacao {
+/* Toasts de Notificação (Sistema de Empilhamento) */
+#toast-container {
     position: fixed;
     top: 75px;
     left: 50%;
-    transform: translateX(-50%) translateY(-20px);
+    transform: translateX(-50%);
+    z-index: 50000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+    width: 100%;
+    max-width: 500px;
+}
+
+.toast-notificacao {
     background-color: #27ae60;
     color: white;
-    padding: 15px 35px;
+    padding: 12px 25px;
     border-radius: 30px;
     box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-    z-index: 9999;
     opacity: 0;
-    pointer-events: none;
+    transform: translateY(-20px);
     transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     font-weight: bold;
     font-size: 1.1rem;
-    white-space: nowrap;
+    white-space: normal;
+    text-align: center;
+    pointer-events: auto;
+    width: fit-content;
+    max-width: 90%;
 }
 
 .toast-notificacao.show {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
+}
+
+.toast-notificacao.estoque-alerta {
+    background-color: #e67e22; /* Laranja para estoque */
+}
+
+.toast-notificacao.erro {
+    background-color: #e74c3c; /* Vermelho para cancelamento/erro */
 }
 
 /* Estilos de Impressão */
