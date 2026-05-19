@@ -1217,7 +1217,47 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
 });
 app.get('/api/menu', ensureDbInitialized, async (req, res) => {
   try {
-    res.json((await query('SELECT * FROM menu ORDER BY validade ASC')).rows);
+    const menuRes = await query('SELECT * FROM menu');
+    let menu = menuRes.rows;
+
+    const ordemRes = await query("SELECT valor FROM sistema_config WHERE chave = 'ordem_categorias'");
+    if (ordemRes.rows.length > 0 && ordemRes.rows[0].valor) {
+      const ordem = JSON.parse(ordemRes.rows[0].valor).map(c => c.trim().toUpperCase());
+      
+      menu.sort((a, b) => {
+        const catA = a.categoria.trim().toUpperCase();
+        const catB = b.categoria.trim().toUpperCase();
+        const indexA = ordem.indexOf(catA);
+        const indexB = ordem.indexOf(catB);
+        
+        // Se ambos estão na lista de ordem, segue a ordem
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        // Se apenas um está, ele vem primeiro
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        // Se nenhum está, mantém ordem alfabética original ou id
+        return catA.localeCompare(catB);
+      });
+    } else {
+      // Padrão: Ordenar por validade como estava ou alfabético
+      menu.sort((a, b) => (a.validade || '').localeCompare(b.validade || ''));
+    }
+
+    res.json(menu);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/config/ordem-categorias', async (req, res) => {
+  const { ordem } = req.body;
+  try {
+    const valor = JSON.stringify(ordem);
+    if (isPostgres) {
+      await query("INSERT INTO sistema_config (chave, valor) VALUES ('ordem_categorias', ?) ON CONFLICT(chave) DO UPDATE SET valor = EXCLUDED.valor", [valor]);
+    } else {
+      await query("INSERT OR REPLACE INTO sistema_config (chave, valor) VALUES ('ordem_categorias', ?)", [valor]);
+    }
+    await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
+    res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 

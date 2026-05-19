@@ -933,7 +933,86 @@ async function confirmarFechamentoCaixa() {
 }
 
 async function carregarDadosConfig() {
-  await Promise.all([exibirMesasConfig(), exibirGarconsConfig(), exibirMenuConfig(), exibirConfigCategoriasCozinha()]);
+  await Promise.all([exibirMesasConfig(), exibirGarconsConfig(), exibirMenuConfig(), exibirConfigCategoriasCozinha(), exibirConfigOrdemCategorias()]);
+}
+
+// ORDEM DAS CATEGORIAS
+let estadoOrdemCategorias = [];
+
+async function exibirConfigOrdemCategorias() {
+  const container = document.getElementById('config-ordem-categorias-lista');
+  if (!container) return;
+
+  try {
+    const resMenu = await fetch('/api/menu');
+    const menu = await resMenu.json();
+    const categoriasExistentes = [...new Set(menu.map(item => item.categoria.trim()))];
+    
+    // Tenta carregar a ordem salva do banco
+    const resOrdem = await fetch('/api/config/categorias-cozinha'); // Reusando o objeto de config geral se necessário, ou pegando do menu que já vem ordenado
+    // Como o /api/menu agora já retorna ordenado pelo server, as categoriasExistentes virão na ordem correta se o server estiver ok.
+    // Mas para garantir a manipulação, vamos usar o estadoOrdemCategorias
+    estadoOrdemCategorias = categoriasExistentes;
+
+    renderizarListaOrdemCategorias();
+  } catch (e) {
+    console.error('Erro ao carregar ordem das categorias:', e);
+  }
+}
+
+function renderizarListaOrdemCategorias() {
+  const container = document.getElementById('config-ordem-categorias-lista');
+  if (!container) return;
+
+  if (estadoOrdemCategorias.length === 0) {
+    container.innerHTML = '<p style="text-align:center; opacity:0.5; padding: 20px;">Nenhuma categoria encontrada no cardápio.</p>';
+    return;
+  }
+
+  container.innerHTML = estadoOrdemCategorias.map((cat, index) => `
+    <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="background: #edf2f7; color: #4a5568; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.75rem; font-weight: bold;">${index + 1}</span>
+        <strong style="color: #2c3e50; font-size: 0.9rem;">${cat}</strong>
+      </div>
+      <div style="display: flex; gap: 5px;">
+        <button onclick="moverCategoria(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.3; cursor:default;"' : 'style="cursor:pointer;"'} title="Mover para cima" style="background: #f1f5f9; border: 1px solid #cbd5e0; padding: 5px 10px; border-radius: 4px; color: #2c3e50; font-weight: bold;">▲</button>
+        <button onclick="moverCategoria(${index}, 1)" ${index === estadoOrdemCategorias.length - 1 ? 'disabled style="opacity:0.3; cursor:default;"' : 'style="cursor:pointer;"'} title="Mover para baixo" style="background: #f1f5f9; border: 1px solid #cbd5e0; padding: 5px 10px; border-radius: 4px; color: #2c3e50; font-weight: bold;">▼</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function moverCategoria(index, direcao) {
+  const novoIndex = index + direcao;
+  if (novoIndex < 0 || novoIndex >= estadoOrdemCategorias.length) return;
+
+  const temp = estadoOrdemCategorias[index];
+  estadoOrdemCategorias[index] = estadoOrdemCategorias[novoIndex];
+  estadoOrdemCategorias[novoIndex] = temp;
+
+  renderizarListaOrdemCategorias();
+}
+
+async function salvarOrdemCategorias() {
+  try {
+    const res = await fetch('/api/config/ordem-categorias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ordem: estadoOrdemCategorias })
+    });
+
+    if (res.ok) {
+      await mostrarAlerta("✅ Ordem das categorias salva com sucesso!", "Sucesso");
+      // Recarrega o menu globalmente
+      if (typeof carregarMenu === 'function') await carregarMenu();
+    } else {
+      await mostrarAlerta("❌ Erro ao salvar ordem das categorias.", "Erro");
+    }
+  } catch (e) {
+    console.error('Erro ao salvar ordem:', e);
+    await mostrarAlerta("❌ Erro de conexão ao salvar.", "Erro");
+  }
 }
 
 // CONFIGURAÇÃO DE CATEGORIAS DA COZINHA

@@ -426,6 +426,17 @@
           <div id="lista-garcons-config" style="display: flex; flex-direction: column; gap: 0.8rem;"></div>
         </div>
 
+        <!-- Ordem das Categorias -->
+        <div class="config-card">
+          <h3>📂 Ordem das Categorias no Cardápio</h3>
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Defina a prioridade de exibição das categorias (cima/baixo).</p>
+          <div id="config-ordem-categorias-lista" style="display: flex; flex-direction: column; gap: 8px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; max-height: 400px; overflow-y: auto;">
+            <!-- Injetado via JS -->
+            <p style="text-align:center; opacity:0.5;">Carregando categorias...</p>
+          </div>
+          <button onclick="salvarOrdemCategorias()" style="width: 100%; margin-top: 15px; background: #3498db; font-weight: bold;">SALVAR ORDEM</button>
+        </div>
+
         <!-- Configuração Global de Cozinha -->
         <div class="config-card">
           <h3>⚙️ Configurações do Painel de Cozinha</h3>
