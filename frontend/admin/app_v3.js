@@ -65,6 +65,7 @@ let mesaAtual = null;
 let pedidoEmEdicao = null;
 let itensEmEdicao = [];
 let abaAtiva = 'ativos';
+let ultimoAlertaValidadeMostrado = 0; // Debounce para o alerta de produtos vencidos
 let subAbaAtiva = 'garcom';
 let adminLogado = null;
 let configCozinhaCategorias = []; // Estado global das categorias da cozinha
@@ -1263,6 +1264,7 @@ async function abrirModalItemMenu(item = null) {
     document.getElementById('menu-validade').value = item.validade || '';
     document.getElementById('menu-img').value = item.imagem;
     document.getElementById('menu-enviar-cozinha').checked = (item.enviar_cozinha === true || item.enviar_cozinha === 1 || item.enviar_cozinha === null);
+    document.getElementById('menu-visivel').checked = (item.visivel === true || item.visivel === 1 || item.visivel === null || item.visivel === undefined);
 
     // Tenta selecionar no dropdown
     const catUpper = item.categoria.trim().toUpperCase();
@@ -1323,7 +1325,7 @@ async function processarAcaoMenu() {
   const nome = document.getElementById('menu-nome').value;
   const selectCat = document.getElementById('menu-cat-select').value;
   const inputNovo = document.getElementById('menu-cat-novo').value;
-  
+
   // Define a categoria final
   let categoria = selectCat;
   if (selectCat === 'NOVA_CATEGORIA') {
@@ -1335,12 +1337,13 @@ async function processarAcaoMenu() {
   const validade = document.getElementById('menu-validade').value;
   const imagem = document.getElementById('menu-img').value || 'https://placehold.co/100';
   const enviar_cozinha = document.getElementById('menu-enviar-cozinha').checked;
+  const visivel = document.getElementById('menu-visivel').checked;
 
   if (!nome || !categoria || isNaN(preco) || isNaN(estoque)) {
     return await mostrarAlerta("Por favor, preencha o nome, categoria e preço corretamente.", "Aviso");
   }
 
-  const payload = { nome, categoria: categoria.toUpperCase(), preco, imagem, estoque, validade, enviar_cozinha };
+  const payload = { nome, categoria: categoria.toUpperCase(), preco, imagem, estoque, validade, enviar_cozinha, visivel };
   const method = idItemEdicaoMenu ? 'PUT' : 'POST';
   const url = idItemEdicaoMenu ? `/api/menu/${idItemEdicaoMenu}` : '/api/menu';
 
@@ -1367,11 +1370,10 @@ function prepararEdicaoMenu(item) {
 async function exibirMenuConfig() {
   const container = document.getElementById('lista-menu-config');
   if (!container) return;
-  
-  const res = await fetch('/api/menu');
+
+  const res = await fetch('/api/menu?admin=true');
   if (!res.ok) return;
   cardapio = await res.json(); // Atualiza variável global também, pois ela é usada na renderização
-  
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
   let vencidosCount = 0;
@@ -1424,10 +1426,11 @@ async function exibirMenuConfig() {
             }
 
             return `
-            <div class="menu-item-config ${classeValidade}" id="item-menu-${m.id}" style="border-left: 5px solid ${classeValidade === 'vencido' ? '#e74c3c' : (classeValidade === 'alerta-validade' ? '#f39c12' : 'transparent')}">
-              <img src="${m.imagem}" alt="${m.nome}">
+            <div class="menu-item-config ${classeValidade}" id="item-menu-${m.id}" style="border-left: 5px solid ${classeValidade === 'vencido' ? '#e74c3c' : (classeValidade === 'alerta-validade' ? '#f39c12' : 'transparent')}; position: relative;">
+              ${(m.visivel === false || m.visivel === 0) ? '<span style="position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; z-index: 5;">🚫 OCULTO</span>' : ''}
+              <img src="${m.imagem}" alt="${m.nome}" style="filter: ${(m.visivel === false || m.visivel === 0) ? 'grayscale(1) opacity(0.6)' : 'none'}">
               <div style="flex-grow: 1;">
-                <strong>${m.nome}</strong><br>
+                <strong style="${(m.visivel === false || m.visivel === 0) ? 'color: #95a5a6;' : ''}">${m.nome}</strong><br>
                 <small>${m.categoria} - R$ ${m.preco.toFixed(2)}</small><br>
                 <small style="color: ${m.estoque === 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
                   Estoque: ${m.estoque === -1 ? 'Ilimitado' : m.estoque}
@@ -1448,7 +1451,12 @@ async function exibirMenuConfig() {
   container.innerHTML = htmlFinal || '<p style="text-align:center; padding: 2rem; opacity: 0.5;">Nenhum item cadastrado no cardápio.</p>';
 
   if (vencidosCount > 0 || proxVencimentoCount > 0) {
-    mostrarToast(`🚨 ALERTA: ${vencidosCount} produtos vencidos e ${proxVencimentoCount} próximos da validade!`);
+    const agora = Date.now();
+    // Debounce de 30 segundos para evitar que o alerta apareça várias vezes seguidas (ex: ao ocultar vários itens ou via Pusher)
+    if (agora - ultimoAlertaValidadeMostrado > 30000) {
+      mostrarToast(`🚨 ALERTA: ${vencidosCount} produtos vencidos e ${proxVencimentoCount} próximos da validade!`);
+      ultimoAlertaValidadeMostrado = agora;
+    }
   }
 }
 

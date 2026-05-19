@@ -330,6 +330,7 @@ async function initDb() {
     await addCol('menu', 'estoque', 'INTEGER DEFAULT -1');
     await addCol('menu', 'validade', 'DATE');
     await addCol('menu', 'enviar_cozinha', 'BOOLEAN DEFAULT TRUE');
+    await addCol('menu', 'visivel', 'BOOLEAN DEFAULT TRUE');
     await addCol('garcons', 'telefone', 'TEXT');
     await addCol('pedidos', 'observacao', 'TEXT');
     await addCol('pedidos', 'pago_parcial', 'REAL DEFAULT 0');
@@ -1217,7 +1218,12 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
 });
 app.get('/api/menu', ensureDbInitialized, async (req, res) => {
   try {
-    const menuRes = await query('SELECT * FROM menu');
+    const { admin } = req.query;
+    let querySql = 'SELECT * FROM menu';
+    if (admin !== 'true') {
+      querySql += ' WHERE visivel = ' + (isPostgres ? 'TRUE' : '1');
+    }
+    const menuRes = await query(querySql);
     let menu = menuRes.rows;
 
     const ordemRes = await query("SELECT valor FROM sistema_config WHERE chave = 'ordem_categorias'");
@@ -1262,11 +1268,13 @@ app.post('/api/config/ordem-categorias', async (req, res) => {
 });
 
 app.put('/api/menu/:id', async (req, res) => {
-  const { nome, categoria, preco, imagem, estoque, validade, enviar_cozinha } = req.body;
+  const { nome, categoria, preco, imagem, estoque, validade, enviar_cozinha, visivel } = req.body;
   const dataValidade = validade && validade.trim() !== "" ? validade : null;
   const envCozinha = enviar_cozinha !== undefined ? (isPostgres ? enviar_cozinha : (enviar_cozinha ? 1 : 0)) : (isPostgres ? true : 1);
+  const isVisivel = visivel !== undefined ? (isPostgres ? visivel : (visivel ? 1 : 0)) : (isPostgres ? true : 1);
   try {
-    await query('UPDATE menu SET nome = ?, categoria = ?, preco = ?, imagem = ?, estoque = ?, validade = ?, enviar_cozinha = ? WHERE id = ?', [nome, categoria, preco, imagem, estoque, dataValidade, envCozinha, req.params.id]);
+    await query('UPDATE menu SET nome = ?, categoria = ?, preco = ?, imagem = ?, estoque = ?, validade = ?, enviar_cozinha = ?, visivel = ? WHERE id = ?', [nome, categoria, preco, imagem, estoque, dataValidade, envCozinha, isVisivel, req.params.id]);
+    await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1274,9 +1282,14 @@ app.put('/api/menu/:id', async (req, res) => {
 });
 
 app.post('/api/menu', async (req, res) => {
-  const { nome, categoria, preco, imagem, estoque, validade, enviar_cozinha } = req.body;
+  const { nome, categoria, preco, imagem, estoque, validade, enviar_cozinha, visivel } = req.body;
   const envCozinha = enviar_cozinha !== undefined ? (isPostgres ? enviar_cozinha : (enviar_cozinha ? 1 : 0)) : (isPostgres ? true : 1);
-  try { await query('INSERT INTO menu (nome, categoria, preco, imagem, estoque, validade, enviar_cozinha) VALUES (?, ?, ?, ?, ?, ?, ?)', [nome, categoria, preco, imagem, estoque || -1, validade || null, envCozinha]); res.json({ success: true }); }
+  const isVisivel = visivel !== undefined ? (isPostgres ? visivel : (visivel ? 1 : 0)) : (isPostgres ? true : 1);
+  try { 
+    await query('INSERT INTO menu (nome, categoria, preco, imagem, estoque, validade, enviar_cozinha, visivel) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [nome, categoria, preco, imagem, estoque || -1, validade || null, envCozinha, isVisivel]); 
+    await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
+    res.json({ success: true }); 
+  }
   catch (error) { res.status(500).json({ error: error.message }); }
 });
 app.delete('/api/menu/:id', async (req, res) => { try { await query('DELETE FROM menu WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (error) { res.status(500).json({ error: error.message }); } });
