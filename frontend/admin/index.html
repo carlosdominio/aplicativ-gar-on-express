@@ -537,7 +537,7 @@
 
   <!-- Modal de Edição -->
   <div id="modal-edicao" class="modal">
-    <div class="modal-content" style="max-width: 900px; width: 95%;">
+    <div class="modal-content" style="max-width: 900px; width: 95%; height: 92vh;">
       <div class="modal-header">
         <h2 id="modal-titulo">Editar Pedido</h2>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -545,7 +545,7 @@
           <span class="close" onclick="fecharModal()">&times;</span>
         </div>
       </div>
-      <div class="modal-body edit-modal-grid">
+      <div class="modal-body edit-modal-grid" style="overflow: hidden !important; display: grid !important; height: 100%;">
         <!-- Coluna da Esquerda: Itens do Pedido Atual -->
         <div class="edit-col-itens" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
           <div style="flex-shrink: 0; margin-bottom: 0.5rem;">
@@ -567,9 +567,9 @@
         </div>
         
         <!-- Coluna da Direita: Cardápio para Adicionar -->
-        <div class="edit-col-menu">
-          <h3>Adicionar Itens</h3>
-          <div id="edit-menu-grid" class="menu-grid-mini" style="margin-bottom: 10px; display: grid; grid-auto-rows: max-content; align-content: start;"></div>
+        <div class="edit-col-menu" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+          <h3 style="flex-shrink: 0;">Adicionar Itens</h3>
+          <div id="edit-menu-grid" class="menu-grid-mini" style="flex: 1; overflow-y: auto; margin-bottom: 10px; display: grid; grid-auto-rows: max-content; align-content: start;"></div>
           <div style="display: flex; align-items: center; gap: 5px; margin-top: 0px; flex-shrink: 0; background: #f8fafc; padding: 5px; border-radius: 10px; border: 1px solid #e2e8f0;">
             <button onclick="scrollCategoriasEdicao(-150)" style="background: white; border: 1px solid #cbd5e0; border-radius: 8px; padding: 10px 5px; cursor: pointer; color: #3498db; font-weight: bold;">❮</button>
             <div id="edit-menu-categorias" class="categorias-grid-mini" style="flex: 1; margin-bottom: 0 !important; padding-bottom: 0; overflow-x: auto; scroll-behavior: smooth; display: flex; gap: 8px; scrollbar-width: none; -ms-overflow-style: none;">

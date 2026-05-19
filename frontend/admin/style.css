@@ -945,7 +945,7 @@ button.btn-entregue { background-color: #95a5a6; }
   gap: 12px !important;
   padding: 10px !important;
   overflow-y: auto !important;
-  max-height: 450px !important; /* Altura fixa para forçar rolagem dentro do modal */
+  flex: 1; /* Permite que o grid cresça e empurre as categorias para baixo */
 }
 
 .item-menu-mini {
