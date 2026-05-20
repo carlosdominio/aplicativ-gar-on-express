@@ -1241,6 +1241,13 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
         mesa_numero: mesaNum,
         mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi CANCELADO pelo Admin.` 
       });
+
+      // NOVO: Notifica o cliente logado para deslogar imediatamente
+      if (pm && pm.mesa_id) {
+        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pm.mesa_id}`, { 
+          mensagem: "Este pedido foi cancelado pelo estabelecimento. Seu acesso foi encerrado." 
+        });
+      }
     }
 
     if ((status === 'cancelado' || status === 'entregue') && pm && pm.mesa_id) {
