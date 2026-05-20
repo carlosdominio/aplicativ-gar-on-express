@@ -525,10 +525,10 @@ async function verItensDaMesa() {
         
         if (isPronto) {
           bgColor = '#e8f8f5'; // Verde claro para pronto
-          statusLabel = '<span style="background:#2ecc71; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:5px;">PRONTO</span>';
+          statusLabel = '<span style="background:#2ecc71; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:5px; white-space:nowrap; display:inline-block; vertical-align:middle;">PRONTO</span>';
         } else if (emPreparo) {
           bgColor = '#fff9f0'; // Laranja muito claro para preparo
-          statusLabel = '<span style="background:#f39c12; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:5px;">EM PREPARO</span>';
+          statusLabel = '<span style="background:#f39c12; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:5px; white-space:nowrap; display:inline-block; vertical-align:middle;">EM PREPARO</span>';
         }
 
         return `
