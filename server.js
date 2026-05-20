@@ -1244,31 +1244,24 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
     const pm = (await query("SELECT p.mesa_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
     const mesaNum = pm ? pm.numero || 'BALCÃO' : 'BALCÃO';
 
-    if (status === 'cancelado') {
-      console.log(`❌ Pedido ${id} cancelado pelo Admin. Notificando...`);
-      await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
-        id: id,
-        pedido_id: id, 
-        mesa_numero: mesaNum,
-        mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi CANCELADO pelo Admin.` 
-      });
-
-      // NOVO: Notifica o cliente logado para deslogar imediatamente
-      if (pm && pm.mesa_id) {
-        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pm.mesa_id}`, { 
-          mensagem: "Este pedido foi cancelado pelo estabelecimento. Seu acesso foi encerrado." 
-        });
-      }
-    }
-
+    // Se o status for cancelado ou entregue, libera a mesa e o código
     if ((status === 'cancelado' || status === 'entregue') && pm && pm.mesa_id) {
         await query("UPDATE mesas SET status = 'livre' WHERE id = ?", [pm.mesa_id]);
         await query("UPDATE codigos_acesso SET status = 'expirado' WHERE mesa_id = ? AND status = 'ativo'", [pm.mesa_id]);
 
         // Notifica o cliente logado para encerrar o acesso
-        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pm.mesa_id}`, { 
-          mensagem: status === 'entregue' ? "Sua conta foi finalizada. Obrigado pela preferência!" : "Este pedido foi cancelado pelo estabelecimento. Seu acesso foi encerrado." 
-        });
+        const msgLogout = status === 'entregue' ? "Sua conta foi finalizada. Obrigado pela preferência!" : "Este pedido foi cancelado pelo estabelecimento. Seu acesso foi encerrado.";
+        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pm.mesa_id}`, { mensagem: msgLogout });
+        
+        if (status === 'cancelado') {
+          console.log(`❌ Pedido ${id} cancelado pelo Admin. Notificando globalmente...`);
+          await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
+            id: id,
+            pedido_id: id, 
+            mesa_numero: mesaNum,
+            mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi CANCELADO pelo Admin.` 
+          });
+        }
     }
     
     await notifyStatus(id, null, status);

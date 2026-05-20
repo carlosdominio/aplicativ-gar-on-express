@@ -214,6 +214,7 @@
         let menuData = [];
         let sessionMesa = null;
         let pusher = null;
+        let modalAberto = false; // Flag para evitar duplicidade de modais
 
         // Ao carregar, verifica se já tem acesso no LocalStorage (Válido por 6h conforme o JWT)
         window.onload = async () => {
@@ -287,15 +288,19 @@
 
                 // Escuta evento de deslogar específico para esta mesa
                 channel.bind(`deslogar-mesa-${sessionMesa.mesa_id}`, (data) => {
+                    if (modalAberto) return;
+                    modalAberto = true;
+
                     Swal.fire({
                         title: 'Acesso Encerrado',
                         text: data.mensagem || 'Seu acesso a este cardápio foi encerrado.',
                         icon: 'info',
                         confirmButtonText: 'OK',
-                        allowOutsideClick: false, // Não deixa fechar clicando fora
-                        allowEscapeKey: false,     // Não deixa fechar com o teclado (ESC)
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
                         allowEnterKey: true
                     }).then(() => {
+                        modalAberto = false;
                         localStorage.removeItem('ge_client_session');
                         location.reload();
                     });
