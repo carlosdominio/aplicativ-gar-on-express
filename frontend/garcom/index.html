@@ -52,12 +52,29 @@
       <h2>Pedido - Mesa <span id="mesa-atual"></span></h2>
       <div id="categorias"></div>
       <div id="menu-grid"></div>
-      <div id="resumo-pedido">
-        <h3>Resumo</h3>
-        <div id="itens-pedido"></div>
-        <p id="total-pedido">Total: R$ 0,00</p>
-        <button id="enviar-pedido">Enviar Pedido</button>
-        <button id="voltar-mesas">Voltar</button>
+      
+      <!-- Botão Flutuante do Carrinho -->
+      <div id="btn-carrinho" class="btn-carrinho" onclick="toggleCarrinho()">
+        <span class="icon">🛒</span>
+        <span id="carrinho-badge" class="badge">0</span>
+      </div>
+
+      <!-- Modal do Resumo do Pedido (Carrinho) -->
+      <div id="modal-carrinho" class="modal-carrinho">
+        <div class="carrinho-content">
+          <div class="carrinho-header">
+            <h3>🛒 Resumo do Pedido</h3>
+            <button class="btn-fechar-carrinho" onclick="toggleCarrinho()">✕</button>
+          </div>
+          <div id="itens-pedido"></div>
+          <div class="carrinho-footer">
+            <p id="total-pedido">Total: R$ 0,00</p>
+            <div style="display: flex; gap: 10px;">
+              <button id="voltar-mesas" style="flex: 1; background-color: #95a5a6; margin-bottom: 0;">Voltar</button>
+              <button id="enviar-pedido" style="flex: 2; margin-bottom: 0;">Enviar Pedido</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </main>

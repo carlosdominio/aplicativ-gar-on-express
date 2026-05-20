@@ -684,10 +684,31 @@ function abrirCardapio() {
 
   document.getElementById('mesas').classList.add('hidden');
   document.getElementById('pedido').classList.remove('hidden');
+  
+  // Esconde o modal do carrinho caso esteja aberto
+  const modalCarrinho = document.getElementById('modal-carrinho');
+  if (modalCarrinho) modalCarrinho.style.display = 'none';
+
   pedidoAtual = [];
   window.pedidoObservacaoGeral = ''; // Reset observação geral
   exibirResumoPedido();
   exibirMenu('todas');
+}
+
+function toggleCarrinho() {
+  const modal = document.getElementById('modal-carrinho');
+  if (!modal) return;
+  
+  if (modal.style.display === 'flex') {
+    modal.style.display = 'none';
+  } else {
+    if (pedidoAtual.length === 0) {
+      mostrarAlerta("O carrinho está vazio!", "Aviso");
+      return;
+    }
+    modal.style.display = 'flex';
+    exibirResumoPedido();
+  }
 }
 
 async function finalizarEDesocupar() {
@@ -887,6 +908,17 @@ async function adicionarItemPedido(item) {
 function exibirResumoPedido() {
   const container = document.getElementById('itens-pedido');
   if (!container) return;
+
+  // Atualiza o Badge do Carrinho
+  const badge = document.getElementById('carrinho-badge');
+  const totalItens = pedidoAtual.reduce((sum, item) => sum + item.quantidade, 0);
+  if (badge) {
+    badge.textContent = totalItens;
+    // Opcional: animação se o carrinho ganhar itens
+    badge.style.transform = 'scale(1.2)';
+    setTimeout(() => badge.style.transform = 'scale(1)', 200);
+  }
+
   container.innerHTML = pedidoAtual.map((item, index) => `
     <div class="item-pedido">
       <div class="item-pedido-info">
@@ -939,6 +971,12 @@ function exibirResumoPedido() {
   if (textareaObs) {
     textareaObs.value = window.pedidoObservacaoGeral || '';
   }
+
+  // Se o carrinho ficar vazio, fecha o modal automaticamente
+  if (totalItens === 0) {
+    const modal = document.getElementById('modal-carrinho');
+    if (modal) modal.style.display = 'none';
+  }
 }
 
 async function alterarQuantidadeItem(index, delta) {
@@ -963,7 +1001,8 @@ async function alterarQuantidadeItem(index, delta) {
 function removerItemPedido(index) {
   pedidoAtual.splice(index, 1);
   exibirResumoPedido();
-  const catAtiva = document.querySelector('.categoria.ativa').dataset.categoria;
+  const catAtivaElement = document.querySelector('.categoria.ativa');
+  const catAtiva = catAtivaElement ? catAtivaElement.dataset.categoria : 'todas';
   exibirMenu(catAtiva);
 }
 
@@ -1007,6 +1046,11 @@ async function enviarPedido() {
       pedidoAtual = [];
       pedidoAbertoNaMesa = null;
       mesaAtual = null; // Limpa mesa atual
+      
+      // Fecha o modal do carrinho
+      const modalCarrinho = document.getElementById('modal-carrinho');
+      if (modalCarrinho) modalCarrinho.style.display = 'none';
+
       document.getElementById('pedido').classList.add('hidden');
       document.getElementById('mesas').classList.remove('hidden');
       carregarMesas();
