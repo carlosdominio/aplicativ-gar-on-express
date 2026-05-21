@@ -97,6 +97,10 @@ header {
   color: white;
   padding: 1rem;
   text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 header h1 {
@@ -309,11 +313,21 @@ main {
   white-space: nowrap !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  margin: 1rem 0;
-  padding: 0.5rem 5px !important;
+  margin: 0;
+  padding: 0.8rem 10px !important;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
   -webkit-overflow-scrolling: touch;
+  position: sticky;
+  top: 61px; /* Logo abaixo do header desktop */
+  background: #f5f5f5;
+  z-index: 1050;
+  border-bottom: 1px solid #ddd;
+}
+@media (max-width: 480px) {
+  #categorias {
+    top: 105px; /* Ajuste para header mobile que é mais alto */
+  }
 }
 #categorias::-webkit-scrollbar { display: none !important; }
 
