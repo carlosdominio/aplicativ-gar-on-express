@@ -1628,21 +1628,48 @@ app.post('/api/acesso/validar', async (req, res) => {
 
     // 2. Verifica se o código é válido e ativo
     const acesso = (await query("SELECT ca.*, m.numero as mesa_numero FROM codigos_acesso ca JOIN mesas m ON ca.mesa_id = m.id WHERE UPPER(ca.codigo) = UPPER(?) AND ca.status = 'ativo'", [codigo])).rows[0];
-    
+
     if (!acesso) return res.status(401).json({ error: 'Código inválido ou expirado. Peça um novo ao garçom.' });
 
     // Se válido, retorna os dados da mesa para o cliente salvar no LocalStorage
     res.json({ 
-      success: true, 
-      mesa_id: acesso.mesa_id, 
+      success: true,
+      mesa_id: acesso.mesa_id,
       mesa_numero: acesso.mesa_numero,
-      token_acesso: jwt.sign({ mesa_id: acesso.mesa_id, mesa_numero: acesso.mesa_numero, role: 'cliente' }, JWT_SECRET, { expiresIn: '6h' })
+      acesso_id: acesso.id,
+      token_acesso: jwt.sign({ 
+        mesa_id: acesso.mesa_id, 
+        mesa_numero: acesso.mesa_numero, 
+        acesso_id: acesso.id,
+        role: 'cliente' 
+      }, JWT_SECRET, { expiresIn: '6h' })
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// Verifica se a sessão do cliente ainda é válida (código ainda ativo)
+app.get('/api/acesso/check', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Não autorizado' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'cliente' || !decoded.acesso_id) {
+        return res.status(403).json({ error: 'Token inválido para esta operação' });
+    }
+
+    const acesso = (await query("SELECT status FROM codigos_acesso WHERE id = ?", [decoded.acesso_id])).rows[0];
+    if (!acesso || acesso.status !== 'ativo') {
+        return res.json({ valid: false });
+    }
+
+    res.json({ valid: true });
+  } catch (err) {
+    res.status(401).json({ error: 'Sessão expirada' });
+  }
+});
 // Cliente solicita atendimento do garçom
 app.post('/api/cliente/chamar-garcom', async (req, res) => {
   const { mesa_id, mesa_numero } = req.body;

@@ -241,7 +241,15 @@
             if (saved) {
                 const data = JSON.parse(saved);
                 sessionMesa = data;
-                abrirCardapio();
+                
+                // Valida se a sessão ainda é legítima no servidor (se o código ainda está ativo)
+                const sessaoValida = await verificarSessaoAtiva();
+                if (sessaoValida) {
+                    abrirCardapio();
+                } else {
+                    localStorage.removeItem('ge_client_session');
+                    // Permanece na tela de login
+                }
             }
 
             // Tenta pegar código via URL para facilitar via QR Code (ex: ?c=A5B2)
@@ -251,7 +259,31 @@
                 document.getElementById('codigo-acesso').value = codeUrl;
                 validarAcesso();
             }
+
+            // Verifica periodicamente se a sessão continua válida (ex: a cada 1 min)
+            setInterval(async () => {
+                if (sessionMesa) {
+                    const aindaValida = await verificarSessaoAtiva();
+                    if (!aindaValida) {
+                        localStorage.removeItem('ge_client_session');
+                        location.reload();
+                    }
+                }
+            }, 60000);
         };
+
+        async function verificarSessaoAtiva() {
+            if (!sessionMesa || !sessionMesa.token_acesso) return false;
+            try {
+                const res = await fetch('/api/acesso/check', {
+                    headers: { 'Authorization': `Bearer ${sessionMesa.token_acesso}` }
+                });
+                const status = await res.json();
+                return status.valid === true;
+            } catch (err) {
+                return false;
+            }
+        }
 
         async function verificarCaixa() {
             try {
