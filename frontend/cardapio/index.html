@@ -127,6 +127,20 @@
         .item-price { color: var(--primary); font-weight: 600; font-size: 18px; }
         .stock-out { color: #ff4757; font-size: 12px; font-weight: bold; margin-top: 5px; }
 
+        .promo-badge {
+            position: absolute;
+            background: #ff4757;
+            color: white;
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 5px;
+            top: 10px;
+            left: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
         /* BOTÃO CHAMAR GARÇOM */
         .fab {
             position: fixed;
@@ -393,9 +407,11 @@
                 
                 const imagem = item.imagem ? item.imagem : 'https://via.placeholder.com/120?text=Sem+Foto';
                 const esgotado = item.estoque === 0;
+                const emPromocao = item.em_promocao === 1 || item.em_promocao === true;
 
                 card.innerHTML = `
                     <img src="${imagem}" class="item-img" style="${esgotado ? 'filter: grayscale(1); opacity: 0.5;' : ''}">
+                    ${emPromocao ? '<div class="promo-badge">PROMOÇÃO</div>' : ''}
                     <div class="item-info">
                         <div>
                             <div class="item-name">${item.nome}</div>

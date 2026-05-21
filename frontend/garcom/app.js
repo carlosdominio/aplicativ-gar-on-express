@@ -892,14 +892,15 @@ async function exibirMenu(categoria) {
     const estoqueNum = (item.estoque !== null && item.estoque !== undefined) ? parseInt(item.estoque) : -1;
     const temEstoqueDefinido = estoqueNum !== -1;
     const esgotado = estoqueNum === 0;
+    const emPromocao = item.em_promocao === 1 || item.em_promocao === true;
 
     return `
       <div class="item-menu ${esgotado ? 'esgotado' : ''}" data-id="${item.id}">
         ${qtdBadge}
+        ${emPromocao ? '<div class="promo-badge">PROMOÇÃO</div>' : ''}
         <img src="${item.imagem}" alt="${item.nome}">
         <h3>${item.nome}</h3>
-        <p>R$ ${item.preco.toFixed(2)}</p>
-        ${temEstoqueDefinido ? `
+        <p>R$ ${item.preco.toFixed(2)}</p>        ${temEstoqueDefinido ? `
           <div class="info-estoque ${esgotado ? 'zero' : ''}" style="font-weight: bold; padding: 2px 5px; border-radius: 4px; display: inline-block; font-size: 0.75rem;">
             Estoque: ${estoqueNum}
           </div>

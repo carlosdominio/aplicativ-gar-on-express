@@ -1265,6 +1265,7 @@ async function abrirModalItemMenu(item = null) {
     document.getElementById('menu-img').value = item.imagem;
     document.getElementById('menu-enviar-cozinha').checked = (item.enviar_cozinha === true || item.enviar_cozinha === 1 || item.enviar_cozinha === null);
     document.getElementById('menu-visivel').checked = (item.visivel === true || item.visivel === 1 || item.visivel === null || item.visivel === undefined);
+    document.getElementById('menu-promocao').checked = (item.em_promocao === true || item.em_promocao === 1);
 
     // Tenta selecionar no dropdown
     const catUpper = item.categoria.trim().toUpperCase();
@@ -1338,12 +1339,13 @@ async function processarAcaoMenu() {
   const imagem = document.getElementById('menu-img').value || 'https://placehold.co/100';
   const enviar_cozinha = document.getElementById('menu-enviar-cozinha').checked;
   const visivel = document.getElementById('menu-visivel').checked;
+  const em_promocao = document.getElementById('menu-promocao').checked;
 
   if (!nome || !categoria || isNaN(preco) || isNaN(estoque)) {
     return await mostrarAlerta("Por favor, preencha o nome, categoria e preço corretamente.", "Aviso");
   }
 
-  const payload = { nome, categoria: categoria.toUpperCase(), preco, imagem, estoque, validade, enviar_cozinha, visivel };
+  const payload = { nome, categoria: categoria.toUpperCase(), preco, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao };
   const method = idItemEdicaoMenu ? 'PUT' : 'POST';
   const url = idItemEdicaoMenu ? `/api/menu/${idItemEdicaoMenu}` : '/api/menu';
 
