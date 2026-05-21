@@ -1483,9 +1483,8 @@ async function exibirPedidos() {
         const board = document.getElementById(`kanban-${setor}`);
         board.innerHTML = `
           <div class="empty-state-container" style="grid-column: 1 / -1;">
-            <div class="empty-state-icon">${setor === 'garcom' ? '🪑' : '🏪'}</div>
-            <div class="empty-state-title">Nenhum pedido ativo</div>
-            <div class="empty-state-subtitle">Os pedidos aparecerão organizados em colunas aqui.</div>
+            <div class="empty-state-icon">${setor === 'garcom' ? '🍽️' : '🏪'}</div>
+            <div class="empty-state-title">Nenhum pedido ativo</div>            <div class="empty-state-subtitle">Os pedidos aparecerão organizados em colunas aqui.</div>
           </div>
         `;
       }
