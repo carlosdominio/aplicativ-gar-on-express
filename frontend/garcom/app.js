@@ -897,7 +897,7 @@ async function exibirMenu(categoria) {
     const emPromocao = item.em_promocao === 1 || item.em_promocao === true;
 
     return `
-      <div class="item-menu ${esgotado ? 'esgotado' : ''}" data-id="${item.id}" style="position: relative;">
+      <div class="item-menu ${esgotado ? 'esgotado' : ''} ${emPromocao ? 'com-promo' : ''}" data-id="${item.id}" style="position: relative;">
         <!-- Badge de Quantidade (TOPO ESQUERDO) -->
         ${itemNoPedido ? `<div class="badge-qtd" style="position: absolute; top: 5px; left: 5px; right: auto;">${itemNoPedido.quantidade}</div>` : ''}
         
@@ -910,9 +910,11 @@ async function exibirMenu(categoria) {
           <div style="background: ${esgotado ? '#e74c3c' : '#3498db'}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
             ${temEstoqueDefinido ? `<span>📦</span> ${estoqueNum}` : '<span>♾️</span> Ilimitado'}
           </div>
+
+          <!-- PROMOÇÃO -->
+          ${emPromocao ? '<div class="promo-badge">PROMOÇÃO</div>' : ''}
         </div>
 
-        ${emPromocao ? '<div class="promo-badge">PROMOÇÃO</div>' : ''}
         <img src="${item.imagem}" alt="${item.nome}">
         <h3 style="font-size: 1.0rem !important;">${item.nome}</h3>
       </div>
