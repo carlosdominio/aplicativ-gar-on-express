@@ -1446,21 +1446,34 @@ async function exibirMenuConfig() {
               }
             }
 
+            const hasStatus = m.em_promocao || m.enviar_cozinha || (m.visivel === false || m.visivel === 0);
+            const statusHeader = hasStatus ? `
+              <div style="display: flex; width: 100%; height: 22px;">
+                ${m.em_promocao ? '<div style="flex: 1; background: #f1c40f; color: #2c3e50; font-size: 0.65rem; font-weight: 900; display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px;">🔥 PROMOÇÃO</div>' : ''}
+                ${m.enviar_cozinha ? '<div style="flex: 1; background: #3498db; color: white; font-size: 0.65rem; font-weight: 900; display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px;">👨‍🍳 COZINHA</div>' : ''}
+                ${(m.visivel === false || m.visivel === 0) ? '<div style="flex: 1; background: #e74c3c; color: white; font-size: 0.65rem; font-weight: 900; display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px;">🚫 OCULTO</div>' : ''}
+              </div>` : '';
+
             return `
-            <div class="menu-item-config ${classeValidade}" id="item-menu-${m.id}" style="border-left: 5px solid ${classeValidade === 'vencido' ? '#e74c3c' : (classeValidade === 'alerta-validade' ? '#f39c12' : 'transparent')}; position: relative;">
-              ${(m.visivel === false || m.visivel === 0) ? '<span style="position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; z-index: 5;">🚫 OCULTO</span>' : ''}
-              <img src="${m.imagem}" alt="${m.nome}" style="filter: ${(m.visivel === false || m.visivel === 0) ? 'grayscale(1) opacity(0.6)' : 'none'}">
-              <div style="flex-grow: 1;">
-                <strong style="${(m.visivel === false || m.visivel === 0) ? 'color: #95a5a6;' : ''}">${m.nome}</strong><br>
-                <small>${m.categoria} - ${m.preco_original ? `<span style="text-decoration: line-through; opacity: 0.6; font-size: 0.8rem;">R$ ${m.preco_original.toFixed(2)}</span> ` : ''}<span style="${m.em_promocao ? 'color: #e74c3c; font-weight: bold;' : ''}">R$ ${m.preco.toFixed(2)}</span></small><br>
-                <small style="color: ${m.estoque === 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-                  Estoque: ${m.estoque === -1 ? 'Ilimitado' : m.estoque}
-                </small><br>
-                <small>${validadeHtml}</small>
-              </div>
-              <div style="display:flex; flex-direction:column; gap:0.2rem">
-                <button style="background:#3498db; padding:4px 8px; font-size:0.8rem" onclick="prepararEdicaoMenuById(${m.id})">✏️ Editar</button>
-                <button class="btn-excluir" onclick="excluirDoMenu(${m.id})">Excluir</button>
+            <div class="menu-item-config ${classeValidade}" id="item-menu-${m.id}" style="border-left: 5px solid ${classeValidade === 'vencido' ? '#e74c3c' : (classeValidade === 'alerta-validade' ? '#f39c12' : 'transparent')}; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; padding: 0;">
+              
+              <!-- Tarjas de Status (Topo) -->
+              ${statusHeader}
+
+              <div style="display: flex; gap: 1.2rem; align-items: center; padding: 1.2rem;">
+                <img src="${m.imagem}" alt="${m.nome}" style="filter: ${(m.visivel === false || m.visivel === 0) ? 'grayscale(1) opacity(0.6)' : 'none'}">
+                <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+                  <strong style="${(m.visivel === false || m.visivel === 0) ? 'color: #95a5a6;' : ''}">${m.nome}</strong>
+                  <small>${m.categoria} - ${m.preco_original ? `<span style="text-decoration: line-through; opacity: 0.6; font-size: 0.8rem;">R$ ${m.preco_original.toFixed(2)}</span> ` : ''}<span style="${m.em_promocao ? 'color: #e74c3c; font-weight: bold;' : ''}">R$ ${m.preco.toFixed(2)}</span></small>
+                  <small style="color: ${m.estoque === 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
+                    Estoque: ${m.estoque === -1 ? 'Ilimitado' : m.estoque}
+                  </small>
+                  <small>${validadeHtml}</small>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.2rem">
+                  <button style="background:#3498db; padding:4px 8px; font-size:0.8rem" onclick="prepararEdicaoMenuById(${m.id})">✏️ Editar</button>
+                  <button class="btn-excluir" onclick="excluirDoMenu(${m.id})">Excluir</button>
+                </div>
               </div>
             </div>`;
           }).join('')}

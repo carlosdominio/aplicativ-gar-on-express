@@ -701,7 +701,10 @@ function abrirCardapio() {
   document.getElementById('btn-header-mesas').style.display = 'flex';
   // Esconde o modal do carrinho caso esteja aberto
   const modalCarrinho = document.getElementById('modal-carrinho');
-  if (modalCarrinho) modalCarrinho.style.display = 'none';
+  if (modalCarrinho) {
+    modalCarrinho.style.display = 'none';
+    document.body.style.overflow = ''; // Destrava o scroll
+  }
 
   pedidoAtual = [];
   window.pedidoObservacaoGeral = ''; // Reset observação geral
@@ -733,6 +736,7 @@ function voltarParaMesas() {
         document.getElementById('pedido').classList.add('hidden');
         document.getElementById('mesas').classList.remove('hidden');
         document.getElementById('btn-header-mesas').style.display = 'none';
+        document.body.style.overflow = ''; // Destrava o scroll
       }
     });
   } else {
@@ -915,6 +919,9 @@ async function exibirMenu(categoria) {
 
           <!-- PROMOÇÃO -->
           ${emPromocao ? '<div class="promo-badge">PROMOÇÃO</div>' : ''}
+          
+          <!-- COZINHA -->
+          ${item.enviar_cozinha ? '<div style="background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); margin-top: 2px;">👨‍🍳 COZINHA</div>' : ''}
         </div>
 
         <img src="${item.imagem}" alt="${item.nome}">
@@ -1103,7 +1110,10 @@ async function enviarPedido() {
       
       // Fecha o modal do carrinho
       const modalCarrinho = document.getElementById('modal-carrinho');
-      if (modalCarrinho) modalCarrinho.style.display = 'none';
+      if (modalCarrinho) {
+        modalCarrinho.style.display = 'none';
+        document.body.style.overflow = ''; // Destrava o scroll
+      }
 
       document.getElementById('pedido').classList.add('hidden');
       document.getElementById('mesas').classList.remove('hidden');
