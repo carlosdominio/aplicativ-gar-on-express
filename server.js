@@ -265,7 +265,7 @@ let dbInitError = null;
 async function initDb() {
   const tables = [
     `CREATE TABLE IF NOT EXISTS mesas (id SERIAL PRIMARY KEY, numero INTEGER NOT NULL, status TEXT DEFAULT 'livre', garcom_id TEXT)`,
-    `CREATE TABLE IF NOT EXISTS menu (id SERIAL PRIMARY KEY, nome TEXT NOT NULL, categoria TEXT NOT NULL, preco REAL NOT NULL, preco_original REAL, imagem TEXT, estoque INTEGER DEFAULT -1, validade DATE, enviar_cozinha BOOLEAN DEFAULT TRUE, visivel BOOLEAN DEFAULT TRUE)`,
+    `CREATE TABLE IF NOT EXISTS menu (id SERIAL PRIMARY KEY, nome TEXT NOT NULL, categoria TEXT NOT NULL, preco REAL NOT NULL, preco_original REAL, descricao TEXT, imagem TEXT, estoque INTEGER DEFAULT -1, validade DATE, enviar_cozinha BOOLEAN DEFAULT TRUE, visivel BOOLEAN DEFAULT TRUE, em_promocao BOOLEAN DEFAULT FALSE)`,
     `CREATE TABLE IF NOT EXISTS pedidos (id SERIAL PRIMARY KEY, mesa_id INTEGER, garcom_id TEXT, status TEXT DEFAULT 'recebido', total REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, forma_pagamento TEXT, desconto REAL DEFAULT 0, acrescimo REAL DEFAULT 0, valor_recebido REAL DEFAULT 0, troco REAL DEFAULT 0, cobrar_taxa BOOLEAN DEFAULT TRUE, num_pessoas INTEGER DEFAULT 1, valor_por_pessoa REAL, observacao TEXT, pago_parcial REAL DEFAULT 0)`,
     `CREATE TABLE IF NOT EXISTS pedido_itens (id SERIAL PRIMARY KEY, pedido_id INTEGER, menu_id INTEGER, quantidade INTEGER, observacao TEXT, status TEXT DEFAULT 'pendente')`,
     `CREATE TABLE IF NOT EXISTS pagamentos (id SERIAL PRIMARY KEY, pedido_id INTEGER, valor REAL, forma_pagamento TEXT, recebido REAL, troco REAL, data TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
@@ -329,6 +329,7 @@ async function initDb() {
     await addCol('menu', 'visivel', 'BOOLEAN DEFAULT TRUE');
     await addCol('menu', 'em_promocao', 'BOOLEAN DEFAULT FALSE');
     await addCol('menu', 'preco_original', 'REAL');
+    await addCol('menu', 'descricao', 'TEXT');
     await addCol('garcons', 'telefone', 'TEXT');
     await addCol('pedidos', 'observacao', 'TEXT');
     await addCol('pedidos', 'pago_parcial', 'REAL DEFAULT 0');
@@ -1331,13 +1332,13 @@ app.post('/api/config/ordem-categorias', async (req, res) => {
 });
 
 app.put('/api/menu/:id', async (req, res) => {
-  const { nome, categoria, preco, preco_original, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao } = req.body;
+  const { nome, categoria, preco, preco_original, descricao, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao } = req.body;
   const dataValidade = validade && validade.trim() !== "" ? validade : null;
   const envCozinha = enviar_cozinha !== undefined ? (isPostgres ? enviar_cozinha : (enviar_cozinha ? 1 : 0)) : (isPostgres ? true : 1);
   const isVisivel = visivel !== undefined ? (isPostgres ? visivel : (visivel ? 1 : 0)) : (isPostgres ? true : 1);
   const emPromocao = em_promocao !== undefined ? (isPostgres ? em_promocao : (em_promocao ? 1 : 0)) : (isPostgres ? false : 0);
   try {
-    await query('UPDATE menu SET nome = ?, categoria = ?, preco = ?, preco_original = ?, imagem = ?, estoque = ?, validade = ?, enviar_cozinha = ?, visivel = ?, em_promocao = ? WHERE id = ?', [nome, categoria, preco, preco_original, imagem, estoque, dataValidade, envCozinha, isVisivel, emPromocao, req.params.id]);
+    await query('UPDATE menu SET nome = ?, categoria = ?, preco = ?, preco_original = ?, descricao = ?, imagem = ?, estoque = ?, validade = ?, enviar_cozinha = ?, visivel = ?, em_promocao = ? WHERE id = ?', [nome, categoria, preco, preco_original, descricao, imagem, estoque, dataValidade, envCozinha, isVisivel, emPromocao, req.params.id]);
     await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
     res.json({ success: true });
   } catch (error) {
@@ -1346,12 +1347,12 @@ app.put('/api/menu/:id', async (req, res) => {
 });
 
 app.post('/api/menu', async (req, res) => {
-  const { nome, categoria, preco, preco_original, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao } = req.body;
+  const { nome, categoria, preco, preco_original, descricao, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao } = req.body;
   const envCozinha = enviar_cozinha !== undefined ? (isPostgres ? enviar_cozinha : (enviar_cozinha ? 1 : 0)) : (isPostgres ? true : 1);
   const isVisivel = visivel !== undefined ? (isPostgres ? visivel : (visivel ? 1 : 0)) : (isPostgres ? true : 1);
   const emPromocao = em_promocao !== undefined ? (isPostgres ? em_promocao : (em_promocao ? 1 : 0)) : (isPostgres ? false : 0);
   try { 
-    await query('INSERT INTO menu (nome, categoria, preco, preco_original, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [nome, categoria, preco, preco_original, imagem, estoque || -1, validade || null, envCozinha, isVisivel, emPromocao]); 
+    await query('INSERT INTO menu (nome, categoria, preco, preco_original, descricao, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [nome, categoria, preco, preco_original, descricao, imagem, estoque || -1, validade || null, envCozinha, isVisivel, emPromocao]); 
     await safePusherTrigger('garconnexpress', 'menu-atualizado', {});
     res.json({ success: true }); 
   }
@@ -1691,6 +1692,29 @@ app.post('/api/cliente/chamar-garcom', async (req, res) => {
     
     // Notifica via WhatsApp também se configurado
     sendWhatsAppMessage(`🛎️ *CHAMADO DE MESA*\n📍 Mesa: ${mesa_numero}\n🙋‍♂️ O cliente solicitou atendimento imediato.`).catch(e => console.error('Erro Wpp Chamado:', e.message));
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cliente envia rascunho do pedido (pré-seleção)
+app.post('/api/cliente/enviar-rascunho', async (req, res) => {
+  const { mesa_id, mesa_numero, itens } = req.body;
+  try {
+    const itensFormatados = itens.map(i => `${i.quantidade}x ${i.nome}`).join('\n');
+    const msg = `📝 RASCUNHO RECEBIDO - MESA ${mesa_numero}\n${itensFormatados}`;
+    
+    await safePusherTrigger('garconnexpress', 'rascunho-recebido', {
+      mesa_id,
+      mesa_numero,
+      itens,
+      mensagem: msg
+    });
+    
+    // Notifica via WhatsApp também
+    sendWhatsAppMessage(`📝 *RASCUNHO DE PEDIDO*\n📍 Mesa: ${mesa_numero}\n\n${itensFormatados}\n\n⚠️ _Aguardando confirmação do garçom._`).catch(e => console.error('Erro Wpp Rascunho:', e.message));
     
     res.json({ success: true });
   } catch (error) {

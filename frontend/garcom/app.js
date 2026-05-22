@@ -88,7 +88,7 @@ function verificarSessao() {
 function mostrarAlerta(msg, titulo = "Aviso") {
   return new Promise(resolve => {
     document.getElementById('modal-sistema-titulo').innerText = titulo;
-    document.getElementById('modal-sistema-mensagem').innerText = msg;
+    document.getElementById('modal-sistema-mensagem').innerHTML = msg;
     document.getElementById('btn-sistema-cancelar').classList.add('hidden');
     document.getElementById('btn-sistema-confirmar').innerText = "OK";
     document.getElementById('btn-sistema-confirmar').style.background = "#27ae60";
@@ -106,7 +106,7 @@ function mostrarAlerta(msg, titulo = "Aviso") {
 function mostrarConfirmacao(msg, titulo = "Confirmação", txtConfirmar = "Confirmar", txtCancelar = "Cancelar") {
   return new Promise(resolve => {
     document.getElementById('modal-sistema-titulo').innerText = titulo;
-    document.getElementById('modal-sistema-mensagem').innerText = msg;
+    document.getElementById('modal-sistema-mensagem').innerHTML = msg;
     document.getElementById('btn-sistema-cancelar').classList.remove('hidden');
     document.getElementById('btn-sistema-cancelar').innerText = txtCancelar;
     document.getElementById('btn-sistema-confirmar').innerText = txtConfirmar;
@@ -304,6 +304,12 @@ async function configurarPusher() {
       carregarMenu();
     });
 
+    channel.bind('rascunho-recebido', (data) => {
+      console.log('📢 Evento recebido: rascunho-recebido', data);
+      tocarCampainha();
+      mostrarRascunho(data);
+    });
+
     // Desbloqueia áudio no primeiro clique do usuário
     document.addEventListener('click', () => {
       if (audioDesbloqueado) return;
@@ -322,6 +328,80 @@ async function configurarPusher() {
     }, { once: true });
 
   } catch (e) { console.warn('Pusher init error:', e); }
+}
+
+async function mostrarRascunho(data) {
+  const itensHtml = data.itens.map(i => `<li>${i.quantidade}x ${i.nome}</li>`).join('');
+  const msgHtml = `
+    <div style="text-align: left; background: #fdf9f3; padding: 15px; border-radius: 10px; border: 1px solid #f3e5ab; color: #2f3542;">
+      <p style="margin-bottom: 10px; font-weight: bold; color: #d35400;">Mesa ${data.mesa_numero} enviou um rascunho:</p>
+      <ul style="padding-left: 20px; margin-bottom: 15px;">${itensHtml}</ul>
+      <p style="font-size: 0.85rem; color: #7f8c8d; border-top: 1px dashed #f3e5ab; pt: 10px;">Deseja carregar estes itens no carrinho agora?</p>
+    </div>
+  `;
+
+  // Fallback para o modal do sistema adaptado
+  document.getElementById('modal-sistema-titulo').innerText = "📝 RASCUNHO RECEBIDO";
+  document.getElementById('modal-sistema-mensagem').innerHTML = msgHtml;
+  
+  const btnCancelar = document.getElementById('btn-sistema-cancelar');
+  const btnConfirmar = document.getElementById('btn-sistema-confirmar');
+  
+  btnCancelar.classList.remove('hidden');
+  btnCancelar.innerText = "SÓ VER";
+  btnCancelar.style.background = "#95a5a6";
+  
+  btnConfirmar.innerText = "ACEITAR / CARREGAR";
+  btnConfirmar.style.background = "#f39c12";
+
+  const modal = document.getElementById('modal-sistema');
+  modal.style.display = 'flex';
+
+  btnConfirmar.onclick = () => {
+    modal.style.display = 'none';
+    aceitarRascunho(data);
+  };
+
+  btnCancelar.onclick = () => {
+    modal.style.display = 'none';
+  };
+}
+
+async function aceitarRascunho(data) {
+  // 1. Localiza a mesa no grid local
+  const mesa = mesas.find(m => m.id === data.mesa_id || m.numero == data.mesa_numero);
+  if (!mesa) return;
+
+  mesaAtual = mesa;
+  
+  // 2. Verifica se já existe um pedido aberto na mesa (para adicionar a ele)
+  pedidoAbertoNaMesa = null;
+  try {
+    const res = await fetch(`/api/pedidos/mesa/${mesa.id}`);
+    if (res.ok) {
+      const dados = await res.json();
+      if (dados) pedidoAbertoNaMesa = dados;
+    }
+  } catch (e) { console.error("Erro ao checar pedido existente:", e); }
+
+  // 3. Abre a tela de cardápio (limpa o carrinho atual do garçom)
+  abrirCardapio();
+
+  // 4. Popula o carrinho com os itens do rascunho
+  for (const itemDraft of data.itens) {
+    const menuItem = menu.find(m => m.id === itemDraft.menu_id);
+    if (menuItem) {
+      // Adiciona a quantidade exata enviada pelo cliente
+      for (let i = 0; i < itemDraft.quantidade; i++) {
+        adicionarItemPedido(menuItem);
+      }
+    }
+  }
+
+  // 5. Abre o modal do carrinho automaticamente para o garçom revisar e enviar
+  toggleCarrinho();
+  
+  mostrarToast(`Mesa ${data.mesa_numero}: Itens carregados no carrinho!`);
 }
 
 function mostrarToast(mensagem) {

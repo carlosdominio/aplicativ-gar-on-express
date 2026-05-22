@@ -1273,6 +1273,7 @@ async function abrirModalItemMenu(item = null) {
     if (btnExcluir) btnExcluir.classList.remove('hidden');
 
     if (document.getElementById('menu-nome')) document.getElementById('menu-nome').value = item.nome;
+    if (document.getElementById('menu-descricao')) document.getElementById('menu-descricao').value = item.descricao || '';
     if (document.getElementById('menu-preco-original')) document.getElementById('menu-preco-original').value = item.preco_original || '';
     if (document.getElementById('menu-preco')) document.getElementById('menu-preco').value = item.preco;
     if (document.getElementById('menu-estoque')) document.getElementById('menu-estoque').value = item.estoque;
@@ -1300,7 +1301,7 @@ async function abrirModalItemMenu(item = null) {
     const btnExcluir = document.getElementById('btn-excluir-item-menu');
     if (btnExcluir) btnExcluir.classList.add('hidden');
     
-    ['menu-nome', 'menu-preco-original', 'menu-preco', 'menu-img', 'menu-validade'].forEach(id => {
+    ['menu-nome', 'menu-descricao', 'menu-preco-original', 'menu-preco', 'menu-img', 'menu-validade'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -1342,6 +1343,7 @@ function fecharModalItemMenu() {
 
 async function processarAcaoMenu() {
   const nome = document.getElementById('menu-nome').value;
+  const descricao = document.getElementById('menu-descricao') ? document.getElementById('menu-descricao').value : '';
   const selectCat = document.getElementById('menu-cat-select').value;
   const inputNovo = document.getElementById('menu-cat-novo').value;
 
@@ -1364,7 +1366,7 @@ async function processarAcaoMenu() {
     return await mostrarAlerta("Por favor, preencha o nome, categoria e preço corretamente.", "Aviso");
   }
 
-  const payload = { nome, categoria: categoria.toUpperCase(), preco, preco_original, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao };
+  const payload = { nome, descricao, categoria: categoria.toUpperCase(), preco, preco_original, imagem, estoque, validade, enviar_cozinha, visivel, em_promocao };
   const method = idItemEdicaoMenu ? 'PUT' : 'POST';
   const url = idItemEdicaoMenu ? `/api/menu/${idItemEdicaoMenu}` : '/api/menu';
 

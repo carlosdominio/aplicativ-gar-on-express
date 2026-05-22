@@ -5,488 +5,672 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cardápio Digital - GarconnExpress</title>
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <style>
         :root {
             --primary: #ff4757;
-            --secondary: #2f3542;
+            --primary-dark: #e84118;
             --bg: #f1f2f6;
-            --white: #ffffff;
-            --shadow: 0 4px 15px rgba(0,0,0,0.1);
+            --card-bg: #ffffff;
+            --text: #2f3542;
+            --text-light: #747d8c;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --radius: 16px;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--secondary); overflow-x: hidden; }
-        
-        /* LOGIN / ACESSO */
-        #login-screen {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: linear-gradient(135deg, var(--primary), #ff6b81);
-            color: var(--white);
-            text-align: center;
-        }
-        .login-box {
-            background: var(--white);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: var(--shadow);
-            width: 100%;
-            max-width: 350px;
-            color: var(--secondary);
-        }
-        .login-box h2 { margin-bottom: 20px; font-weight: 600; }
-        .login-box input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 20px;
-            text-align: center;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            margin-bottom: 20px;
-        }
-        .btn-access {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            padding: 15px;
-            width: 100%;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .btn-access:active { transform: scale(0.95); }
 
-        /* MENU PRINCIPAL */
-        #menu-screen { display: none; padding-bottom: 80px; }
-        header {
-            background: var(--white);
-            padding: 20px;
-            text-align: center;
-            box-shadow: var(--shadow);
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 80px; }
+        body.login-active { overflow: hidden; height: 100vh; }
+
+        /* NOVO GRUPO FIXO NO TOPO */
+        #sticky-header-group {
             position: sticky;
             top: 0;
             z-index: 100;
-        }
-        .mesa-badge {
-            background: var(--primary);
-            color: var(--white);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 5px;
-            display: inline-block;
+            background: var(--bg); /* Fundo da página para a área de espaçamento */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* Sombra apenas na base de todo o bloco */
         }
 
-        .category-nav {
+        header {
+            background: var(--card-bg);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #e1e1e1; /* Leve separação visual do bloco branco */
+        }
+
+        header h1 { font-size: 1.2rem; color: var(--text-light); margin-bottom: 2px; font-weight: normal; }
+        header p { font-size: 2.2rem; color: var(--primary); font-weight: 900; }
+
+        .categories {
             display: flex;
             overflow-x: auto;
-            padding: 15px;
+            padding: 15px 20px;
             gap: 10px;
-            background: var(--white);
+            background: var(--bg);
+            margin-top: 25px;
             scrollbar-width: none;
         }
-        .category-nav::-webkit-scrollbar { display: none; }
-        .cat-btn {
-            white-space: nowrap;
-            padding: 8px 20px;
-            background: #eee;
+        .categories::-webkit-scrollbar { display: none; }
+        .category-pill {
+            background: var(--card-bg);
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-        }
-        .cat-btn.active { background: var(--primary); color: var(--white); }
-
-        .item-list { padding: 15px; display: grid; gap: 15px; }
-        .item-card {
-            background: var(--white);
-            border-radius: 15px;
-            overflow: hidden;
+            font-size: 0.9rem;
+            white-space: nowrap;
             box-shadow: var(--shadow);
-            display: flex;
+            cursor: pointer;
             transition: 0.3s;
+            border: 2px solid transparent;
         }
+        .category-pill.active {
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+        }
+
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+
+        .section-title { margin: 20px 0 10px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+
+        .menu-item {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
         .item-img {
-            width: 120px;
-            height: 120px;
+            width: 80px;
+            height: 80px;
+            background: #eee;
+            border-radius: 12px;
             object-fit: cover;
-            background: #ddd;
         }
-        .item-info { padding: 15px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .item-name { font-weight: 600; font-size: 1.0rem; margin-bottom: 5px; }
-        .item-price { color: var(--primary); font-weight: 600; font-size: 1.0rem; text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
-        .price-original { text-decoration: line-through; opacity: 0.5; font-size: 0.8rem; line-height: 1; margin-bottom: 2px; }
-        .stock-out { color: #ff4757; font-size: 12px; font-weight: bold; margin-top: 5px; text-align: right; }
+
+        .item-info { flex: 1; }
+        .item-info h3 { font-size: 1.1rem; margin-bottom: 4px; }
+        .item-info .desc { font-size: 0.85rem; color: var(--text-light); line-height: 1.2; margin-bottom: 8px; }
+        .item-info .price { font-weight: bold; color: var(--primary); font-size: 1.1rem; }
+        .item-info .old-price { font-size: 0.8rem; text-decoration: line-through; color: var(--text-light); margin-right: 5px; }
 
         .promo-badge {
             position: absolute;
-            background: #ff4757;
-            color: white;
-            padding: 4px 10px;
-            font-size: 10px;
-            font-weight: bold;
-            border-radius: 5px;
             top: 10px;
-            left: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 10;
+            right: 10px;
+            background: #2ecc71;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
         }
 
-        /* BOTÃO CHAMAR GARÇOM */
-        .fab {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--primary);
-            color: var(--white);
-            width: 60px;
-            height: 60px;
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .btn-qty {
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
+            border: none;
+            background: #eee;
+            color: var(--text);
+            font-size: 1rem;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
+        }
+        .btn-qty:active { transform: scale(0.9); }
+        .qty { font-weight: bold; width: 20px; text-align: center; }
+
+        .btn-add-initial {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
             cursor: pointer;
-            z-index: 1000;
+            margin-top: 8px;
+        }
+
+        /* Floating Cart */
+        .cart-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 500px;
+            background: var(--primary);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 24px rgba(255, 71, 87, 0.4);
+            cursor: pointer;
+            z-index: 200;
+            display: none;
+        }
+        .cart-bar .info { display: flex; flex-direction: column; }
+        .cart-bar .info span:first-child { font-size: 0.8rem; opacity: 0.9; }
+        .cart-bar .info span:last-child { font-weight: bold; font-size: 1.1rem; }
+        .cart-bar .btn-view { font-weight: bold; text-transform: uppercase; font-size: 0.9rem; }
+
+        /* Actions Bar */
+        .actions-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 150;
+        }
+        .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-light);
+            font-size: 0.75rem;
+            cursor: pointer;
+            background: none;
             border: none;
         }
-        .fab:active { transform: scale(0.9); }
+        .action-item i { font-size: 1.2rem; }
+        .action-item.active { color: var(--primary); }
 
-        /* LOADING */
-        .loading {
+        /* Modal Cart */
+        .modal-cart {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
             display: none;
+            z-index: 300;
+            justify-content: flex-end;
+            flex-direction: column;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 24px 24px 0 0;
+            padding: 25px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            z-index: 10000;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { font-size: 1.3rem; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: var(--text-light); }
+
+        .cart-items { margin-bottom: 20px; }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .cart-item-info h4 { font-size: 1rem; }
+        .cart-item-info p { font-size: 0.85rem; color: var(--primary); font-weight: bold; }
+
+        .cart-footer { margin-top: 20px; }
+        .cart-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
         }
 
-        /* ANIMAÇÃO */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate { animation: fadeIn 0.5s ease forwards; }
+        .btn-send {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: var(--radius);
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
 
-        .empty-msg { text-align: center; padding: 40px; color: #999; }
+        #loading {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-light); }
+        .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.3; }
     </style>
 </head>
 <body>
 
-    <div class="loading" id="loading"><i class="fas fa-spinner fa-spin fa-3x" style="color: var(--primary)"></i></div>
-
-    <!-- TELA DE CAIXA FECHADO -->
-    <div id="closed-screen" style="display: none; height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #2f3542; color: white; text-align: center;">
-        <i class="fas fa-store-slash fa-5x" style="margin-bottom: 30px; color: #ff4757;"></i>
-        <h1 style="margin-bottom: 15px;">Ops! Estamos Fechados</h1>
-        <p style="font-size: 16px; opacity: 0.8; max-width: 300px;">No momento o nosso sistema de pedidos está pausado. Por favor, fale com um atendente.</p>
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Carregando cardápio...</p>
     </div>
 
-    <!-- TELA DE ACESSO -->
-    <div id="login-screen">
-        <h1 style="margin-bottom: 30px;"><i class="fas fa-utensils"></i> GarconnExpress</h1>
-        <div class="login-box animate">
-            <h2>Bem-vindo!</h2>
-            <p style="font-size: 14px; margin-bottom: 20px; color: #666;">Digite o código fornecido pelo garçom para ver o cardápio.</p>
-            <input type="text" id="codigo-acesso" maxlength="4" placeholder="••••">
-            <button class="btn-access" onclick="validarAcesso()">ENTRAR</button>
+    <!-- Login Screen -->
+    <div id="login-screen" style="display: none; height: 100vh; height: 100dvh; width: 100%; background: white; padding: 20px; text-align: center; flex-direction: column; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; z-index: 1000; overscroll-behavior: none;">
+        <div style="width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center;">
+            <img src="../favicon.svg" alt="Logo" style="width: 80px; margin-bottom: 20px;">
+            <h1 style="color: var(--primary); margin-bottom: 10px;">Bem-vindo!</h1>
+            <p style="color: var(--text-light); margin-bottom: 30px;">Digite o código fornecido pelo garçom para ver o cardápio.</p>
+            
+            <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 30px;">
+                <input type="text" maxlength="4" id="access-code" placeholder="EX: A1B2" style="text-transform: uppercase; font-size: 1.8rem; width: 280px; text-align: center; padding: 15px; border: 2px solid #ddd; border-radius: 12px; font-weight: bold; letter-spacing: 3px;">
+            </div>
+
+            <button onclick="validarAcesso()" id="btn-login" style="background: var(--primary); color: white; border: none; padding: 18px 40px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; cursor: pointer; width: 100%; max-width: 300px; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);">
+                ACESSAR CARDÁPIO
+            </button>
+            
+            <p style="margin-top: 20px; font-size: 0.8rem; color: #ccc;">GarconnExpress v2.0</p>
         </div>
-        <p style="margin-top: 40px; font-size: 12px; opacity: 0.8;">© 2026 GarconnExpress - Sua experiência digital</p>
     </div>
 
-    <!-- TELA DO CARDÁPIO -->
-    <div id="menu-screen">
-        <header>
-            <h2 id="header-nome">Nosso Cardápio</h2>
-            <div class="mesa-badge" id="mesa-label">Mesa: --</div>
-        </header>
+    <!-- Main Content -->
+    <div id="main-content" style="display: none;">
+        <div id="sticky-header-group">
+            <header>
+                <h1 id="restaurante-nome">GarconnExpress</h1>
+                <p id="mesa-label">Mesa 00</p>
+            </header>
 
-        <nav class="category-nav" id="category-nav">
-            <!-- Categorias carregadas via JS -->
-        </nav>
-
-        <div class="item-list" id="item-list">
-            <!-- Itens carregados via JS -->
+            <div class="categories" id="categories-container">
+                <!-- Categorias dinâmicas -->
+            </div>
         </div>
 
-        <button class="fab" onclick="chamarGarcom()" title="Chamar Garçom">
-            <i class="fas fa-bell"></i>
-        </button>
+        <div class="container" id="menu-container">
+            <!-- Itens dinâmicos -->
+        </div>
+
+        <!-- Floating Cart Bar -->
+        <div class="cart-bar" id="cart-bar" onclick="toggleCartModal(true)">
+            <div class="info">
+                <span id="cart-qty">0 itens</span>
+                <span id="cart-total">R$ 0,00</span>
+            </div>
+            <div class="btn-view">
+                Ver Rascunho <i class="fas fa-chevron-right"></i>
+            </div>
+        </div>
+
+        <!-- Bottom Actions -->
+        <div class="actions-bar">
+            <button class="action-item active">
+                <i class="fas fa-book-open"></i>
+                <span>Cardápio</span>
+            </button>
+            <button class="action-item" onclick="chamarGarcom()">
+                <i class="fas fa-bell"></i>
+                <span>Chamar Garçom</span>
+            </button>
+            <button class="action-item" onclick="verMeusPedidos()">
+                <i class="fas fa-receipt"></i>
+                <span>Meus Pedidos</span>
+            </button>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <!-- Modal Cart -->
+    <div class="modal-cart" id="modal-cart">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Rascunho do Pedido</h2>
+                <i class="fas fa-times close-modal" onclick="toggleCartModal(false)"></i>
+            </div>
+            
+            <div class="cart-items" id="modal-cart-items">
+                <!-- Itens do rascunho -->
+            </div>
+
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total estimado</span>
+                    <span id="modal-cart-total">R$ 0,00</span>
+                </div>
+                <button class="btn-send" onclick="enviarRascunho()">
+                    <i class="fas fa-paper-plane"></i> ENVIAR AO GARÇOM
+                </button>
+                <p style="text-align: center; font-size: 0.75rem; color: var(--text-light); margin-top: 15px;">
+                    O rascunho ajuda o garçom a agilizar seu atendimento. O pedido só será oficializado após a confirmação dele.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let menuData = [];
-        let sessionMesa = null;
-        let pusher = null;
-        let modalAberto = false; // Flag para evitar duplicidade de modais
-        let categoriaAtual = sessionStorage.getItem('ge_categoria_atual') || 'TODOS';
+        let fullMenu = [];
+        let cart = [];
+        let sessionMesa = JSON.parse(localStorage.getItem('sessionMesa'));
+        let pusher;
 
-        // Ao carregar, verifica se já tem acesso no LocalStorage (Válido por 6h conforme o JWT)
-        window.onload = async () => {
-            const caixaAberto = await verificarCaixa();
-            if (!caixaAberto) return;
-
-            const saved = localStorage.getItem('ge_client_session');
-            if (saved) {
-                const data = JSON.parse(saved);
-                sessionMesa = data;
-                
-                // Valida se a sessão ainda é legítima no servidor (se o código ainda está ativo)
-                const sessaoValida = await verificarSessaoAtiva();
-                if (sessaoValida) {
-                    abrirCardapio();
-                } else {
-                    localStorage.removeItem('ge_client_session');
-                    // Permanece na tela de login
-                    if (!pusher) configurarPusherPublico();
-                }
-            } else {
-                // Se não tem sessão salva, garante que o Pusher está ouvindo o status do caixa
-                if (!pusher) configurarPusherPublico();
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!sessionMesa) {
+                showLoading(false);
+                document.body.classList.add('login-active');
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('main-content').style.display = 'none';
+                return;
             }
-
-            // Tenta pegar código via URL para facilitar via QR Code (ex: ?c=A5B2)
-            const params = new URLSearchParams(window.location.search);
-            const codeUrl = params.get('c');
-            if (codeUrl) {
-                document.getElementById('codigo-acesso').value = codeUrl;
-                validarAcesso();
-            }
-
-            // Verifica periodicamente se a sessão continua válida (ex: a cada 1 min)
-            setInterval(async () => {
-                if (sessionMesa) {
-                    console.log(`[Sessão] Verificando validade para Mesa ${sessionMesa.mesa_numero}...`);
-                    const aindaValida = await verificarSessaoAtiva();
-                    if (!aindaValida) {
-                        console.warn(`[Sessão] Acesso inválido detectado para Mesa ${sessionMesa.mesa_numero}. Deslogando...`);
-                        localStorage.removeItem('ge_client_session');
-                        location.reload();
-                    } else {
-                        console.log(`[Sessão] Mesa ${sessionMesa.mesa_numero} continua ativa.`);
-                    }
-                }
-            }, 60000);
-        };
-
-        async function verificarSessaoAtiva() {
-            if (!sessionMesa || !sessionMesa.token_acesso) return false;
-            try {
-                const res = await fetch('/api/acesso/check', {
-                    headers: { 'Authorization': `Bearer ${sessionMesa.token_acesso}` }
-                });
-                const status = await res.json();
-                return status.valid === true;
-            } catch (err) {
-                return false;
-            }
-        }
-
-        async function verificarCaixa() {
-            try {
-                const res = await fetch('/api/caixa/status');
-                const caixa = await res.json();
-                
-                if (!caixa) {
-                    document.getElementById('login-screen').style.display = 'none';
-                    document.getElementById('menu-screen').style.display = 'none';
-                    document.getElementById('closed-screen').style.display = 'flex';
-                    if (!pusher) configurarPusherPublico();
-                    return false;
-                }
-                
-                document.getElementById('closed-screen').style.display = 'none';
-                return true;
-            } catch (err) {
-                console.error('Erro ao verificar caixa:', err);
-                return true; 
-            }
-        }
-
-        async function configurarPusherPublico() {
-            try {
-                const configRes = await fetch('/api/pusher-config');
-                const config = await configRes.json();
-                pusher = new Pusher(config.key, { cluster: config.cluster });
-                const channel = pusher.subscribe('garconnexpress');
-                channel.bind('status-caixa-atualizado', () => location.reload());
-            } catch (err) { console.error('Erro Pusher Publico:', err); }
-        }
-
-        async function configurarPusher() {
-            if (!sessionMesa) return;
-            try {
-                if (!pusher) {
-                    const configRes = await fetch('/api/pusher-config');
-                    const config = await configRes.json();
-                    pusher = new Pusher(config.key, { cluster: config.cluster });
-                }
-                
-                const channel = pusher.subscribe('garconnexpress');
-
-                // Escuta atualizações de caixa para o cliente logado
-                channel.bind('status-caixa-atualizado', (data) => {
-                    if (data.status === 'fechado') {
-                        location.reload();
-                    }
-                });
-
-                // Escuta evento de deslogar específico para esta mesa
-                channel.bind(`deslogar-mesa-${sessionMesa.mesa_id}`, (data) => {
-                    if (modalAberto) return;
-                    modalAberto = true;
-
-                    Swal.fire({
-                        title: 'Acesso Encerrado',
-                        text: data.mensagem || 'Seu acesso a este cardápio foi encerrado.',
-                        icon: 'info',
-                        confirmButtonText: 'OK',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        allowEnterKey: true
-                    }).then(() => {
-                        modalAberto = false;
-                        localStorage.removeItem('ge_client_session');
-                        location.reload();
-                    });
-                });
-
-                // Escuta atualizações de menu
-                channel.bind('menu-atualizado', () => carregarMenu());
-                
-            } catch (err) { console.error('Erro Pusher:', err); }
-        }
+            showMainContent();
+        });
 
         async function validarAcesso() {
-            const codigo = document.getElementById('codigo-acesso').value.toUpperCase();
-            if (codigo.length < 4) return Swal.fire('Ops!', 'Digite o código de 4 dígitos.', 'warning');
+            const codigo = document.getElementById('access-code').value.trim();
+            if (codigo.length < 4) {
+                return Swal.fire('Aviso', 'O código deve ter 4 caracteres.', 'warning');
+            }
 
-            showLoading(true);
+            const btn = document.getElementById('btn-login');
+            btn.disabled = true;
+            btn.innerText = 'VALIDANDO...';
+
             try {
                 const res = await fetch('/api/acesso/validar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ codigo })
                 });
+
                 const data = await res.json();
 
                 if (data.success) {
-                    sessionMesa = data;
-                    localStorage.setItem('ge_client_session', JSON.stringify(data));
-                    abrirCardapio();
+                    sessionMesa = {
+                        mesa_id: data.mesa_id,
+                        mesa_numero: data.mesa_numero,
+                        token: data.token_acesso
+                    };
+                    localStorage.setItem('sessionMesa', JSON.stringify(sessionMesa));
+                    showMainContent();
                 } else {
-                    Swal.fire('Acesso Negado', data.error || 'Código inválido.', 'error');
+                    Swal.fire('Erro', data.error || 'Código inválido.', 'error');
                 }
             } catch (err) {
-                Swal.fire('Erro', 'Não foi possível conectar ao servidor.', 'error');
+                Swal.fire('Erro', 'Falha na conexão com o servidor.', 'error');
             } finally {
-                showLoading(false);
+                btn.disabled = false;
+                btn.innerText = 'ACESSAR CARDÁPIO';
             }
         }
 
-        async function abrirCardapio() {
+        function showMainContent() {
+            document.documentElement.classList.remove('login-active');
+            document.body.classList.remove('login-active');
             document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('menu-screen').style.display = 'block';
-            document.getElementById('mesa-label').innerText = `Mesa: ${sessionMesa.mesa_numero}`;
-            
-            await carregarMenu();
-            configurarPusher();
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('mesa-label').innerText = `Mesa ${sessionMesa.mesa_numero}`;
+            showLoading(true);
+            initPusher();
+            loadMenu();
         }
 
-        async function carregarMenu() {
+        function initPusher() {
+            fetch('/api/pusher-config')
+                .then(res => res.json())
+                .then(config => {
+                    pusher = new Pusher(config.key, { cluster: config.cluster });
+                    const channel = pusher.subscribe('garconnexpress');
+                    
+                    channel.bind(`deslogar-mesa-${sessionMesa.mesa_id}`, (data) => {
+                        Swal.fire({
+                            title: 'Sessão Encerrada',
+                            text: data.mensagem || 'Seu acesso a esta mesa foi finalizado.',
+                            icon: 'info',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            localStorage.removeItem('sessionMesa');
+                            window.location.reload();
+                        });
+                    });
+                });
+        }
+
+        async function loadMenu() {
             try {
                 const res = await fetch('/api/menu');
-                menuData = await res.json();
-                renderCategorias();
-                renderItens(categoriaAtual);
-            } catch (err) {
-                console.error('Erro ao carregar menu:', err);
+                fullMenu = await res.json();
+                renderCategories();
+                renderMenu();
+                showLoading(false);
+            } catch (error) {
+                Swal.fire('Erro', 'Não foi possível carregar o cardápio.', 'error');
             }
         }
 
-        function renderCategorias() {
-            const nav = document.getElementById('category-nav');
-            const categorias = [...new Set(menuData.map(i => i.categoria))];
+        function renderCategories() {
+            const container = document.getElementById('categories-container');
+            const cats = [...new Set(fullMenu.map(i => i.categoria))];
             
-            // Verifica se a categoria atual ainda existe, se não, volta para TODOS
-            if (categoriaAtual !== 'TODOS' && !categorias.includes(categoriaAtual)) {
-                categoriaAtual = 'TODOS';
-            }
-
-            nav.innerHTML = `<button class="cat-btn ${categoriaAtual === 'TODOS' ? 'active' : ''}" onclick="filtrarCategoria('TODOS', this)">Todos</button>`;
-            categorias.forEach(cat => {
-                nav.innerHTML += `<button class="cat-btn ${categoriaAtual === cat ? 'active' : ''}" onclick="filtrarCategoria('${cat}', this)">${cat}</button>`;
-            });
+            container.innerHTML = `
+                <div class="category-pill active" onclick="filterCategory('Tudo', this)">Tudo</div>
+                ${cats.map(c => `<div class="category-pill" onclick="filterCategory('${c}', this)">${c}</div>`).join('')}
+            `;
         }
 
-        function renderItens(filtro = 'TODOS') {
-            const list = document.getElementById('item-list');
-            list.innerHTML = '';
+        function filterCategory(cat, el) {
+            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            renderMenu(cat === 'Tudo' ? null : cat);
+        }
 
-            const itens = filtro === 'TODOS' ? menuData : menuData.filter(i => i.categoria === filtro);
+        function renderMenu(filterCat = null) {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = '';
 
-            if (itens.length === 0) {
-                list.innerHTML = '<div class="empty-msg">Nenhum item disponível nesta categoria no momento.</div>';
+            const menuToShow = filterCat ? fullMenu.filter(i => i.categoria === filterCat) : fullMenu;
+            const groups = menuToShow.reduce((acc, item) => {
+                if (!acc[item.categoria]) acc[item.categoria] = [];
+                acc[item.categoria].push(item);
+                return acc;
+            }, {});
+
+            for (const cat in groups) {
+                const section = document.createElement('div');
+                section.innerHTML = `<h2 class="section-title">${cat}</h2>`;
+                
+                groups[cat].forEach(item => {
+                    const cartItem = cart.find(c => c.id === item.id);
+                    const qty = cartItem ? cartItem.qty : 0;
+
+                    const card = `
+                        <div class="menu-item">
+                            ${item.em_promocao ? '<span class="promo-badge">PROMOÇÃO</span>' : ''}
+                            ${item.imagem ? `<img src="${item.imagem}" class="item-img" onerror="this.src='https://placehold.co/100x100?text=${item.nome[0]}'">` : `<div class="item-img" style="display:flex;align-items:center;justify-content:center;background:#eee;color:#ccc;font-size:2rem;font-weight:bold;">${item.nome[0]}</div>`}
+                            <div class="item-info">
+                                <h3>${item.nome}</h3>
+                                <p class="desc">${item.descricao || 'Sem descrição disponível.'}</p>
+                                <div class="price">
+                                    ${item.preco_original ? `<span class="old-price">R$ ${item.preco_original.toFixed(2)}</span>` : ''}
+                                    R$ ${item.preco.toFixed(2)}
+                                </div>
+                                <div class="controls" id="controls-${item.id}">
+                                    ${qty > 0 ? `
+                                        <button class="btn-qty" onclick="updateCart(${item.id}, -1)">-</button>
+                                        <span class="qty">${qty}</span>
+                                        <button class="btn-qty" onclick="updateCart(${item.id}, 1)">+</button>
+                                    ` : `
+                                        <button class="btn-add-initial" onclick="updateCart(${item.id}, 1)">Adicionar</button>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    section.innerHTML += card;
+                });
+                container.appendChild(section);
+            }
+        }
+
+        function updateCart(id, delta) {
+            const item = fullMenu.find(i => i.id === id);
+            const cartItem = cart.find(c => c.id === id);
+
+            if (cartItem) {
+                cartItem.qty += delta;
+                if (cartItem.qty <= 0) cart = cart.filter(c => c.id !== id);
+            } else if (delta > 0) {
+                cart.push({ ...item, qty: 1 });
+            }
+
+            renderMenu();
+            updateCartBar();
+        }
+
+        function updateCartBar() {
+            const bar = document.getElementById('cart-bar');
+            const qtySpan = document.getElementById('cart-qty');
+            const totalSpan = document.getElementById('cart-total');
+            const totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+            const totalVal = cart.reduce((sum, i) => sum + (i.qty * i.preco), 0);
+
+            if (totalQty > 0) {
+                bar.style.display = 'flex';
+                qtySpan.innerText = `${totalQty} ${totalQty === 1 ? 'item' : 'itens'}`;
+                totalSpan.innerText = `R$ ${totalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        function toggleCartModal(show) {
+            const modal = document.getElementById('modal-cart');
+            modal.style.display = show ? 'flex' : 'none';
+            if (show) renderCartModal();
+        }
+
+        function renderCartModal() {
+            const container = document.getElementById('modal-cart-items');
+            const totalSpan = document.getElementById('modal-cart-total');
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-shopping-basket"></i><p>Seu rascunho está vazio.</p></div>';
+                totalSpan.innerText = 'R$ 0,00';
                 return;
             }
 
-            itens.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'item-card animate';
-                
-                const imagem = item.imagem ? item.imagem : 'https://via.placeholder.com/120?text=Sem+Foto';
-                const esgotado = item.estoque === 0;
-                const emPromocao = item.em_promocao === 1 || item.em_promocao === true;
+            container.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <h4>${item.nome}</h4>
+                        <p>${item.qty}x R$ ${item.preco.toFixed(2)}</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn-qty" onclick="updateCart(${item.id}, -1)">-</button>
+                        <span class="qty">${item.qty}</span>
+                        <button class="btn-qty" onclick="updateCart(${item.id}, 1)">+</button>
+                    </div>
+                </div>
+            `).join('');
 
-                card.innerHTML = `
-                    <img src="${imagem}" class="item-img" style="${esgotado ? 'filter: grayscale(1); opacity: 0.5;' : ''}">
-                    ${emPromocao ? '<div class="promo-badge">PROMOÇÃO</div>' : ''}
-                    <div class="item-info">
-                        <div>
-                            <div class="item-name">${item.nome}</div>
-                            ${esgotado ? '<div class="stock-out">ESGOTADO</div>' : ''}
-                        </div>
-                        <div class="item-price">
-                            ${item.preco_original ? `<span class="price-original">R$ ${item.preco_original.toFixed(2).replace('.', ',')}</span>` : ''}
-                            <span>R$ ${item.preco.toFixed(2).replace('.', ',')}</span>
-                        </div>
-                        </div>
-                        `;                list.appendChild(card);
-            });
+            const totalVal = cart.reduce((sum, i) => sum + (i.qty * i.preco), 0);
+            totalSpan.innerText = `R$ ${totalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
         }
 
-        function filtrarCategoria(cat, btn) {
-            categoriaAtual = cat;
-            sessionStorage.setItem('ge_categoria_atual', cat);
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderItens(cat);
+        async function enviarRascunho() {
+            const btn = document.querySelector('.btn-send');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;"></div> Enviando...';
+
+            try {
+                const res = await fetch('/api/cliente/enviar-rascunho', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mesa_id: sessionMesa.mesa_id,
+                        mesa_numero: sessionMesa.mesa_numero,
+                        itens: cart.map(i => ({
+                            menu_id: i.id,
+                            nome: i.nome,
+                            quantidade: i.qty,
+                            preco: i.preco
+                        }))
+                    })
+                });
+
+                if (res.ok) {
+                    Swal.fire({
+                        title: 'Rascunho Enviado!',
+                        text: 'O garçom foi notificado e virá confirmar seu pedido em instantes.',
+                        icon: 'success',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                    cart = [];
+                    updateCartBar();
+                    toggleCartModal(false);
+                    renderMenu();
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                Swal.fire('Erro', 'Falha ao enviar rascunho.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> ENVIAR AO GARÇOM';
+            }
         }
 
         async function chamarGarcom() {
             const result = await Swal.fire({
                 title: 'Chamar Garçom?',
-                text: "Um garçom virá até sua mesa em instantes.",
+                text: "Deseja solicitar atendimento na mesa?",
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#ff4757',
-                confirmButtonText: 'Sim, chamar!',
-                cancelButtonText: 'Não, cancelar'
+                confirmButtonColor: varColor('--primary'),
+                confirmButtonText: 'Sim, Chamar',
+                cancelButtonText: 'Agora não'
             });
 
             if (result.isConfirmed) {
+                showLoading(true);
                 try {
                     const res = await fetch('/api/cliente/chamar-garcom', {
                         method: 'POST',
@@ -496,18 +680,28 @@
                             mesa_numero: sessionMesa.mesa_numero
                         })
                     });
-                    if (res.ok) {
-                        Swal.fire('Chamado enviado!', 'O garçom já foi notificado.', 'success');
-                    }
-                } catch (err) {
-                    Swal.fire('Erro', 'Falha ao enviar chamado.', 'error');
+                    if (res.ok) Swal.fire('Chamado Enviado', 'O garçom já foi notificado.', 'success');
+                    else Swal.fire('Erro', 'Tente novamente.', 'error');
+                } catch (e) {
+                    Swal.fire('Erro', 'Falha na conexão.', 'error');
+                } finally {
+                    showLoading(false);
                 }
             }
+        }
+
+        function verMeusPedidos() {
+            Swal.fire('Em Breve', 'Histórico de pedidos em desenvolvimento.', 'info');
         }
 
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'flex' : 'none';
         }
+
+        function varColor(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
     </script>
 </body>
 </html>
+
