@@ -449,7 +449,6 @@
                 const imagem = item.imagem ? item.imagem : 'https://via.placeholder.com/120?text=Sem+Foto';
                 const esgotado = item.estoque === 0;
                 const emPromocao = item.em_promocao === 1 || item.em_promocao === true;
-                const temEstoque = item.estoque !== null && item.estoque !== undefined && item.estoque !== -1;
 
                 card.innerHTML = `
                     <img src="${imagem}" class="item-img" style="${esgotado ? 'filter: grayscale(1); opacity: 0.5;' : ''}">
