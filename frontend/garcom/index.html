@@ -51,7 +51,10 @@
 
   <main>
     <section id="mesas">
-      <h2>Escolha uma Mesa</h2>
+      <div style="display:flex; gap:10px; margin-bottom: 15px; overflow-x: auto; padding: 5px 0;">
+        <button class="btn-filtro-mesa ativa" onclick="filtrarMesas('todas', this)" style="width:auto; white-space:nowrap; margin-bottom:0; padding: 6px 15px; border-radius: 20px; font-size: 0.8rem; background:#3498db; border:none; color:white; font-weight:bold; cursor:pointer;">🏠 TODAS</button>
+        <button class="btn-filtro-mesa" onclick="filtrarMesas('fechamentos', this)" style="width:auto; white-space:nowrap; margin-bottom:0; padding: 6px 15px; border-radius: 20px; font-size: 0.8rem; background:#95a5a6; border:none; color:white; font-weight:bold; cursor:pointer;">💰 FECHAMENTOS</button>
+      </div>
       <div id="mesas-grid"></div>
     </section>
 

@@ -235,21 +235,25 @@ async function verificarEstoqueBaixo(menuId) {
 async function notifyStatus(pedidoId, mesaDbId, status, mesaNumPredefined = null) {
   try {
     let mesaNum = mesaNumPredefined || 'BALCÃO';
-    if (!mesaNumPredefined) {
+    let finalMesaId = mesaDbId;
+
+    if (!finalMesaId || !mesaNumPredefined) {
       if (mesaDbId) {
         const res = await query("SELECT numero FROM mesas WHERE id = ?", [mesaDbId]);
         mesaNum = res.rows[0] ? res.rows[0].numero : 'BALCÃO';
       } else if (pedidoId) {
-        const res = await query("SELECT m.numero FROM pedidos p JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [pedidoId]);
-        mesaNum = res.rows[0] ? res.rows[0].numero : 'BALCÃO';
+        const res = await query("SELECT m.id, m.numero FROM pedidos p JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [pedidoId]);
+        if (res.rows[0]) {
+          mesaNum = res.rows[0].numero;
+          finalMesaId = res.rows[0].id;
+        }
       }
     }
-    const payload = { pedido_id: pedidoId, mesa_id: mesaDbId, mesa_numero: mesaNum, status: status };
-    console.log(`🔔 Notificando status: Mesa ${mesaNum} (ID: ${mesaDbId}), Status ${status}`);
-    
+    const payload = { pedido_id: pedidoId, mesa_id: finalMesaId, mesa_numero: mesaNum, status: status };
+    console.log(`🔔 Notificando status: Mesa ${mesaNum} (ID: ${finalMesaId}), Status ${status}`);
+
     // Dispara Pusher IMEDIATAMENTE (Prioridade)
     await safePusherTrigger('garconnexpress', 'status-atualizado', payload);
-
     // Notificação WhatsApp em paralelo/background
     if (status === 'aguardando_fechamento') {
       sendWhatsAppMessage(`🛎️ *SOLICITAÇÃO DE FECHAMENTO*\n📍 Mesa: ${mesaNum}\n💰 O cliente solicitou a conta.`).catch(e => console.error('Erro Wpp:', e.message));
@@ -323,6 +327,8 @@ async function initDb() {
     await addCol('pedidos', 'cobrar_taxa', 'BOOLEAN DEFAULT TRUE');
     await addCol('pedidos', 'num_pessoas', 'INTEGER DEFAULT 1');
     await addCol('pedidos', 'valor_por_pessoa', 'REAL');
+    await addCol('pedidos', 'solicitou_fechamento', 'BOOLEAN DEFAULT FALSE');
+    await addCol('pedidos', 'fechamento_liberado', 'BOOLEAN DEFAULT FALSE');
     await addCol('menu', 'estoque', 'INTEGER DEFAULT -1');
     await addCol('menu', 'validade', 'DATE');
     await addCol('menu', 'enviar_cozinha', 'BOOLEAN DEFAULT NULL');
@@ -689,6 +695,10 @@ app.post('/api/caixa/fechar', async (req, res) => {
     const agora = new Date();
     const dataLocal = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0') + ' ' + String(agora.getHours()).padStart(2, '0') + ':' + String(agora.getMinutes()).padStart(2, '0') + ':' + String(agora.getSeconds()).padStart(2, '0');
     await query("UPDATE fluxo_caixa SET valor_final = ?, status = 'fechado', data_fechamento = ? WHERE id = ?", [valor_final, dataLocal, id]);
+    
+    // Expira todos os códigos de acesso ativos ao fechar o caixa
+    await query("UPDATE codigos_acesso SET status = 'expirado' WHERE status = 'ativo'");
+    
     await safePusherTrigger('garconnexpress', 'status-caixa-atualizado', { status: 'fechado' });
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: 'Erro ao fechar caixa' }); }
@@ -895,7 +905,15 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
     if (itensRestantes.length === 0) {
       const pedido = (await query("SELECT mesa_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [item.pedido_id])).rows[0];
       await query("DELETE FROM pedidos WHERE id = ?", [item.pedido_id]);
-      if (pedido && pedido.mesa_id) await query("UPDATE mesas SET status = 'livre' WHERE id = ?", [pedido.mesa_id]);
+      if (pedido && pedido.mesa_id) {
+        await query("UPDATE mesas SET status = 'livre' WHERE id = ?", [pedido.mesa_id]);
+        await query("UPDATE codigos_acesso SET status = 'expirado' WHERE mesa_id = ? AND status = 'ativo'", [pedido.mesa_id]);
+        
+        // Notifica o cliente para encerrar o acesso
+        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pedido.mesa_id}`, { 
+          mensagem: "Seu pedido foi cancelado e a mesa liberada. O acesso foi encerrado." 
+        });
+      }
       
       const mesaNum = pedido ? pedido.numero || 'BALCÃO' : 'BALCÃO';
       await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
@@ -1166,6 +1184,44 @@ app.put('/api/pedidos/:id/adicionar', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// Cliente solicita o fechamento da conta (avisar garçom)
+app.post('/api/cliente/solicitar-conta', async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: 'Token é obrigatório.' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'cliente') return res.status(403).json({ error: 'Acesso negado.' });
+
+    const mesaId = decoded.mesa_id;
+    
+    // Busca o pedido ativo da mesa
+    const pedido = (await query("SELECT id, mesa_id FROM pedidos WHERE mesa_id = ? AND status NOT IN ('entregue', 'cancelado') ORDER BY id DESC LIMIT 1", [mesaId])).rows[0];
+    
+    if (!pedido) return res.status(404).json({ error: 'Nenhum pedido ativo encontrado para esta mesa.' });
+
+    // 1. Atualiza o banco de dados
+    await query("UPDATE pedidos SET solicitou_fechamento = TRUE WHERE id = ?", [pedido.id]);
+    
+    // 2. Busca número da mesa para a notificação
+    const mesaRes = await query("SELECT numero FROM mesas WHERE id = ?", [mesaId]);
+    const mesaNum = mesaRes.rows[0]?.numero || '??';
+
+    // 3. Notifica Garçom e Admin via Pusher (Som + Modal + Visual Pulsante)
+    await safePusherTrigger('garconnexpress', 'solicitacao-fechamento-cliente', {
+      pedido_id: pedido.id,
+      mesa_id: mesaId,
+      mesa_numero: mesaNum,
+      mensagem: `🙋‍♂️ MESA ${mesaNum} solicitou o fechamento da conta!`
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ ERRO EM /api/cliente/solicitar-conta:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.put('/api/pedidos/:id/solicitar-fechamento', async (req, res) => {
   const { id } = req.params;
   const { mesa_id, forma_pagamento, desconto, acrescimo, valor_recebido, troco, total, num_pessoas, valor_por_pessoa } = req.body;
@@ -1181,11 +1237,19 @@ app.put('/api/pedidos/:id/solicitar-fechamento', async (req, res) => {
       totalFinal = deveTaxa ? Math.round(sub * 1.10 * 100) / 100 : sub;
     }
 
-    await query(`UPDATE pedidos SET status = 'aguardando_fechamento', forma_pagamento = ?, desconto = ?, acrescimo = ?, valor_recebido = ?, troco = ?, total = ?, num_pessoas = ?, valor_por_pessoa = ?, cobrar_taxa = ? WHERE id = ?`, 
+    // Ativa fechamento_liberado quando o garçom processa a solicitação
+    await query(`UPDATE pedidos SET status = 'aguardando_fechamento', forma_pagamento = ?, desconto = ?, acrescimo = ?, valor_recebido = ?, troco = ?, total = ?, num_pessoas = ?, valor_por_pessoa = ?, cobrar_taxa = ?, fechamento_liberado = TRUE WHERE id = ?`, 
       [forma_pagamento || 'Dinheiro', desconto || 0, acrescimo || 0, valor_recebido || 0, troco || 0, totalFinal, num_pessoas || 1, valor_por_pessoa || totalFinal, (req.body.cobrar_taxa !== undefined ? (req.body.cobrar_taxa ? 1 : 0) : 1), id]);
     
     if (mesa_id) await query("UPDATE mesas SET status = 'fechando' WHERE id = ?", [mesa_id]);
     await notifyStatus(id, mesa_id, 'aguardando_fechamento');
+
+    // Notifica o cliente que o cupom de conferência foi liberado
+    await safePusherTrigger('garconnexpress', `fechamento-liberado-mesa-${mesa_id}`, {
+        pedido_id: id,
+        mensagem: "Seu cupom de conferência está disponível!"
+    });
+
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
@@ -1357,7 +1421,11 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
 
         // Notifica o cliente logado para encerrar o acesso
         const msgLogout = status === 'entregue' ? "Sua conta foi finalizada. Obrigado pela preferência!" : "Este pedido foi cancelado pelo estabelecimento. Seu acesso foi encerrado.";
-        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pm.mesa_id}`, { mensagem: msgLogout });
+        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pm.mesa_id}`, { 
+          mensagem: msgLogout,
+          status: status, // envia 'cancelado' ou 'entregue'
+          mesa_id: pm.mesa_id 
+        });
         
         if (status === 'cancelado') {
           console.log(`❌ Pedido ${id} cancelado pelo Admin. Notificando globalmente...`);
@@ -1586,6 +1654,8 @@ app.get('/api/mesas', ensureDbInitialized, async (req, res) => {
         (SELECT p.created_at FROM pedidos p WHERE p.mesa_id = m.id AND p.status != 'entregue' AND p.status != 'cancelado' ORDER BY p.id DESC LIMIT 1) as pedido_created_at, 
         (SELECT p.garcom_id FROM pedidos p WHERE p.mesa_id = m.id AND p.status != 'entregue' AND p.status != 'cancelado' ORDER BY p.id DESC LIMIT 1) as garcom_id,
         (SELECT p.status FROM pedidos p WHERE p.mesa_id = m.id AND p.status != 'entregue' AND p.status != 'cancelado' ORDER BY p.id DESC LIMIT 1) as pedido_status,
+        (SELECT p.solicitou_fechamento FROM pedidos p WHERE p.mesa_id = m.id AND p.status != 'entregue' AND p.status != 'cancelado' ORDER BY p.id DESC LIMIT 1) as solicitou_fechamento,
+        (SELECT p.fechamento_liberado FROM pedidos p WHERE p.mesa_id = m.id AND p.status != 'entregue' AND p.status != 'cancelado' ORDER BY p.id DESC LIMIT 1) as fechamento_liberado,
         (SELECT ca.codigo FROM codigos_acesso ca WHERE ca.mesa_id = m.id AND ca.status = 'ativo' ORDER BY ca.id DESC LIMIT 1) as codigo_acesso
       FROM mesas m ORDER BY m.numero
     `)).rows); 
@@ -1617,7 +1687,7 @@ app.post('/api/cliente/meus-pedidos', async (req, res) => {
     if (!acesso) return res.status(401).json({ error: 'Sessão encerrada pelo estabelecimento.' });
 
     // 3. Busca o pedido ativo da mesa
-    const pedido = (await query("SELECT id, total, status, cobrar_taxa, desconto, acrescimo FROM pedidos WHERE mesa_id = ? AND status NOT IN ('entregue', 'cancelado') ORDER BY id DESC LIMIT 1", [mesaId])).rows[0];
+    const pedido = (await query("SELECT id, total, status, cobrar_taxa, desconto, acrescimo, solicitou_fechamento, fechamento_liberado FROM pedidos WHERE mesa_id = ? AND status NOT IN ('entregue', 'cancelado') ORDER BY id DESC LIMIT 1", [mesaId])).rows[0];
     
     if (!pedido) {
       return res.json({ success: true, pedido: null, itens: [] });
@@ -1787,20 +1857,37 @@ app.post('/api/acesso/validar', async (req, res) => {
     // 2. Verifica se o código é válido e ativo
     const acesso = (await query("SELECT ca.*, m.numero as mesa_numero FROM codigos_acesso ca JOIN mesas m ON ca.mesa_id = m.id WHERE UPPER(ca.codigo) = UPPER(?) AND ca.status = 'ativo'", [codigo])).rows[0];
 
-    if (!acesso) return res.status(401).json({ error: 'Código inválido ou expirado. Peça um novo ao garçom.' });
+    if (!acesso) return res.status(401).json({ error: 'Código inválido ou já expirado.' });
 
-    // Se válido, retorna os dados da mesa para o cliente salvar no LocalStorage
+    // 3. Verificação de Segurança: A mesa está realmente ocupada?
+    // Isso evita que códigos de sessões anteriores permitam acesso a mesas já liberadas.
+    const mesaStatus = (await query("SELECT status FROM mesas WHERE id = ?", [acesso.mesa_id])).rows[0];
+    
+    if (!mesaStatus || mesaStatus.status === 'livre') {
+      // Se a mesa está livre, o código deve ser invalidado por segurança (Ghost Session Prevention)
+      await query("UPDATE codigos_acesso SET status = 'expirado' WHERE id = ?", [acesso.id]);
+      return res.status(403).json({ error: 'ESTA MESA NÃO ESTÁ ATIVA: Peça ao garçom para abrir sua mesa novamente.' });
+    }
+
+    // 4. Busca pedido_id se existir (opcional nesta fase)
+    const pedidoAtivo = (await query("SELECT id FROM pedidos WHERE mesa_id = ? AND status NOT IN ('entregue', 'cancelado') ORDER BY id DESC LIMIT 1", [acesso.mesa_id])).rows[0];
+
+    // 5. Gera o token de acesso (pedido_id pode ser null se for mesa recém aberta)
+    const token = jwt.sign({ 
+      mesa_id: acesso.mesa_id, 
+      mesa_numero: acesso.mesa_numero, 
+      acesso_id: acesso.id,
+      pedido_id: pedidoAtivo ? pedidoAtivo.id : null,
+      role: 'cliente' 
+    }, JWT_SECRET, { expiresIn: '6h' });
+
     res.json({ 
       success: true,
       mesa_id: acesso.mesa_id,
       mesa_numero: acesso.mesa_numero,
+      pedido_id: pedidoAtivo ? pedidoAtivo.id : null,
       acesso_id: acesso.id,
-      token_acesso: jwt.sign({ 
-        mesa_id: acesso.mesa_id, 
-        mesa_numero: acesso.mesa_numero, 
-        acesso_id: acesso.id,
-        role: 'cliente' 
-      }, JWT_SECRET, { expiresIn: '6h' })
+      token_acesso: token
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1818,9 +1905,17 @@ app.get('/api/acesso/check', async (req, res) => {
         return res.status(403).json({ error: 'Token inválido para esta operação' });
     }
 
-    const acesso = (await query("SELECT status FROM codigos_acesso WHERE id = ?", [decoded.acesso_id])).rows[0];
+    const acesso = (await query("SELECT status, mesa_id FROM codigos_acesso WHERE id = ?", [decoded.acesso_id])).rows[0];
     if (!acesso || acesso.status !== 'ativo') {
-        return res.json({ valid: false });
+        return res.json({ valid: false, error: 'Acesso expirado' });
+    }
+
+    // Verifica se a mesa ainda está ativa (ocupada ou em fechamento)
+    const mesa = (await query("SELECT status FROM mesas WHERE id = ?", [acesso.mesa_id])).rows[0];
+    if (!mesa || mesa.status === 'livre') {
+        // Se a mesa foi liberada, invalida o acesso por segurança
+        await query("UPDATE codigos_acesso SET status = 'expirado' WHERE id = ?", [decoded.acesso_id]);
+        return res.json({ valid: false, error: 'Mesa liberada' });
     }
 
     res.json({ valid: true });

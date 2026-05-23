@@ -310,6 +310,15 @@ async function configurarPusher() {
       mostrarRascunho(data);
     });
 
+    channel.bind('solicitacao-fechamento-cliente', (data) => {
+      console.log('📢 Evento recebido: solicitacao-fechamento-cliente', data);
+      tocarCampainha();
+      mostrarAlerta(data.mensagem, "🙋‍♂️ SOLICITAÇÃO DE FECHAMENTO");
+      
+      clearTimeout(timeoutPusher);
+      timeoutPusher = setTimeout(() => carregarMesas(), 50);
+    });
+
     // Desbloqueia áudio no primeiro clique do usuário
     document.addEventListener('click', () => {
       if (audioDesbloqueado) return;
@@ -462,11 +471,35 @@ function calcularMinutos(dataIso) {
   }
 }
 
+let filtroMesaAtual = 'todas';
+
+function filtrarMesas(filtro, element) {
+  filtroMesaAtual = filtro;
+  
+  // Atualiza visual dos botões de filtro
+  document.querySelectorAll('.btn-filtro-mesa').forEach(btn => {
+    btn.classList.remove('ativa');
+    btn.style.background = '#95a5a6';
+  });
+  
+  if (element) {
+    element.classList.add('ativa');
+    element.style.background = filtro === 'fechamentos' ? '#f1c40f' : '#3498db';
+  }
+  
+  exibirMesas();
+}
+
 function exibirMesas() {
   const grid = document.getElementById('mesas-grid');
   if (!grid) return;
 
-  grid.innerHTML = mesas.map(mesa => {
+  let mesasExibidas = mesas;
+  if (filtroMesaAtual === 'fechamentos') {
+    mesasExibidas = mesas.filter(m => m.solicitou_fechamento || m.status === 'fechando');
+  }
+
+  grid.innerHTML = mesasExibidas.map(mesa => {
     let cronometroHtml = '';
     let classeAlerta = '';
     let classeBloqueada = '';
@@ -479,8 +512,11 @@ function exibirMesas() {
     } else if (mesa.status === 'ocupada' || mesa.status === 'fechando') {
       const eMeuPedido = mesa.garcom_id === garcomLogado.usuario;
       
-      // Se não tem pedido ainda mas está ocupada, é porque gerou código
-      if (!mesa.pedido_created_at && !mesa.pedido_status && mesa.status === 'ocupada') {
+      // DESTAQUE PARA SOLICITAÇÃO DE FECHAMENTO DO CLIENTE (Prioridade)
+      if (mesa.solicitou_fechamento && mesa.status !== 'fechando') {
+        classeAlerta = 'solicitacao-fechamento';
+        statusTexto = '🙋‍♂️ CLIENTE SOLICITA FECHAMENTO';
+      } else if (!mesa.pedido_created_at && !mesa.pedido_status && mesa.status === 'ocupada') {
         statusTexto = '📱 AGUARDANDO CLIENTE';
         classeAlerta = 'cliente-acessando';
       } else if (mesa.status === 'fechando') {
@@ -493,8 +529,8 @@ function exibirMesas() {
         statusTexto = `OCUPADA (${mesa.garcom_id})`;
       }
       
-      // DESTAQUE PARA PEDIDO PRONTO NA COZINHA
-      if (mesa.pedido_status === 'pronto') {
+      // DESTAQUE PARA PEDIDO PRONTO NA COZINHA (Se não estiver solicitando fechamento)
+      if (mesa.pedido_status === 'pronto' && !mesa.solicitou_fechamento) {
         classeAlerta = 'pedido-pronto-alert';
         statusTexto = '🔥 PRONTO PARA ENTREGA';
       }
@@ -503,7 +539,7 @@ function exibirMesas() {
       if (mesa.pedido_created_at && mesa.pedido_status !== 'servido') {
         const minutos = calcularMinutos(mesa.pedido_created_at);
         cronometroHtml = `<div class="cronometro">⏱️ ${minutos} min</div>`;
-        if (minutos >= 10 && mesa.status !== 'fechando') classeAlerta = 'alerta-atraso';
+        if (minutos >= 10 && mesa.status !== 'fechando' && !mesa.solicitou_fechamento) classeAlerta = 'alerta-atraso';
       }
     }
 

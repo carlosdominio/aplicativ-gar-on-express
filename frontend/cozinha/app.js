@@ -103,15 +103,18 @@ async function verificarCaixa() {
         
         const container = document.getElementById('pedidos-container');
         const closedScreen = document.getElementById('closed-screen');
+        const header = document.getElementById('main-header');
         
         if (!caixa) {
             if (container) container.style.display = 'none';
             if (closedScreen) closedScreen.style.display = 'flex';
+            if (header) header.style.opacity = '0.3';
             return false;
         }
         
         if (container) container.style.display = 'grid';
         if (closedScreen) closedScreen.style.display = 'none';
+        if (header) header.style.opacity = '1';
         return true;
     } catch (err) {
         console.error('Erro ao verificar caixa:', err);
