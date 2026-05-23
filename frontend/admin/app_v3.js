@@ -835,9 +835,26 @@ async function enviarPedidoLoteAdmin() {
       modalDecisao.style.display = 'flex';
       document.body.classList.add('modal-open');
 
-      document.getElementById('btn-decisao-fechar').onclick = () => {
+      document.getElementById('btn-decisao-fechar').onclick = async () => {
         modalDecisao.style.display = 'none';
         document.body.classList.remove('modal-open');
+
+        // TRAVA DE COZINHA: Verifica se existem itens sendo preparados antes de fechar
+        try {
+          const resItens = await fetch(`/api/pedidos/${novoPedidoId}/itens`);
+          if (resItens.ok) {
+            const itensAtualizados = await resItens.json();
+            const hasPend = itensAtualizados.some(i => i.status === 'pendente' || i.status === 'pronto');
+            if (hasPend) {
+              if (!await mostrarConfirmacao("⚠️ Existem itens sendo preparados na COZINHA. Deseja prosseguir com o fechamento mesmo assim?", "Cozinha em Andamento", "Sim, Prosseguir", "Não, Esperar")) {
+                mostrarToast("⏳ Fechamento cancelado para aguardar a cozinha.");
+                switchTab('ativos');
+                return;
+              }
+            }
+          }
+        } catch (e) { console.warn("Erro ao checar cozinha:", e); }
+
         aprovarFechamento(novoPedidoId, mesaId, nomeMesa);
       };
 
@@ -3562,9 +3579,9 @@ function imprimirCupomParcialFracao(pedido, itens, valorPago, saldoRestante, pes
         <span style="font-weight:900;">SUBTOTAL:</span>
         <span style="font-weight:900;">R$ ${subtotal.toFixed(2)}</span>
       </div>
-      <div style="display:flex; justify-content:space-between;">
-        <span style="font-weight:900;">TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'}):</span>
-        <span style="font-weight:900;">R$ ${taxa.toFixed(2)}</span>
+      <div style="display:flex; justify-content:space-between; font-weight: 900; font-size: 10pt; background: #f1f2f6; padding: 2px 4px; border-radius: 4px; margin: 2px 0;">
+        <span>TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'}):</span>
+        <span>R$ ${taxa.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size: 12pt; font-weight: 900; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px;">
         <span>TOTAL A PAGAR:</span>
@@ -3600,16 +3617,16 @@ function imprimirCupomParcialItens(pedido, itensPagos, totalPago, cobrarTaxa) {
     <div class="cupom-header">
       <h2 style="margin:0; font-size: 12pt; font-weight: 900;">GuGA Bebidas</h2>
       <p style="margin:2px 0; font-weight: 900; font-size: 10pt;">*** PAGAMENTO DE ITENS ***</p>
-      <p style="margin:2px 0; font-weight: 900; font-size: 11pt;">MESA ${pedido.mesa_numero}</p>
+      <p style="margin:2px 0; font-weight: 900; font-size: 11pt;">${pedido.mesa_numero ? `MESA ${pedido.mesa_numero}` : 'BALCÃO / VENDA DIRETA'}</p>
       <p style="margin:2px 0; font-size: 9pt;"><strong>ABERTURA:</strong> ${formatarData(pedido.created_at)}</p>
       <p style="margin:2px 0; font-size: 8pt;"><strong>EMISSÃO:</strong> ${new Date().toLocaleString('pt-BR')}</p>
     </div>
-    
+
     <div style="font-size: 10pt; margin-top: 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">
       <p style="margin:0 0 5px 0; font-weight:900; text-align:center;">ITENS PAGOS NESTA PARCIAL</p>
       ${itensPagos.map(i => `
         <div style="display:flex; justify-content:space-between; margin-bottom: 2px;">
-          <span style="flex:1; padding-right:6px; overflow:hidden; text-overflow: ellipsis; white-space:nowrap; font-weight:700;">${i.quantidade}x ${i.nome}</span>
+          <span style="flex:1; padding-right:6px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; font-weight:700;">${i.quantidade}x ${i.nome}</span>
           <span style="flex:0 0 auto; white-space:nowrap; font-weight:900;">R$ ${(i.preco * i.quantidade).toFixed(2)}</span>
         </div>
       `).join('')}
@@ -3620,9 +3637,9 @@ function imprimirCupomParcialItens(pedido, itensPagos, totalPago, cobrarTaxa) {
         <span style="font-weight:900;">SUBTOTAL ITENS:</span>
         <span style="font-weight:900;">R$ ${subtotalPagos.toFixed(2)}</span>
       </div>
-      <div style="display:flex; justify-content:space-between;">
-        <span style="font-weight:900;">TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'}):</span>
-        <span style="font-weight:900;">R$ ${taxaPagos.toFixed(2)}</span>
+      <div style="display:flex; justify-content:space-between; font-weight: 900; font-size: 10pt; background: #f1f2f6; padding: 2px 4px; border-radius: 4px; margin: 2px 0;">
+        <span>TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'}):</span>
+        <span>R$ ${taxaPagos.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size: 12pt; font-weight: 900; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px;">
         <span>TOTAL A PAGAR:</span>
@@ -4406,7 +4423,7 @@ async function imprimirCupom(pedido, itens) {
         <span>SUBTOTAL CONSUMO:</span>
         <span>R$ ${subtotal.toFixed(2)}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; opacity: 0.8; font-size: 9pt;">
+      <div style="display:flex; justify-content:space-between; font-weight: 900; font-size: 10pt; background: #f1f2f6; padding: 2px 4px; border-radius: 4px; margin: 2px 0;">
         <span>TAXA SERV (${cobrarTaxaNoCupom ? '10%' : 'OFF'}):</span>
         <span>R$ ${taxa.toFixed(2)}</span>
       </div>
@@ -4478,11 +4495,20 @@ async function imprimirRelatorioCaixa() {
   
   // No relatório de caixa, o ideal é basear-se no histórico carregado (que deve ser o do dia)
   // ou buscar do banco. Para manter consistência com o imprimirResumoDiario:
+  let totalTaxasRelatorio = 0;
   historico.forEach(p => {
     if (p.status === 'entregue') {
       const valorTotalPedido = (p.total || 0) + (p.pago_parcial || 0);
       const garcomId = p.garcom_id || 'SISTEMA';
       const garcomNome = p.garcom_nome || p.garcom_id || 'Administrador';
+
+      // Cálculo aproximado da taxa (10% se estiver ativa no pedido)
+      if (p.cobrar_taxa) {
+        // Se p.total já inclui a taxa, precisamos extraí-la ou basear no consumo
+        // No sistema, p.total geralmente é o consumo + taxa.
+        const consumoSemTaxa = valorTotalPedido / 1.1;
+        totalTaxasRelatorio += (valorTotalPedido - consumoSemTaxa);
+      }
 
       if (!performanceGarcons[garcomId]) {
         const infoG = (Array.isArray(garconsLista) ? garconsLista : []).find(g => g && g.usuario === garcomId) || { comissao: 0 };
@@ -4490,25 +4516,31 @@ async function imprimirRelatorioCaixa() {
           nome: garcomNome,
           vendas: 0,
           atendimentos: 0,
-          percComissao: infoG.comissao || 0
+          percComissao: infoG.comissao || 0,
+          taxasGeradas: 0
         };
       }
       performanceGarcons[garcomId].vendas += valorTotalPedido;
       performanceGarcons[garcomId].atendimentos++;
+      
+      if (p.cobrar_taxa) {
+        const consumoSemTaxa = valorTotalPedido / 1.1;
+        performanceGarcons[garcomId].taxasGeradas += (valorTotalPedido - consumoSemTaxa);
+      }
     }
   });
 
   const htmlPerformance = Object.values(performanceGarcons).map(g => {
-    const vComissao = g.vendas * (g.percComissao / 100);
+    // Usamos o valor das taxas geradas (10%) como a comissão principal exibida no relatório
     return `
       <div style="border-bottom: 1px dotted #ccc; padding: 4px 0; font-size: 9pt;">
         <div style="display:flex; justify-content:space-between; font-weight: bold;">
           <span>👤 ${g.nome.toUpperCase()}</span>
           <span>${g.atendimentos} atend.</span>
         </div>
-        <div style="display:flex; justify-content:space-between; opacity: 0.8;">
+        <div style="display:flex; justify-content:space-between; opacity: 0.9;">
           <span>Vendas: R$ ${g.vendas.toFixed(2)}</span>
-          <span style="color: #27ae60;">Comissão: R$ ${vComissao.toFixed(2)}</span>
+          <span style="font-weight: 900; color: #27ae60;">Comissão (10%): R$ ${g.taxasGeradas.toFixed(2)}</span>
         </div>
       </div>
     `;
@@ -4557,6 +4589,10 @@ async function imprimirRelatorioCaixa() {
       </div>
 
       <div style="border-top: 1px dashed #000; padding-top: 8px; margin-top: 10px;">
+        <div style="display:flex; justify-content:space-between; font-size: 0.9rem; opacity: 0.8; margin-bottom: 4px;">
+          <span>TOTAL EM TAXAS (10%):</span>
+          <span>R$ ${totalTaxasRelatorio.toFixed(2)}</span>
+        </div>
         <div style="display:flex; justify-content:space-between; font-weight: bold;">
           <span>TOTAL DE VENDAS:</span>
           <span>R$ ${totalGeral.toFixed(2)}</span>
