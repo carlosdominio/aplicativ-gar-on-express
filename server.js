@@ -59,24 +59,40 @@ async function isWhatsAppEnabled() {
 }
 
 async function sendWhatsAppMessage(text) {
+  console.log(`🔍 [WhatsApp] Tentando disparar notificação: "${text.substring(0, 50)}..."`);
   try {
     if (!await isWhatsAppEnabled()) {
-      console.log('🚫 [WhatsApp] Automação desativada pelo usuário');
+      console.log('🚫 [WhatsApp] Automação desativada nas configurações do sistema');
       return;
     }
 
-    if (whatsappSocket && whatsappSocket.connected && process.env.WHATSAPP_NOTIFY_NUMBER) {
-      const number = process.env.WHATSAPP_NOTIFY_NUMBER.replace(/\D/g, '');
-      whatsappSocket.emit('send_msg', { 
-        number: number, 
-        text: text 
+    // Busca a lista de números no banco de dados, com fallback para o ENV único
+    const configNums = await query("SELECT valor FROM sistema_config WHERE chave = 'whatsapp_notify_numbers'");
+    let numbersList = [];
+    
+    if (configNums.rows && configNums.rows.length > 0 && configNums.rows[0].valor) {
+      numbersList = configNums.rows[0].valor.split(',').map(n => n.trim());
+    } else if (process.env.WHATSAPP_NOTIFY_NUMBER) {
+      numbersList = [process.env.WHATSAPP_NOTIFY_NUMBER];
+    }
+
+    if (whatsappSocket && whatsappSocket.connected && numbersList.length > 0) {
+      // Remove duplicados e limpa os números
+      const uniqueNumbers = [...new Set(numbersList.map(n => n.replace(/\D/g, '')))];
+      console.log(`📤 [WhatsApp] Bot CONECTADO. Enviando para: ${uniqueNumbers.join(', ')}`);
+
+      uniqueNumbers.forEach(num => {
+        // Envia para o bot tentando dois formatos comuns (com e sem @c.us)
+        whatsappSocket.emit('send_msg', { number: num, text: text });
+        whatsappSocket.emit('send_msg', { number: `${num}@c.us`, text: text });
       });
-      console.log(`📱 [WhatsApp] Enviando para ${number}: ${text.substring(0, 30)}...`);
     } else {
-      console.log('⚠️ [WhatsApp] Bot não conectado ou número não configurado');
+      console.log('⚠️ [WhatsApp] FALHA NO ENVIO: Bot desconectado ou lista de números vazia.');
+      console.log(`   - Socket conectado: ${whatsappSocket ? whatsappSocket.connected : 'null'}`);
+      console.log(`   - Números encontrados: ${numbersList.length}`);
     }
   } catch (e) {
-    console.error('❌ Erro ao enviar WhatsApp:', e.message);
+    console.error('❌ Erro interno ao enviar WhatsApp:', e.message);
   }
 }
 
@@ -296,6 +312,21 @@ async function initDb() {
     else db.exec(sqlConfig);
 
     await query("INSERT INTO sistema_config (chave, valor) SELECT 'whatsapp_enabled', 'true' WHERE NOT EXISTS (SELECT 1 FROM sistema_config WHERE chave = 'whatsapp_enabled')");
+
+    // LIMPEZA E REGISTRO DO NÚMERO DE WHATSAPP (CONSOLIDADO)
+    const notificationNumbers = '5582993157048'; 
+    try {
+      // Remove a chave antiga (singular) se existir para evitar confusão
+      await query("DELETE FROM sistema_config WHERE chave = 'whatsapp_notify_number'");
+      
+      if (isPostgres) {
+        await query("INSERT INTO sistema_config (chave, valor) VALUES ('whatsapp_notify_numbers', ?) ON CONFLICT(chave) DO UPDATE SET valor = EXCLUDED.valor", [notificationNumbers]);
+      } else {
+        await query("INSERT OR REPLACE INTO sistema_config (chave, valor) VALUES ('whatsapp_notify_numbers', ?)", [notificationNumbers]);
+      }
+    } catch (errConfig) {
+      console.error('Erro ao configurar WhatsApp no DB:', errConfig.message);
+    }
 
   } catch (e) {
     console.error('Erro ao verificar/criar tabelas:', e);
@@ -2004,19 +2035,37 @@ app.post('/api/cliente/enviar-rascunho', async (req, res) => {
 
 app.get('/api/whatsapp-status', async (req, res) => {
   try {
-    const config = await query("SELECT valor FROM sistema_config WHERE chave = 'whatsapp_enabled'");
-    const isEnabled = config.rows && config.rows.length > 0 ? config.rows[0].valor === 'true' : true;
+    const configRes = await query("SELECT valor FROM sistema_config WHERE chave = 'whatsapp_enabled'");
+    const isEnabled = configRes.rows && configRes.rows.length > 0 ? configRes.rows[0].valor === 'true' : true;
+
+    // Busca a lista de números no banco de dados (chave correta: plural)
+    const configNums = await query("SELECT valor FROM sistema_config WHERE chave = 'whatsapp_notify_numbers'");
+    let numbersDisplay = 'Não configurado';
+    
+    if (configNums.rows && configNums.rows.length > 0 && configNums.rows[0].valor) {
+      numbersDisplay = configNums.rows[0].valor;
+    } else if (process.env.WHATSAPP_NOTIFY_NUMBER) {
+      numbersDisplay = process.env.WHATSAPP_NOTIFY_NUMBER;
+    }
 
     res.json({
       configured: !!process.env.WHATSAPP_BOT_URL,
       connected: whatsappSocket ? whatsappSocket.connected : false,
       enabled: isEnabled,
-      number: process.env.WHATSAPP_NOTIFY_NUMBER || 'Não configurado',
+      number: numbersDisplay,
       botUrl: process.env.WHATSAPP_BOT_URL || ''
     });
   } catch (error) {
     console.error('❌ Erro ao buscar status do WhatsApp:', error.message);
-    res.status(500).json({ error: error.message });
+    // Retorna um objeto válido em vez de 500 para evitar o selo de ERRO no frontend
+    res.json({
+      configured: !!process.env.WHATSAPP_BOT_URL,
+      connected: false,
+      enabled: false,
+      number: 'Erro ao carregar',
+      botUrl: process.env.WHATSAPP_BOT_URL || '',
+      error: error.message
+    });
   }
 });
 

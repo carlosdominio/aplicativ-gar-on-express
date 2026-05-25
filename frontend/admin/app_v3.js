@@ -496,6 +496,8 @@ async function carregarStatusWhatsApp() {
 
   try {
     const res = await fetch('/api/whatsapp-status');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
     const status = await res.json();
 
     if (!status.configured) {
@@ -513,20 +515,26 @@ async function carregarStatusWhatsApp() {
     }
 
     if (toggle) toggle.checked = status.enabled;
-    numberEl.textContent = status.number || 'Não configurado';
+    if (numberEl) numberEl.textContent = status.number || 'Não configurado';
 
     // Atualiza o iframe dinamicamente para o bot configurado
     const iframe = document.getElementById('whatsapp-iframe');
     if (iframe && status.botUrl) {
-      const currentUrl = new URL(iframe.src).origin;
-      const targetUrl = new URL(status.botUrl).origin;
-      if (currentUrl !== targetUrl) {
-        console.log('🔄 Atualizando URL do robô WhatsApp:', targetUrl);
-        iframe.src = status.botUrl;
+      try {
+        // Normaliza as URLs para comparação segura (protege contra URL inválida ou about:blank)
+        const currentUrl = (iframe.src && iframe.src.startsWith('http')) ? new URL(iframe.src).origin : '';
+        const targetUrl = new URL(status.botUrl).origin;
+        if (currentUrl !== targetUrl) {
+          console.log('🔄 Atualizando URL do robô WhatsApp:', targetUrl);
+          iframe.src = status.botUrl;
+        }
+      } catch (urlErr) {
+        console.warn('⚠️ Erro ao validar URL do robô:', urlErr.message);
       }
     }
   } catch (e) {
-    badge.textContent = 'ERRO';
+    console.error('❌ Erro no status do WhatsApp:', e);
+    badge.textContent = 'FALHA NA REQUISIÇÃO';
     badge.style.background = '#fee2e2';
     badge.style.color = '#ef4444';
   }
