@@ -35,6 +35,55 @@ if (process.env.WHATSAPP_BOT_URL) {
   whatsappSocket.on('connect', () => console.log('✅ Conectado ao Bot do WhatsApp (Render)'));
   whatsappSocket.on('connect_error', (err) => console.log('❌ Erro de conexão com Bot WhatsApp:', err.message));
   whatsappSocket.on('disconnect', () => console.log('⚠️ Desconectado do Bot WhatsApp'));
+
+  // --- LÓGICA DO MENU INTERATIVO ---
+  whatsappSocket.on('new_msg', async (data) => {
+    try {
+      if (!data || !data.from || !data.body) return;
+      
+      const from = data.from.split('@')[0].replace(/\D/g, ''); // Pega apenas os números
+      const msg = data.body.trim();
+      const nome = data.notifyName || 'Cliente';
+
+      // Ignora mensagens enviadas pelo próprio robô para evitar loop
+      if (data.fromMe) return;
+
+      console.log(`📩 [WhatsApp] Mensagem de ${nome} (${from}): ${msg}`);
+
+      // Processa as opções do menu
+      if (msg === '1') {
+        await sendWhatsAppMessage(`📖 *CARDÁPIO DIGITAL*\n\nAcesse nosso cardápio por aqui: https://garconnexpress.vercel.app/cardapio/`, from);
+      } else if (msg === '2') {
+        await sendWhatsAppMessage(`🛒 *FAZER PEDIDO*\n\nPara fazer um pedido, basta escolher os itens no nosso cardápio digital: https://garconnexpress.vercel.app/cardapio/\n\nSe preferir, pode me dizer o que deseja por aqui mesmo!`, from);
+      } else if (msg === '3') {
+        const promoVal = isPostgres ? true : 1;
+        const promos = await query("SELECT nome, preco, preco_original FROM menu WHERE em_promocao = ? AND visivel = ?", [promoVal, promoVal]);
+        let promoMsg = "🔥 *PROMOÇÕES DO DIA*\n\nConfira nossas ofertas de hoje:\n\n";
+        if (promos.rows && promos.rows.length > 0) {
+          promos.rows.forEach(p => {
+            const precoOriginal = p.preco_original ? `~R$ ${p.preco_original.toFixed(2)}~ ` : "";
+            promoMsg += `✅ *${p.nome}*\n💰 ${precoOriginal}*R$ ${p.preco.toFixed(2)}*\n\n`;
+          });
+          promoMsg += "_Aproveite que é por tempo limitado!_";
+        } else {
+          promoMsg = "🔥 *PROMOÇÕES DO DIA*\n\nNo momento não temos promoções ativas, mas fique de olho no nosso cardápio! 😉";
+        }
+        await sendWhatsAppMessage(promoMsg, from);
+      } else if (msg === '4') {
+        await sendWhatsAppMessage(`📍 *ENDEREÇO E HORÁRIO*\n\n🏠 Endereço: rua democrito gracindo 132 ponta grossa\n⏰ Horário: Diariamente das 18h às 02:00`, from);
+      } else if (msg === '5') {
+        await sendWhatsAppMessage(`👨‍💻 *ATENDIMENTO*\n\nUm momento, ${nome}. Já avisei a nossa equipe e alguém falará com você em instantes!`, from);
+        // Notifica o painel admin via Pusher
+        await safePusherTrigger('garconnexpress', 'atendimento-whatsapp', { number: from, name: nome, mensagem: 'O cliente solicitou atendimento humano.' });
+      } else {
+        // Envia o Menu Principal para qualquer outra mensagem
+        const menu = `Olá ${nome}! 👋 Seja bem-vindo ao *GuGA Bebidas*.\nComo posso te ajudar hoje?\n\n1️⃣ - Ver Cardápio Digital 📖\n2️⃣ - Fazer um Pedido 🛒\n3️⃣ - Promoções do Dia 🔥\n4️⃣ - Endereço e Horário 📍\n5️⃣ - Falar com o Atendente 👨‍💻\n\n_Digite apenas o número da opção desejada._`;
+        await sendWhatsAppMessage(menu, from);
+      }
+    } catch (err) {
+      console.error('❌ Erro ao processar mensagem do WhatsApp:', err.message);
+    }
+  });
 }
 
 // Cache simples para configurações
@@ -58,7 +107,7 @@ async function isWhatsAppEnabled() {
   }
 }
 
-async function sendWhatsAppMessage(text) {
+async function sendWhatsAppMessage(text, targetNumber = null) {
   console.log(`🔍 [WhatsApp] Tentando disparar notificação: "${text.substring(0, 50)}..."`);
   try {
     if (!await isWhatsAppEnabled()) {
@@ -66,14 +115,19 @@ async function sendWhatsAppMessage(text) {
       return;
     }
 
-    // Busca a lista de números no banco de dados, com fallback para o ENV único
-    const configNums = await query("SELECT valor FROM sistema_config WHERE chave = 'whatsapp_notify_numbers'");
     let numbersList = [];
     
-    if (configNums.rows && configNums.rows.length > 0 && configNums.rows[0].valor) {
-      numbersList = configNums.rows[0].valor.split(',').map(n => n.trim());
-    } else if (process.env.WHATSAPP_NOTIFY_NUMBER) {
-      numbersList = [process.env.WHATSAPP_NOTIFY_NUMBER];
+    if (targetNumber) {
+      // Se um número específico foi passado (ex: resposta ao cliente), usa ele
+      numbersList = [targetNumber];
+    } else {
+      // Caso contrário, busca a lista de números de notificação no banco/env
+      const configNums = await query("SELECT valor FROM sistema_config WHERE chave = 'whatsapp_notify_numbers'");
+      if (configNums.rows && configNums.rows.length > 0 && configNums.rows[0].valor) {
+        numbersList = configNums.rows[0].valor.split(',').map(n => n.trim());
+      } else if (process.env.WHATSAPP_NOTIFY_NUMBER) {
+        numbersList = [process.env.WHATSAPP_NOTIFY_NUMBER];
+      }
     }
 
     if (whatsappSocket && whatsappSocket.connected && numbersList.length > 0) {
