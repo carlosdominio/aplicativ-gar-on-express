@@ -2609,44 +2609,21 @@ async function marcarPedidoEntregue(id) {
 
     // Itens que ainda estão em produção (Pendente + Cozinha)
     const emPreparo = itens.filter(i => i.status === 'pendente' && isItemParaCozinha(i));
-    // Itens pendentes que NÃO são de cozinha (ex: bebidas que ainda não foram entregues)
-    const pendentesForaCozinha = itens.filter(i => i.status === 'pendente' && !isItemParaCozinha(i));
-    // Itens que já estão prontos na cozinha mas não entregues à mesa
-    const prontosCozinha = itens.filter(i => i.status === 'pronto' && isItemParaCozinha(i));
 
-    // Se existe algo SENDO FEITO na cozinha...
+    // Se existe algo SENDO FEITO na cozinha... BLOQUEIO TOTAL
     if (emPreparo.length > 0) {
-      // ...e ainda existem bebidas/outros pendentes de entrega
-      if (pendentesForaCozinha.length > 0) {
-        const confirm = await mostrarConfirmacao(
-          `⚠️ ATENÇÃO: Existem ${emPreparo.length} itens ainda EM PREPARO na cozinha.\n\n` +
-          `Deseja confirmar apenas a entrega dos itens que NÃO estão na cozinha (bebidas e itens já prontos)?\n\n` +
-          `O cronômetro da mesa continuará rodando para os itens que ficarem.`,
-          "Itens na Cozinha",
-          "Sim, entregar prontos",
-          "Não, cancelar"
-        );
-
-        if (!confirm) return;
-
-        const res = await fetch(`/api/pedidos/${id}/marcar-entregue`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apenasProntos: true })
-        });
-
-        if (res.ok) {
-          mostrarToast("✅ Itens prontos entregues!");
-          carregarPedidos();
-        }
-      } else {
-        // ...mas as bebidas/outros já foram entregues (ou não existem)
-        await mostrarAlerta(
-          `✅ Os pedidos fora da cozinha (bebidas/outros) já foram entregues!\n\n` +
-          `Ainda existem ${emPreparo.length} itens sendo preparados. Aguarde a finalização da COZINHA para confirmar a entrega total deste pedido.`,
-          "Aguardando Cozinha"
-        );
-      }
+      const listaHtml = emPreparo.map(i => `• ${i.quantidade}x ${i.nome}`).join('<br>');
+      await mostrarAlerta(`
+        <div style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">👨‍🍳</div>
+          <p style="font-weight: bold; color: #e74c3c; font-size: 1.1rem; margin-bottom: 10px;">PEDIDO EM PREPARO NA COZINHA!</p>
+          <p style="color: #2c3e50; margin-bottom: 15px;">Este pedido não pode ser marcado como entregue enquanto a cozinha não finalizar os seguintes itens:</p>
+          <div style="background: #fff5f5; padding: 10px; border-radius: 8px; border: 1px solid #feb2b2; text-align: left; font-size: 0.9rem; max-height: 100px; overflow-y: auto;">
+            ${listaHtml}
+          </div>
+          <p style="font-size: 0.8rem; color: #666; margin-top: 15px;">Aguarde a cozinha finalizar para confirmar a entrega.</p>
+        </div>
+      `, "Cozinha Ativa");
       return;
     }
 
