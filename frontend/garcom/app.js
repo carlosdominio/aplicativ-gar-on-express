@@ -302,6 +302,7 @@ async function configurarPusher() {
     channel.bind('menu-atualizado', (data) => {
       console.log('📢 Evento recebido: menu-atualizado', data);
       carregarMenu();
+      carregarMesas(); // Sincroniza mesas também pois estoque pode afetar visual da mesa
     });
 
     channel.bind('rascunho-recebido', (data) => {
