@@ -1009,18 +1009,20 @@ async function exibirMenu(categoria) {
   const itens = categoria === 'todas' ? menu : menu.filter(item => item.categoria === categoria);
   grid.innerHTML = itens.map(item => {
     const itemNoPedido = pedidoAtual.find(p => p.menu_id === item.id);
-    const qtdBadge = itemNoPedido ? `<div class="badge-qtd">${itemNoPedido.quantidade}</div>` : '';
+    const qtdNoCarrinho = itemNoPedido ? itemNoPedido.quantidade : 0;
 
-    // Lógica de estoque
-    const estoqueNum = (item.estoque !== null && item.estoque !== undefined) ? parseInt(item.estoque) : -1;
-    const temEstoqueDefinido = estoqueNum !== -1;
-    const esgotado = estoqueNum === 0;
+    // Lógica de estoque: subtrai o que já está no carrinho local para mostrar o real disponível
+    const estoqueBase = (item.estoque !== null && item.estoque !== undefined) ? parseInt(item.estoque) : -1;
+    const temEstoqueDefinido = estoqueBase !== -1;
+    const estoqueExibido = temEstoqueDefinido ? (estoqueBase - qtdNoCarrinho) : -1;
+    
+    const esgotado = temEstoqueDefinido && estoqueExibido <= 0;
     const emPromocao = item.em_promocao === 1 || item.em_promocao === true;
 
     return `
-      <div class="item-menu ${esgotado ? 'esgotado' : ''} ${emPromocao ? 'com-promo' : ''}" data-id="${item.id}" style="position: relative;">
+      <div class="item-menu ${esgotado ? 'esgotado' : ''} ${emPromocao ? 'com-promo' : ''}" data-id="${item.id}" style="position: relative; ${esgotado ? 'opacity: 0.6; filter: grayscale(1);' : ''}">
         <!-- Badge de Quantidade (TOPO ESQUERDO) -->
-        ${itemNoPedido ? `<div class="badge-qtd" style="position: absolute; top: 5px; left: 5px; right: auto;">${itemNoPedido.quantidade}</div>` : ''}
+        ${qtdNoCarrinho > 0 ? `<div class="badge-qtd" style="position: absolute; top: 5px; left: 5px; right: auto;">${qtdNoCarrinho}</div>` : ''}
         
         <!-- Container de Info (TOPO DIREITO) -->
         <div style="position: absolute; top: 6px; right: 6px; z-index: 10; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
@@ -1029,9 +1031,9 @@ async function exibirMenu(categoria) {
             ${item.preco_original ? `<span style="text-decoration: line-through; opacity: 0.7; font-size: 0.7rem; line-height: 1;">R$ ${item.preco_original.toFixed(2)}</span>` : ''}
             <span>R$ ${item.preco.toFixed(2)}</span>
           </div>          
-          <!-- Info de ESTOQUE -->
+          <!-- Info de ESTOQUE (Mostra o que resta tirando o carrinho) -->
           <div style="background: ${esgotado ? '#e74c3c' : '#3498db'}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-            ${temEstoqueDefinido ? `<span>📦</span> ${estoqueNum}` : '<span>♾️</span> Ilimitado'}
+            ${temEstoqueDefinido ? `<span>📦</span> ${estoqueExibido}` : '<span>♾️</span> Ilimitado'}
           </div>
 
           <!-- PROMOÇÃO -->
@@ -1050,7 +1052,15 @@ async function exibirMenu(categoria) {
   document.querySelectorAll('.item-menu').forEach(itemEl => {
     itemEl.addEventListener('click', async () => {
       const menuItem = menu.find(m => m.id == itemEl.dataset.id);
-      if (menuItem.estoque === 0) return await mostrarAlerta("Este item está esgotado!", "Estoque");
+      
+      const itemNoPedido = pedidoAtual.find(p => p.menu_id === menuItem.id);
+      const qtdNoCarrinho = itemNoPedido ? itemNoPedido.quantidade : 0;
+      const estoqueDisponivel = (menuItem.estoque !== -1) ? (menuItem.estoque - qtdNoCarrinho) : 999;
+
+      if (menuItem.estoque !== -1 && estoqueDisponivel <= 0) {
+        return await mostrarAlerta("Este item está esgotado ou você já pegou todo o estoque disponível!", "Estoque");
+      }
+      
       adicionarItemPedido(menuItem);
       exibirMenu(categoria);
     });
