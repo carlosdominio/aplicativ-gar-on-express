@@ -4124,15 +4124,15 @@ function mostrarToast(msg, tipo = 'sucesso') {
 function mostrarAlerta(msg, titulo = "Aviso") {
   return new Promise(resolve => {
     document.getElementById('modal-sistema-titulo').innerText = titulo;
-    document.getElementById('modal-sistema-mensagem').innerText = msg;
+    document.getElementById('modal-sistema-mensagem').innerHTML = msg;
     document.getElementById('btn-sistema-cancelar').classList.add('hidden');
     document.getElementById('btn-sistema-confirmar').innerText = "OK";
     document.getElementById('btn-sistema-confirmar').style.background = "#27ae60";
-    
+
     const modal = document.getElementById('modal-sistema');
     modal.style.display = 'flex';
     document.body.classList.add('modal-open');
-    
+
     document.getElementById('btn-sistema-confirmar').onclick = () => {
       modal.style.display = 'none';
       if (abaAtiva !== 'lancar' && abaAtiva !== 'ativos') {
@@ -4146,16 +4146,16 @@ function mostrarAlerta(msg, titulo = "Aviso") {
 function mostrarConfirmacao(msg, titulo = "Confirmação", txtConfirmar = "Confirmar", txtCancelar = "Cancelar") {
   return new Promise(resolve => {
     document.getElementById('modal-sistema-titulo').innerText = titulo;
-    document.getElementById('modal-sistema-mensagem').innerText = msg;
+    document.getElementById('modal-sistema-mensagem').innerHTML = msg;
     document.getElementById('btn-sistema-cancelar').classList.remove('hidden');
     document.getElementById('btn-sistema-cancelar').innerText = txtCancelar;
     document.getElementById('btn-sistema-confirmar').innerText = txtConfirmar;
     document.getElementById('btn-sistema-confirmar').style.background = "#e74c3c";
-    
+
     const modal = document.getElementById('modal-sistema');
     modal.style.display = 'flex';
     document.body.classList.add('modal-open');
-    
+
     document.getElementById('btn-sistema-confirmar').onclick = () => {
       modal.style.display = 'none';
       if (abaAtiva !== 'lancar' && abaAtiva !== 'ativos') {
@@ -4163,7 +4163,7 @@ function mostrarConfirmacao(msg, titulo = "Confirmação", txtConfirmar = "Confi
       }
       resolve(true);
     };
-    
+
     document.getElementById('btn-sistema-cancelar').onclick = () => {
       modal.style.display = 'none';
       if (abaAtiva !== 'lancar' && abaAtiva !== 'ativos') {
@@ -4173,7 +4173,6 @@ function mostrarConfirmacao(msg, titulo = "Confirmação", txtConfirmar = "Confi
     };
   });
 }
-
 function formatarData(dataIso) {
   if (!dataIso) return '--/--/---- --:--';
   
