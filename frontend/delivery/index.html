@@ -131,7 +131,20 @@
                 <div id="change-group" class="form-group" style="display: none;"><label>Troco para quanto?</label><input type="number" id="cust-change" placeholder="Ex: 100"></div>
             </div>
 
-            <div class="value-card"><span>Total do Pedido</span><h3 id="modal-cart-total">R$ 0,00</h3></div>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 18px; margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--text-light); font-size: 0.9rem;">
+                    <span>Subtotal</span>
+                    <span id="modal-subtotal">R$ 0,00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: var(--text-light); font-size: 0.9rem;">
+                    <span>Taxa de Entrega</span>
+                    <span>R$ 3,00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px dashed #eee; pt: 12px; margin-top: 10px; padding-top: 10px;">
+                    <span style="font-weight: 800; font-size: 1rem;">TOTAL FINAL</span>
+                    <h3 id="modal-cart-total" style="font-size: 1.6rem; font-weight: 900; color: var(--primary);">R$ 0,00</h3>
+                </div>
+            </div>
             <button class="btn-finish" onclick="enviarWhatsApp()"><i class="fab fa-whatsapp"></i> ENVIAR PEDIDO NO ZAP</button>
         </div>
     </div>
@@ -139,6 +152,7 @@
     <script>
         let fullMenu = [], cart = [], currentCategory = null;
         const ADMIN_NUMBER = '558293157048'; // Número padrão para receber pedidos
+        const TAXA_ENTREGA = 3.00; // Taxa de entrega fixa
 
         document.addEventListener('DOMContentLoaded', async () => {
             await verificarCaixa();
@@ -271,7 +285,8 @@
             if (q > 0) {
                 bar.style.display = 'flex';
                 document.getElementById('cart-qty').innerText = `${q} itens`;
-                document.getElementById('cart-total').innerText = `R$ ${v.toFixed(2)}`;
+                // No bar mostramos o total final já com a taxa para não ter surpresa
+                document.getElementById('cart-total').innerText = `R$ ${(v + TAXA_ENTREGA).toFixed(2)}`;
             } else {
                 bar.style.display = 'none';
             }
@@ -294,8 +309,9 @@
                 return;
             }
             c.innerHTML = cart.map(i => `<div class="item-row"><div><h4>${i.qty}x ${i.nome}</h4></div><div><b>R$ ${(i.qty*i.preco).toFixed(2)}</b></div></div>`).join('');
-            const total = cart.reduce((s, x) => s + (x.qty*x.preco), 0);
-            document.getElementById('modal-cart-total').innerText = `R$ ${total.toFixed(2)}`;
+            const subtotal = cart.reduce((s, x) => s + (x.qty*x.preco), 0);
+            document.getElementById('modal-subtotal').innerText = `R$ ${subtotal.toFixed(2)}`;
+            document.getElementById('modal-cart-total').innerText = `R$ ${(subtotal + TAXA_ENTREGA).toFixed(2)}`;
         }
 
         function enviarWhatsApp() {
@@ -311,7 +327,8 @@
             if (!name || !address || !number) return Swal.fire('Aviso', 'Preencha Nome, Endereço e Número.', 'warning');
             if (cart.length === 0) return Swal.fire('Aviso', 'Seu carrinho está vazio.', 'warning');
 
-            const total = cart.reduce((s, x) => s + (x.qty*x.preco), 0);
+            const subtotal = cart.reduce((s, x) => s + (x.qty*x.preco), 0);
+            const totalFinal = subtotal + TAXA_ENTREGA;
             
             let msg = `🛍️ *NOVO PEDIDO - DELIVERY*\n`;
             msg += `------------------------------\n`;
@@ -326,7 +343,9 @@
                 msg += `- ${i.qty}x ${i.nome} (R$ ${(i.qty*i.preco).toFixed(2)})\n`;
             });
             
-            msg += `\n💰 *TOTAL: R$ ${total.toFixed(2)}*\n`;
+            msg += `\n💵 *Subtotal:* R$ ${subtotal.toFixed(2)}\n`;
+            msg += `🛵 *Taxa de Entrega:* R$ ${TAXA_ENTREGA.toFixed(2)}\n`;
+            msg += `💰 *TOTAL: R$ ${totalFinal.toFixed(2)}*\n`;
             msg += `💳 *Pagamento:* ${payment}`;
             if(payment === 'Dinheiro' && change) msg += ` (Troco para R$ ${parseFloat(change).toFixed(2)})`;
             msg += `\n------------------------------\n`;
