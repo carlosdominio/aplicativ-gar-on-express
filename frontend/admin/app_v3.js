@@ -468,7 +468,13 @@ function switchTab(tab) {
 
   // Remove classe active de todos os botões
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  
+
+  // Notifica o iframe do WhatsApp se a aba está ativa ou não
+  const zapIframe = document.getElementById('whatsapp-iframe');
+  if (zapIframe && zapIframe.contentWindow) {
+      zapIframe.contentWindow.postMessage({ type: 'tab_change', active: (tab === 'whatsapp') }, '*');
+  }
+
   // Tenta encontrar o botão correspondente à aba e ativa-o
   const botoes = document.querySelectorAll('.tab-btn');
   const mapaAbas = {
