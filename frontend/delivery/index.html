@@ -22,7 +22,8 @@
         .category-pill.active { background: var(--primary); color: white; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(39, 174, 96, 0.3); }
         .container { padding: 20px; max-width: 600px; margin: 0 auto; }
         .section-title { margin: 25px 0 15px; font-size: 1.4rem; color: var(--text); font-weight: 800; border-left: 5px solid var(--primary); padding-left: 12px; }
-        .menu-item { background: var(--card-bg); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; display: flex; gap: 15px; box-shadow: var(--shadow); }
+        .menu-item { background: var(--card-bg); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; display: flex; gap: 15px; box-shadow: var(--shadow); position: relative; }
+        .promo-badge { position: absolute; top: 10px; right: 10px; background: #ff4757; color: white; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; z-index: 10; box-shadow: 0 4px 8px rgba(255, 71, 87, 0.3); }
         .item-img { width: 90px; height: 90px; background: #f8f9fa; border-radius: 14px; object-fit: cover; }
         .item-placeholder { width: 90px; height: 90px; background: #f1f2f6; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 2rem; font-weight: bold; }
         .item-info { flex: 1; }
@@ -174,13 +175,19 @@
                 groups[cat].forEach(i => {
                     const cartI = cart.find(c => c.id === i.id);
                     const qty = cartI ? cartI.qty : 0;
+                    const emPromo = i.em_promocao === 1 || i.em_promocao === true;
+                    
                     section.innerHTML += `
                         <div class="menu-item">
+                            ${emPromo ? '<div class="promo-badge">PROMOÇÃO</div>' : ''}
                             ${i.imagem ? `<img src="${i.imagem}" class="item-img" onerror="this.onerror=null;this.src='https://placehold.co/100x100?text=${i.nome[0]}'">` : `<div class="item-placeholder">${i.nome[0]}</div>`}
                             <div class="item-info">
                                 <h3>${i.nome}</h3>
                                 <p class="desc">${i.descricao||''}</p>
-                                <div class="price">R$ ${i.preco.toFixed(2)}</div>
+                                <div class="price">
+                                    ${emPromo && i.preco_original ? `<span style="text-decoration: line-through; color: #a4b0be; font-size: 0.85rem; margin-right: 8px;">R$ ${i.preco_original.toFixed(2)}</span>` : ''}
+                                    R$ ${i.preco.toFixed(2)}
+                                </div>
                                 <div class="controls">
                                     ${qty>0 ? `<button class="btn-qty" onclick="updateCart(${i.id},-1)">-</button><span class="qty">${qty}</span><button class="btn-qty" onclick="updateCart(${i.id},1)">+</button>` : `<button class="btn-add-initial" onclick="updateCart(${i.id},1)">Adicionar</button>`}
                                 </div>
