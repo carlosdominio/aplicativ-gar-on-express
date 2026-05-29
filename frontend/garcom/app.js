@@ -761,6 +761,9 @@ async function verItensDaMesa() {
 
         return `
           <div style="border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; background:${bgColor};">
+            <div style="width: 40px; height: 40px; flex-shrink: 0; margin-right: 10px; border-radius: 4px; overflow: hidden; background: #eee;">
+              <img src="${item.imagem}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
             <div style="flex-grow: 1; text-align: left;">
               <p><strong>${item.quantidade}x ${item.nome}</strong> ${statusLabel}</p>
               ${item.observacao ? `<small style="color:#e67e22;" id="obs-${item.id}"></small>` : ''}
@@ -779,6 +782,9 @@ async function verItensDaMesa() {
       html += `<h4 style="color:#27ae60; margin: 20px 0 10px 0; border-bottom:2px solid #27ae60;">✅ JÁ ESTÃO NA MESA</h4>`;
       html += entregues.map(item => `
         <div style="border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; opacity:0.7;">
+          <div style="width: 40px; height: 40px; flex-shrink: 0; margin-right: 10px; border-radius: 4px; overflow: hidden; background: #eee;">
+            <img src="${item.imagem}" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
           <div style="flex-grow: 1; text-align: left;">
             <p>${item.quantidade}x ${item.nome}</p>
           </div>
@@ -1215,7 +1221,7 @@ async function adicionarItemPedido(item) {
   }
 
   if (existing) existing.quantidade++;
-  else pedidoAtual.push({ menu_id: item.id, nome: item.nome, preco: item.preco, quantidade: 1, observacao: '' });
+  else pedidoAtual.push({ menu_id: item.id, nome: item.nome, preco: item.preco, quantidade: 1, observacao: '', imagem: item.imagem });
   exibirResumoPedido();
 }
 
@@ -1242,6 +1248,9 @@ function exibirResumoPedido() {
   container.innerHTML = pedidoAtual.map((item, index) => `
     <div class="item-pedido">
       <div class="item-pedido-info">
+        <div style="width: 50px; height: 50px; flex-shrink: 0; margin-right: 12px; border-radius: 8px; overflow: hidden; background: #eee;">
+          <img src="${item.imagem}" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
         <div style="flex-grow: 1; padding-right: 10px;">
           <p><strong>${item.nome}</strong></p>
         </div>
