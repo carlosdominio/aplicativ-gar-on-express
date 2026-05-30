@@ -1821,8 +1821,14 @@ async function exibirHistorico() {
     const valorAtual = selectFiltro.value;
     const opcoes = new Set();
     historico.forEach(p => {
-      if (p.mesa_numero) opcoes.add(`Mesa ${p.mesa_numero}`);
-      else opcoes.add('BALCÃO');
+      const isDelivery = (p.garcom_id === 'DELIVERY');
+      if (isDelivery) {
+        opcoes.add('DELIVERY');
+      } else if (p.mesa_numero) {
+        opcoes.add(`Mesa ${p.mesa_numero}`);
+      } else {
+        opcoes.add('BALCÃO');
+      }
       if (p.garcom_nome) opcoes.add(p.garcom_nome);
     });
 
