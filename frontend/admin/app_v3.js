@@ -2266,16 +2266,23 @@ function aplicarFiltrosVisuais() {
 function atualizarSelectMesasAtivas() {
   const select = document.getElementById('select-mesas-ativas');
   if (!select) return;
-  
+
   const valorAtual = select.value;
 
-  // Filtra os pedidos baseado na aba ativa (Garçom ou Balcão)
+  // Filtra os pedidos baseado na aba ativa (Garçom, Balcão ou Delivery)
   const pedidosFiltrados = pedidos.filter(p => {
-    const isBalcao = (p.garcom_id === 'ADMIN');
-    return subAbaAtiva === 'balcao' ? isBalcao : !isBalcao;
+    const isDelivery = (p.garcom_id === 'DELIVERY');
+    const isBalcao = (p.garcom_id === 'ADMIN' && !isDelivery);
+
+    if (subAbaAtiva === 'delivery') return isDelivery;
+    if (subAbaAtiva === 'balcao') return isBalcao;
+    return !isBalcao && !isDelivery; // Garçom
   });
 
-  const nomesMesas = [...new Set(pedidosFiltrados.map(p => p.mesa_numero ? `Mesa ${p.mesa_numero}` : 'BALCÃO'))].sort((a, b) => {
+  const nomesMesas = [...new Set(pedidosFiltrados.map(p => {
+    if (p.garcom_id === 'DELIVERY') return `🛵 DELIVERY #${p.id}`;
+    return p.mesa_numero ? `Mesa ${p.mesa_numero}` : 'BALCÃO';
+  }))].sort((a, b) => {
     if (a === 'BALCÃO') return -1;
     if (b === 'BALCÃO') return 1;
     return a.localeCompare(b, undefined, {numeric: true});
@@ -2285,7 +2292,7 @@ function atualizarSelectMesasAtivas() {
   nomesMesas.forEach(nome => {
     html += `<option value="${nome}">${nome}</option>`;
   });
-  
+
   select.innerHTML = html;
   // Restaura a seleção se a mesa ainda estiver ativa na lista filtrada
   if (nomesMesas.includes(valorAtual)) {
