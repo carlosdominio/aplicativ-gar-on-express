@@ -4149,8 +4149,14 @@ async function configurarPusher() {
       console.log('📢 Admin: Status atualizado recebido!', data);
       if (!data) return;
 
-      const mesaData = data.mesa_numero || data.mesa_id || 'X';
-      const nMesa = isNaN(mesaData) ? mesaData : `Mesa ${mesaData}`;
+      let nMesa = '';
+      if (data.garcom_id === 'DELIVERY') {
+        nMesa = `DELIVERY #${data.pedido_id || data.mesa_id}`;
+      } else {
+        const mesaData = data.mesa_numero || data.mesa_id || 'X';
+        nMesa = isNaN(mesaData) ? mesaData : `Mesa ${mesaData}`;
+      }
+      
       const tagMesa = `mesa-${data.mesa_id}`;
 
       if (data.status === 'liberada') {
@@ -4166,7 +4172,7 @@ async function configurarPusher() {
       }
       else if (data.status === 'aguardando_fechamento') {
         tocarNotificacao();
-        exibirNotificacaoNativa('🛎️ Fechamento', `${nMesa} solicitou a conta.`, tagMesa);
+        exibirNotificacaoNativa('🛎️ Fechamento', `${nMesa} está aguardando fechamento.`, tagMesa);
         mostrarToast(`🛎️ Fechamento: ${nMesa}`);
       }
       else if (data.status === 'cancelado') {
