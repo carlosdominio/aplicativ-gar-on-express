@@ -3740,7 +3740,8 @@ function imprimirCupomParcialFracao(pedido, itens, valorPago, saldoRestante, pes
   aplicarConfiguracaoImpressao();
 
   const subtotal = itens.reduce((sum, i) => sum + (i.preco * i.quantidade), 0);
-  const taxa = cobrarTaxa ? subtotal * 0.10 : 0;
+  const isDelivery = (pedido.garcom_id === 'DELIVERY');
+  const taxa = cobrarTaxa ? (isDelivery ? 3.00 : subtotal * 0.10) : 0;
   const totalMesa = subtotal + taxa;
   const numPessoasTotal = (pessoasRestantes + 1);
   const mesaNomeCupom = pedido.mesa_numero ? `MESA ${pedido.mesa_numero}` : 'BALCÃO / VENDA DIRETA';
@@ -4423,7 +4424,8 @@ async function imprimirCupom(pedido, itens) {
 
   const acrescimo = pedido.acrescimo || 0;
   const desconto = pedido.desconto || 0;
-  const taxa = cobrarTaxaNoCupom ? subtotal * 0.10 : 0;
+  const isDeliveryCupom = (pedido.garcom_id === 'DELIVERY');
+  const taxa = cobrarTaxaNoCupom ? (isDeliveryCupom ? 3.00 : subtotal * 0.10) : 0;
   const pagoAnterior = pedido.pago_parcial || 0;
   
   const totalGeralMesa = subtotal + taxa + acrescimo - desconto;
