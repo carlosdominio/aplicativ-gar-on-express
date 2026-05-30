@@ -4180,6 +4180,16 @@ async function configurarPusher() {
         exibirNotificacaoNativa('❌ Cancelado', `${nMesa}: Pedido cancelado.`, tagMesa);
         mostrarToast(`❌ ${nMesa} cancelado`);
       }
+      else if (data.status === 'servido' && data.garcom_id === 'DELIVERY') {
+        tocarNotificacao();
+        exibirNotificacaoNativa('🛵 Saiu para Entrega', `${nMesa} está a caminho do cliente!`, tagMesa);
+        mostrarToast(`🛵 A Caminho: ${nMesa}`);
+      }
+      else if (data.status === 'entregue' && data.garcom_id === 'DELIVERY') {
+        tocarNotificacao();
+        exibirNotificacaoNativa('✅ Concluído', `${nMesa} foi finalizado e concluído com sucesso.`, tagMesa);
+        mostrarToast(`✅ Concluído: ${nMesa}`);
+      }
 
       clearTimeout(timeoutPusher);
       timeoutPusher = setTimeout(() => carregarPedidos(), 100);
