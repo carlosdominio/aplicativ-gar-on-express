@@ -4112,11 +4112,20 @@ async function configurarPusher() {
       tocarNotificacao(); 
       iniciarPiscarTitulo();
 
-      const mesaNum = (data && data.pedido) ? data.pedido.mesa_numero : 'X';
-      const mesaId = (data && data.pedido) ? data.pedido.mesa_id : 'geral';
+      const p = data.pedido;
+      const isDelivery = (p && p.garcom_id === 'DELIVERY');
+      let nomeExibicao = 'X';
+      
+      if (p) {
+        if (isDelivery) nomeExibicao = `DELIVERY #${p.id}`;
+        else if (p.mesa_numero) nomeExibicao = `Mesa ${p.mesa_numero}`;
+        else nomeExibicao = 'Balcão';
+      }
 
-      exibirNotificacaoNativa('🚀 NOVO PEDIDO', `Mesa ${mesaNum} acabou de fazer um pedido.`, `mesa-${mesaId}`);
-      mostrarToast(`🚀 NOVO PEDIDO: Mesa ${mesaNum}`);
+      const mesaId = p ? p.mesa_id : 'geral';
+
+      exibirNotificacaoNativa('🚀 NOVO PEDIDO', `${nomeExibicao} acabou de fazer um pedido.`, `mesa-${mesaId}`);
+      mostrarToast(`🚀 NOVO PEDIDO: ${nomeExibicao}`);
 
       clearTimeout(timeoutPusher);
       timeoutPusher = setTimeout(() => carregarPedidos(), 100);
