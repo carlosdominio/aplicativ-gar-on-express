@@ -307,20 +307,27 @@ async function notifyStatus(pedidoId, mesaDbId, status, mesaNumPredefined = null
   try {
     let mesaNum = mesaNumPredefined || 'BALCÃO';
     let finalMesaId = mesaDbId;
+    let garcomId = null;
 
     if (!finalMesaId || !mesaNumPredefined) {
       if (mesaDbId) {
         const res = await query("SELECT numero FROM mesas WHERE id = ?", [mesaDbId]);
         mesaNum = res.rows[0] ? res.rows[0].numero : 'BALCÃO';
       } else if (pedidoId) {
-        const res = await query("SELECT m.id, m.numero FROM pedidos p JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [pedidoId]);
+        const res = await query("SELECT m.id, m.numero, p.garcom_id FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [pedidoId]);
         if (res.rows[0]) {
-          mesaNum = res.rows[0].numero;
-          finalMesaId = res.rows[0].id;
+          mesaNum = res.rows[0].numero || 'BALCÃO';
+          finalMesaId = res.rows[0].id || null;
+          garcomId = res.rows[0].garcom_id;
         }
       }
+    } else if (pedidoId) {
+       // Se os parâmetros foram passados, ainda precisamos do garcom_id
+       const res = await query("SELECT garcom_id FROM pedidos WHERE id = ?", [pedidoId]);
+       if (res.rows[0]) garcomId = res.rows[0].garcom_id;
     }
-    const payload = { pedido_id: pedidoId, mesa_id: finalMesaId, mesa_numero: mesaNum, status: status };
+    
+    const payload = { pedido_id: pedidoId, mesa_id: finalMesaId, mesa_numero: mesaNum, status: status, garcom_id: garcomId };
     console.log(`🔔 Notificando status: Mesa ${mesaNum} (ID: ${finalMesaId}), Status ${status}`);
 
     // Dispara Pusher IMEDIATAMENTE (Prioridade)
