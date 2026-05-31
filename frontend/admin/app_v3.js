@@ -489,7 +489,7 @@ function switchTab(tab) {
     'lancar': 'Lançar Pedido',
     'historico': 'Histórico',
     'caixa': 'Caixa',
-    'whatsapp': 'WhatsApp Beta',
+    'whatsapp': 'WhatsApp (Em Desenvolvimento)',
     'configuracoes': 'Configurações'
   };
   
