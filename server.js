@@ -1202,6 +1202,17 @@ app.post('/api/pedidos', async (req, res) => {
       const mesaIdNum = Number(mesa_id);
       console.log(`[Pedido] Processando mesa ${mesaIdNum}. Garçom: ${garcom_id}`);
       
+      // LIMPA RASCUNHOS: Quando o garçom lança o pedido oficial, removemos o rascunho de bloqueio
+      const rascunhos = (await query("SELECT id FROM pedidos WHERE mesa_id = ? AND status = 'rascunho'", [mesaIdNum])).rows;
+      for (const r of rascunhos) {
+          console.log(`[LIMPEZA] Removendo rascunho #${r.id} da mesa ${mesaIdNum}`);
+          await query("DELETE FROM pedido_itens WHERE pedido_id = ?", [r.id]);
+          await query("DELETE FROM pedidos WHERE id = ?", [r.id]);
+      }
+
+      // Notifica o cliente que o rascunho foi processado e ele pode pedir mais
+      safePusherTrigger('garconnexpress', `rascunho-processado-mesa-${mesaIdNum}`, { success: true }).catch(console.error);
+
       await query("UPDATE mesas SET status = 'ocupada', garcom_id = ? WHERE id = ?", [garcom_id, mesaIdNum]);
 
       // GERAÇÃO AUTOMÁTICA DE CÃ“DIGO DE ACESSO (Só se não houver um ativo)
@@ -1270,6 +1281,11 @@ app.post('/api/pedidos', async (req, res) => {
     await Promise.all([
       notifyStatus(pedidoId, mesa_id, 'recebido', mesaNum),
       safePusherTrigger('garconnexpress', 'menu-atualizado', {}),
+      // Notifica o cliente especificamente que o botão pode ser liberado
+      safePusherTrigger('garconnexpress', `rascunho-processado-mesa-${mesa_id}`, {
+        success: true,
+        mensagem: "Seu rascunho foi processado pelo garçom!"
+      }),
       safePusherTrigger('garconnexpress', 'novo-pedido', {
         para_cozinha: temItemCozinha,
         pedido: { id: pedidoId, mesa_id, mesa_numero: mesaNum, status: 'recebido', garcom_id }
@@ -1382,7 +1398,21 @@ app.put('/api/pedidos/:id/adicionar', async (req, res) => {
       await query("UPDATE pedidos SET total = ?, cobrar_taxa = ?, status = 'recebido', observacao = ? WHERE id = ?", [tot, isPostgres ? deveTaxa : (deveTaxa?1:0), observacao || '', id]);
     }
     const pMesa = (await query("SELECT mesa_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
-    if (pMesa && pMesa.mesa_id) await query("UPDATE mesas SET status = 'ocupada' WHERE id = ?", [pMesa.mesa_id]);
+    if (pMesa && pMesa.mesa_id) {
+      const mesaIdNum = pMesa.mesa_id;
+      await query("UPDATE mesas SET status = 'ocupada' WHERE id = ?", [mesaIdNum]);
+
+      // LIMPA RASCUNHOS: Quando o garçom lança o pedido oficial (adição), removemos o rascunho de bloqueio
+      const rascunhos = (await query("SELECT id FROM pedidos WHERE mesa_id = ? AND status = 'rascunho'", [mesaIdNum])).rows;
+      for (const r of rascunhos) {
+          console.log(`[LIMPEZA-ADD] Removendo rascunho #${r.id} da mesa ${mesaIdNum}`);
+          await query("DELETE FROM pedido_itens WHERE pedido_id = ?", [r.id]);
+          await query("DELETE FROM pedidos WHERE id = ?", [r.id]);
+      }
+
+      // Notifica o cliente que o rascunho foi processado e ele pode pedir mais
+      safePusherTrigger('garconnexpress', `rascunho-processado-mesa-${mesaIdNum}`, { success: true }).catch(console.error);
+    }
     
     // Notifica a cozinha que há novos itens para preparar (com som)
     const mesaNum = pMesa ? pMesa.numero || 'BALCÃO' : 'BALCÃO';
@@ -1971,8 +2001,14 @@ app.post('/api/cliente/meus-pedidos', async (req, res) => {
     // Usamos o último pedido da lista para as flags de status (fechamento, etc)
     const ultimoPedido = pedidosSessao[pedidosSessao.length - 1];
     
-    // 6. Verifica se há algum item que ainda não foi confirmado pelo garçom (status 'recebido')
-    const temPendente = itens.some(i => i.status === 'recebido');
+    // 6. Verifica se há algum pedido ou item que ainda não foi confirmado pelo garçom
+    // Um rascunho no banco (status 'rascunho') bloqueia novos envios do cliente.
+    const temPendente = pedidosSessao.some(p => p.status === 'rascunho') || itens.some(i => i.status === 'rascunho');
+
+    console.log(`[DEBUG] Mesa ${mesaId}: ${pedidosSessao.length} pedidos na sessão. temPendente=${temPendente}`);
+    if (temPendente) {
+      console.log(`[DEBUG] Pedidos rascunho:`, pedidosSessao.filter(p => p.status === 'rascunho').map(p => p.id));
+    }
 
     let totalReal = 0;
     itens.forEach(i => {
@@ -1993,7 +2029,8 @@ app.post('/api/cliente/meus-pedidos', async (req, res) => {
     res.json({
       success: true,
       pedido: pedidoConsolidado,
-      itens
+      itens,
+      tem_pendente: temPendente
     });
 
   } catch (error) {
@@ -2309,12 +2346,9 @@ app.post('/api/cliente/chamar-garcom', async (req, res) => {
 app.post('/api/cliente/enviar-rascunho', async (req, res) => {
   const { mesa_id, mesa_numero, itens } = req.body;
   try {
-    // TRAVA DE SEGURANÇA BACKEND: Verifica se já existe rascunho pendente não confirmado
+    // TRAVA DE SEGURANÇA BACKEND: Verifica se já existe rascunho no Banco de Dados
     const pendentes = await query(`
-      SELECT pi.id 
-      FROM pedido_itens pi 
-      JOIN pedidos p ON pi.pedido_id = p.id 
-      WHERE p.mesa_id = ? AND pi.status = 'recebido'
+      SELECT id FROM pedidos WHERE mesa_id = ? AND status = 'rascunho'
     `, [mesa_id]);
 
     if (pendentes.rows.length > 0) {
@@ -2324,20 +2358,40 @@ app.post('/api/cliente/enviar-rascunho', async (req, res) => {
       });
     }
 
+    // Cria um registro de pedido temporário (rascunho) no banco para bloquear novos envios
+    let pedidoRascunhoId;
+    const agora = new Date().toISOString();
+    if (isPostgres) {
+      const resR = await query('INSERT INTO pedidos (mesa_id, total, status, created_at, observacao) VALUES (?, ?, ?, ?, ?) RETURNING id', 
+        [mesa_id, 0, 'rascunho', agora, 'RASCUNHO CLIENTE']);
+      pedidoRascunhoId = resR.rows[0].id;
+    } else {
+      const resR = await query('INSERT INTO pedidos (mesa_id, total, status, created_at, observacao) VALUES (?, ?, ?, ?, ?)', 
+        [mesa_id, 0, 'rascunho', agora, 'RASCUNHO CLIENTE']);
+      pedidoRascunhoId = resR.lastInsertRowid;
+    }
+
+    // Insere os itens do rascunho para que o cliente possa vê-los em "Meus Pedidos"
+    for (const item of itens) {
+      await query('INSERT INTO pedido_itens (pedido_id, menu_id, quantidade, observacao, status) VALUES (?, ?, ?, ?, ?)', 
+        [pedidoRascunhoId, item.menu_id, item.quantidade, '', 'rascunho']);
+    }
+
     const itensFormatados = itens.map(i => `${i.quantidade}x ${i.nome}`).join('\n');
     const msg = `📝 RASCUNHO RECEBIDO - MESA ${mesa_numero}\n${itensFormatados}`;
-    
+
     await safePusherTrigger('garconnexpress', 'rascunho-recebido', {
       mesa_id,
       mesa_numero,
       itens,
+      pedido_id: pedidoRascunhoId,
       mensagem: msg
     });
-    
+
     // Notifica via WhatsApp também
     sendWhatsAppMessage(`📝 *RASCUNHO DE PEDIDO*\n📍 Mesa: ${mesa_numero}\n\n${itensFormatados}\n\n⚠️ _Aguardando confirmação do garçom._`).catch(e => console.error('Erro Wpp Rascunho:', e.message));
-    
-    res.json({ success: true });
+
+    res.json({ success: true, pedido_id: pedidoRascunhoId });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
