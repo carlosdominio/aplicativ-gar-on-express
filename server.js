@@ -24,11 +24,14 @@ app.use(express.json());
 app.use(cookieParser());
 
 // INTEGRAÇÃO WHATSAPP (BOT EXTERNO)
+const DEFAULT_BOT_URL = 'https://meu-zap-bot.onrender.com/';
+const botUrlFinal = process.env.WHATSAPP_BOT_URL || DEFAULT_BOT_URL;
+
 let whatsappSocket = null;
 const clientesEmAtendimento = new Map(); // Armazena { numero: timestamp } - ESCOPO GLOBAL
 
-if (process.env.WHATSAPP_BOT_URL) {
-  whatsappSocket = ioClient(process.env.WHATSAPP_BOT_URL, {
+if (botUrlFinal) {
+  whatsappSocket = ioClient(botUrlFinal, {
     reconnection: true,
     reconnectionAttempts: Infinity
   });
@@ -1158,7 +1161,7 @@ app.delete('/api/pedidos/:id', async (req, res) => {
 });
 
 app.post('/api/pedidos', async (req, res) => {
-  const { mesa_id, garcom_id, itens, cobrar_taxa, observacao, cliente_telefone, forma_pagamento, valor_recebido, troco } = req.body;
+  const { mesa_id, garcom_id, itens, cobrar_taxa, observacao, cliente_telefone, forma_pagamento, metodo_pagamento, valor_recebido, troco } = req.body;
   const deveCobrarTaxa = cobrar_taxa !== false;
   try {
     const caixaAberto = (await query("SELECT id FROM fluxo_caixa WHERE status = 'aberto'")).rows[0];
@@ -1168,11 +1171,24 @@ app.post('/api/pedidos', async (req, res) => {
       if (p && p.estoque !== -1 && p.estoque < item.quantidade) return res.status(400).json({ error: `Estoque insuficiente: ${p.nome}` });
     }
     const subtotal = itens.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
-    const total = deveCobrarTaxa ? Math.round(subtotal * 1.10 * 100) / 100 : subtotal;
+
+    // Se for delivery e vier total no body, usa ele. Caso contrário, calcula (Subtotal + 3.00 se delivery).
+    let total;
+    if (req.body.total !== undefined) {
+      total = req.body.total;
+    } else {
+      if (garcom_id === 'DELIVERY') {
+        total = subtotal + 3.00;
+      } else {
+        total = deveCobrarTaxa ? Math.round(subtotal * 1.10 * 100) / 100 : subtotal;
+      }
+    }
+
     let pedidoId;
     let resPedido;
-    
-    const fPag = forma_pagamento || null;
+
+    // Captura a forma de pagamento (tenta ambos os nomes para evitar erros de versão)
+    const fPag = forma_pagamento || metodo_pagamento || null;
     const vRec = valor_recebido || 0;
     const vTrc = troco || 0;
 
@@ -2418,21 +2434,21 @@ app.get('/api/whatsapp-status', async (req, res) => {
     }
 
     res.json({
-      configured: !!process.env.WHATSAPP_BOT_URL,
+      configured: !!botUrlFinal,
       connected: whatsappSocket ? whatsappSocket.connected : false,
       enabled: isEnabled,
       number: numbersDisplay,
-      botUrl: process.env.WHATSAPP_BOT_URL || ''
+      botUrl: botUrlFinal || ''
     });
   } catch (error) {
     console.error('❌ Erro ao buscar status do WhatsApp:', error.message);
     // Retorna um objeto válido em vez de 500 para evitar o selo de ERRO no frontend
     res.json({
-      configured: !!process.env.WHATSAPP_BOT_URL,
+      configured: !!botUrlFinal,
       connected: false,
       enabled: false,
       number: 'Erro ao carregar',
-      botUrl: process.env.WHATSAPP_BOT_URL || '',
+      botUrl: botUrlFinal || '',
       error: error.message
     });
   }

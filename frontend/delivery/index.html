@@ -402,7 +402,8 @@
                         garcom_id: 'DELIVERY',
                         cliente_telefone: phone.replace(/\D/g, ''), // Envia apenas números
                         itens: itemsPayload,
-                        cobrar_taxa: true, // Ativa a taxa para ser usada como taxa de entrega de R$ 3,00 no Admin
+                        cobrar_taxa: true, // DEVE ser true para ativar a taxa de R$ 3,00 no Admin
+                        total: totalFinal,
                         observacao: orderObs,
                         forma_pagamento: payment,
                         valor_recebido: (payment === 'Dinheiro' && change) ? parseFloat(change) : totalFinal,
@@ -411,8 +412,12 @@
                 });
 
                 if (response.ok) {
+                    const d = await response.json();
+                    const pedidoId = d.pedidoId || d.id || '...';
+
                     // Prepara a mensagem para o WhatsApp
                     let msg = `🛍️ *NOVO PEDIDO - DELIVERY*\n`;
+                    msg += `🔖 *ID:* #${pedidoId}\n`;
                     msg += `------------------------------\n`;
                     msg += `👤 *Cliente:* ${name}\n`;
                     if(phone) msg += `📞 *Tel:* ${phone}\n`;

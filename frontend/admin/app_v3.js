@@ -489,7 +489,7 @@ function switchTab(tab) {
     'lancar': 'Lançar Pedido',
     'historico': 'Histórico',
     'caixa': 'Caixa',
-    'whatsapp': 'WhatsApp (Em Desenvolvimento)',
+    'whatsapp': 'WhatsApp',
     'configuracoes': 'Configurações'
   };
   
@@ -2386,14 +2386,33 @@ async function exibirPedidos() {
       const totalConsumo = (subtotal + taxaServico);
       const totalExibicao = ((isAguardando && !isDelivery) ? pedido.total : (totalConsumo - pagoParcial)) || 0;
       
-      const infoPagamento = (isAguardando && pedido.forma_pagamento) ? `
-        <div style="background:#fff9db; padding:8px; border-radius:8px; margin-top:8px; font-size:0.85rem; border:2px solid #f1c40f;">
-          <strong style="color: #d35400;">💰 SOLICITAÇÃO DE CONTA</strong><br>
-          <strong>Forma:</strong> ${pedido.forma_pagamento}<br>
-          ${(pedido.forma_pagamento === 'Dinheiro') ? `<strong>Recebido:</strong> R$ ${(pedido.valor_recebido || 0).toFixed(2)} | <strong>Troco:</strong> R$ ${(pedido.troco || 0).toFixed(2)}` : ''}
-          ${(pedido.desconto > 0) ? `<br><span style="color:#e74c3c;"><strong>Desconto:</strong> - R$ ${pedido.desconto.toFixed(2)}</span>` : ''}
-          ${(pedido.acrescimo > 0) ? `<br><span style="color:#27ae60;"><strong>Acréscimo:</strong> + R$ ${pedido.acrescimo.toFixed(2)}</span>` : ''}
-        </div>` : '';
+      // INFORMAÇÕES DE PAGAMENTO (DELIVERY OU SOLICITAÇÃO DE CONTA)
+      let htmlPagamento = '';
+      if (pedido.forma_pagamento) {
+          const fp = String(pedido.forma_pagamento).trim();
+          const isDinheiro = fp.toLowerCase() === 'dinheiro';
+          
+          htmlPagamento = `
+            <div class="info-pagamento-destaque" style="background:#fff3cd; padding:12px; border-radius:12px; margin:15px 0; font-size:1rem; border:3px solid #ffc107; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: #856404; animation: pulse-yellow 2s infinite;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(133, 100, 4, 0.2); padding-bottom: 8px; margin-bottom: 8px;">
+                <strong style="color: #d35400; font-size: 1.1rem;">💰 ${isDelivery ? 'PAGAMENTO DELIVERY' : 'SOLICITAÇÃO DE CONTA'}</strong>
+                <span style="background:#d35400; color:#fff; padding:4px 12px; border-radius:8px; font-size:0.85rem; font-weight:900; text-transform: uppercase;">${fp}</span>
+              </div>
+              <div style="line-height: 1.6;">
+                <strong>Forma Escolhida:</strong> <span style="font-weight: 800;">${fp}</span><br>
+                ${isDinheiro ? `<strong>Valor Recebido:</strong> R$ ${(pedido.valor_recebido || 0).toFixed(2)}<br><strong style="font-size: 1.2rem; color: #c0392b;">Troco: R$ ${(pedido.troco || 0).toFixed(2)}</strong>` : ''}
+                ${(pedido.desconto > 0) ? `<br><span style="color:#e74c3c;"><strong>Desconto:</strong> - R$ ${pedido.desconto.toFixed(2)}</span>` : ''}
+                ${(pedido.acrescimo > 0) ? `<br><span style="color:#27ae60;"><strong>Acréscimo:</strong> + R$ ${pedido.acrescimo.toFixed(2)}</span>` : ''}
+              </div>
+            </div>
+            <style>
+              @keyframes pulse-yellow {
+                0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+                70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+              }
+            </style>`;
+      }
 
       const card = document.createElement('div');
       card.id = `pedido-card-${pedido.id}`;
@@ -2453,7 +2472,7 @@ async function exibirPedidos() {
             </div>
           </div>
         </div>
-        
+
         <div class="pedido-itens" style="margin-top:12px;">
           ${itensPendentes.length > 0 ? `
             <div style="margin-bottom: 12px;">
@@ -3239,7 +3258,15 @@ async function aprovarFechamento(idPedido, idMesa, mesaNomeForcado = null) {
   document.getElementById('fechamento-taxa-admin').checked = cobrarTaxaNoPedido;
   document.getElementById('fechamento-acrescimo-admin').value = pedidoParaFecharAdmin.acrescimo || 0;
   document.getElementById('fechamento-desconto-admin').value = pedidoParaFecharAdmin.desconto || 0;
-  document.getElementById('fechamento-forma-admin').value = pedidoParaFecharAdmin.forma_pagamento || 'Dinheiro';
+  
+  // MAPEA A FORMA DE PAGAMENTO PARA O SELECT DO ADMIN (Garante que Cartão/Cartao/Pix/Dinheiro fiquem pré-selecionados)
+  const fpRaw = (pedidoParaFecharAdmin.forma_pagamento || pedidoParaFecharAdmin.metodo_pagamento || 'Dinheiro').trim();
+  let fpFinal = 'Dinheiro';
+  if (fpRaw.toLowerCase().includes('pix')) fpFinal = 'Pix';
+  else if (fpRaw.toLowerCase().includes('cart')) fpFinal = 'Cartão';
+  else if (fpRaw.toLowerCase().includes('dinh')) fpFinal = 'Dinheiro';
+
+  document.getElementById('fechamento-forma-admin').value = fpFinal;
   document.getElementById('fechamento-recebido-admin').value = pedidoParaFecharAdmin.valor_recebido || '';
   document.getElementById('fechamento-divisao-pessoas').value = pedidoParaFecharAdmin.num_pessoas || 1;
   
@@ -4979,13 +5006,14 @@ async function abrirModalOpcoes(pedidoId) {
   const isAguardandoReal = isAguardando && !isDelivery;
   const totalExibicao = (isAguardandoReal ? pedido.total : (subtotal + taxaServico - pagoParcial)) || 0;
 
-  // DETALHES DA SOLICITAÇÃO DE CONTA
+  // DETALHES DA SOLICITAÇÃO DE CONTA / DELIVERY
   let htmlPagamentoModal = '';
-  if (isAguardando && pedido.forma_pagamento) {
+  if (pedido.forma_pagamento) {
+    const tituloLabel = isDelivery ? 'PAGAMENTO DELIVERY' : 'SOLICITAÇÃO DE CONTA';
     htmlPagamentoModal = `
       <div style="background:#fff9db; padding:12px; border-radius:10px; margin-top:10px; font-size:0.9rem; border:2px solid #d4af37; color:#854d0e;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-           <strong>💰 SOLICITAÇÃO DE CONTA</strong>
+           <strong>💰 ${tituloLabel}</strong>
            <span style="background:#d4af37; color:white; padding:2px 8px; border-radius:5px; font-size:0.7rem; font-weight:900;">${pedido.forma_pagamento.toUpperCase()}</span>
         </div>
         ${(pedido.forma_pagamento === 'Dinheiro') ? `<div><strong>Recebido:</strong> R$ ${(pedido.valor_recebido || 0).toFixed(2)} | <strong>Troco:</strong> R$ ${(pedido.troco || 0).toFixed(2)}</div>` : ''}
