@@ -112,14 +112,33 @@
     <div id="loading"><div class="spinner"></div><p style="font-weight: 700; color: #999;">CARREGANDO...</p></div>
     
     <div id="closed-screen">
-        <div style="width:100%; max-width:450px; background:white; padding:60px 40px; border-radius:40px; box-shadow: 0 25px 60px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center;">
-            <div style="width: 120px; height: 120px; background: #fff1f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 30px; font-size: 4rem;">🌙</div>
-            <h1 style="font-weight: 900; font-size: 2rem; color: #2f3542; margin-bottom: 15px; letter-spacing: -0.5px;">Até breve!</h1>
-            <p style="color: #747d8c; line-height: 1.6; font-size: 1.1rem; margin-bottom: 35px;">
-                Nosso atendimento via cardápio digital está <b>encerrado</b> no momento.<br><br>
-                Estamos preparando tudo para te receber com a melhor experiência em breve!
-            </p>
-            <button onclick="location.reload()" class="btn-send" style="background: #2f3542;">TENTAR NOVAMENTE</button>
+        <div style="width:100%; max-width:480px; background:white; padding:50px 30px; border-radius:35px; box-shadow: 0 30px 70px rgba(0,0,0,0.12); display:flex; flex-direction:column; align-items:center; position: relative; overflow: hidden;">
+            <!-- Detalhe decorativo no topo -->
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 8px; background: linear-gradient(90deg, #ff4757, #ff6b81);"></div>
+            
+            <div style="width: 130px; height: 130px; background: #fff1f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; font-size: 4.5rem; animation: bounce 2s infinite;">🌙</div>
+            
+            <h1 style="font-weight: 900; font-size: 2.2rem; color: #2f3542; margin-bottom: 10px; letter-spacing: -1px;">Guga Bebidas</h1>
+            <p style="color: #ff4757; font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 25px;">Menu Fechado</p>
+            
+            <div style="background: #f8f9fa; padding: 25px; border-radius: 20px; margin-bottom: 30px; border: 1px solid #eee;">
+                <p style="color: #747d8c; line-height: 1.6; font-size: 1.05rem; margin-bottom: 0;">
+                    Olá! No momento nosso cardápio digital está em <b>manutenção ou fora do horário de atendimento</b>.<br><br>
+                    Para pedidos urgentes ou informações, você pode falar conosco diretamente.
+                </p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                <button onclick="window.location.href='https://wa.me/5500000000000'" class="btn-send" style="background: #27ae60; box-shadow: 0 6px 20px rgba(39, 174, 96, 0.2);">
+                    <i class="fab fa-whatsapp"></i> Falar no WhatsApp
+                </button>
+                
+                <button onclick="location.reload()" class="btn-send" style="background: #2f3542; opacity: 0.9;">
+                    <i class="fas fa-sync-alt"></i> Tentar Novamente
+                </button>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 0.8rem; color: #ccc; font-weight: 600; text-transform: uppercase;">Agradecemos a compreensão</p>
         </div>
     </div>
 
@@ -200,7 +219,17 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("🚀 Cardápio Digital v2.1 carregado!");
-            await verificarCaixa(); initPusher(); setInterval(verificarCaixa, 30000);
+            
+            // 1. Prioridade Total: Verificar se está fechado
+            const caixaAberto = await verificarCaixa();
+            if (!caixaAberto) {
+                showLoading(false);
+                return; // Para tudo se estiver fechado
+            }
+
+            // 2. Se aberto, verifica sessão
+            initPusher(); 
+            setInterval(verificarCaixa, 30000);
             
             if (!sessionMesa) { 
                 showLoading(false); 
@@ -217,7 +246,29 @@
         });
 
         async function verificarCaixa() {
-            try { const res = await fetch('/api/caixa/status'); const cx = await res.json(); const s = document.getElementById('closed-screen'); if(!cx){ s.style.display='flex'; return false; } s.style.display='none'; return true; } catch(e){ return true; }
+            try { 
+                const res = await fetch('/api/caixa/status'); 
+                const cx = await res.json(); 
+                const s = document.getElementById('closed-screen');
+                const login = document.getElementById('login-screen');
+                const main = document.getElementById('main-content');
+                const loading = document.getElementById('loading');
+
+                if(!cx){ 
+                    s.style.display='flex'; 
+                    if(login) login.style.display='none';
+                    if(main) main.style.display='none';
+                    if(loading) loading.style.display='none';
+                    document.body.classList.add('modal-open');
+                    return false; 
+                } 
+                
+                s.style.display='none'; 
+                document.body.classList.remove('modal-open');
+                return true; 
+            } catch(e){ 
+                return true; // Em caso de erro de rede, assume aberto para não travar o cliente
+            }
         }
 
         async function validarSessaoAtiva() {
