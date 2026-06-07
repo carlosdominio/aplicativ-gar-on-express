@@ -947,7 +947,22 @@ function abrirCardapioAdicionar() {
 
 function abrirCardapio() {
   const mesaTxt = document.getElementById('mesa-atual');
-  if (mesaTxt) mesaTxt.textContent = pedidoAbertoNaMesa ? `${mesaAtual.numero} (+ itens)` : mesaAtual.numero;
+  
+  // SEGURANÇA: Se mesaAtual for null, tenta recuperar pelo título do modal antes de crashar
+  if (!mesaAtual) {
+    const modalTitulo = document.getElementById('modal-mesa-titulo');
+    if (modalTitulo && modalTitulo.innerText.includes('Mesa')) {
+        const num = modalTitulo.innerText.replace('Mesa ', '');
+        mesaAtual = mesas.find(m => m.numero == num);
+    }
+  }
+
+  if (mesaTxt && mesaAtual) {
+    mesaTxt.textContent = pedidoAbertoNaMesa ? `${mesaAtual.numero} (+ itens)` : mesaAtual.numero;
+  } else if (mesaTxt) {
+    console.warn("⚠️ abrirCardapio chamado sem mesaAtual definida.");
+    mesaTxt.textContent = "---";
+  }
 
   // Resetar visual das categorias para "Todas"
   document.querySelectorAll('.categoria').forEach(c => {

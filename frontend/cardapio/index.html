@@ -196,6 +196,7 @@
         let sessionMesa = JSON.parse(localStorage.getItem('sessionMesa'));
         let lockAtivo = true; // Começa travado por segurança
         let sessionBindingsAttached = false;
+        let lastOrderData = null; // Armazena os últimos dados para o cupom fiscal
 
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("🚀 Cardápio Digital v2.1 carregado!");
@@ -260,7 +261,10 @@
                 pusher = new Pusher(c.key, { cluster: c.cluster }); 
                 pusherChannel = pusher.subscribe('garconnexpress');
                 
-                pusherChannel.bind('status-caixa-atualizado', (d) => { if(d.status === 'fechado') location.reload(); });
+                pusherChannel.bind('status-caixa-atualizado', (d) => { 
+                    if(isClosingSession) return;
+                    if(d.status === 'fechado') location.reload(); 
+                });
                 
                 attachSessionBindings();
             }).catch(e => {
@@ -275,15 +279,24 @@
             console.log(`🔗 Conectando eventos para Mesa ${sessionMesa.mesa_id}`);
             
             pusherChannel.bind(`rascunho-processado-mesa-${sessionMesa.mesa_id}`, () => {
+                if(isClosingSession) return;
                 console.log('✅ Botão Liberado pelo Garçom!');
                 carregarMeusPedidos();
             });
             
-            pusherChannel.bind(`fechamento-liberado-mesa-${sessionMesa.mesa_id}`, () => { carregarMeusPedidos(); });
+            pusherChannel.bind(`fechamento-liberado-mesa-${sessionMesa.mesa_id}`, () => { 
+                if(isClosingSession) return;
+                carregarMeusPedidos(); 
+            });
             
             pusherChannel.bind(`deslogar-mesa-${sessionMesa.mesa_id}`, (d) => {
+                if (isClosingSession) return;
+                isClosingSession = true; // Bloqueia outros recarregamentos
                 console.log('🚪 Logout remoto recebido!', d);
                 
+                // Antes de limpar, tentamos pegar os dados finais se d não trouxer
+                const finalData = d.dados_fechamento || lastOrderData;
+
                 // Limpa a sessão imediatamente para evitar re-acesso automático
                 localStorage.removeItem('sessionMesa');
                 
@@ -291,20 +304,108 @@
                 const icon = (d && d.status === 'cancelado') ? 'error' : 'info';
                 const title = (d && d.status === 'cancelado') ? 'Acesso Cancelado' : 'Sessão Encerrada';
 
-                Swal.fire({
-                    title: title,
-                    text: msg,
-                    icon: icon,
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#ff4757',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false
-                }).then(() => {
-                    location.reload();
-                });
+                if (finalData && finalData.itens && finalData.itens.length > 0) {
+                    Swal.fire({
+                        title: 'Conta Finalizada!',
+                        html: `
+                            <div style="text-align: center;">
+                                <div style="font-size: 3rem; margin-bottom: 15px;">💰</div>
+                                <p style="margin-bottom: 20px;">Sua conta na <b>Mesa ${sessionMesa.mesa_numero}</b> foi finalizada com sucesso. Obrigado pela preferência!</p>
+                                <button id="btn-download-cupom" class="btn-send" style="background: #27ae60; margin-bottom: 10px;">
+                                    <i class="fas fa-file-download"></i> BAIXAR CUPOM FISCAL
+                                </button>
+                            </div>
+                        `,
+                        icon: 'success',
+                        showConfirmButton: true,
+                        confirmButtonText: 'SAIR',
+                        confirmButtonColor: '#ff4757',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            document.getElementById('btn-download-cupom').onclick = () => {
+                                gerarPDFCupom(finalData);
+                            };
+                        }
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: title,
+                        text: msg,
+                        icon: icon,
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#ff4757',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                }
             });
 
             sessionBindingsAttached = true;
+        }
+
+        function gerarPDFCupom(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ unit: 'mm', format: [80, 200] }); // Formato bobina 80mm
+
+            const margin = 5;
+            let y = 10;
+
+            // Cabeçalho
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("GARCONN EXPRESS", 40, y, { align: "center" });
+            y += 6;
+            doc.setFontSize(8);
+            doc.text("COMPROVANTE DE CONSUMO", 40, y, { align: "center" });
+            y += 5;
+            doc.setFont("helvetica", "normal");
+            doc.text(`Mesa: ${sessionMesa.mesa_numero} | Data: ${new Date().toLocaleDateString()}`, 40, y, { align: "center" });
+            y += 5;
+            doc.text("--------------------------------------------------", 40, y, { align: "center" });
+            y += 5;
+
+            // Tabela de Itens
+            const body = data.itens.map(i => [
+                `${i.quantidade}x ${i.menu_nome || i.nome}`,
+                `R$ ${(i.quantidade * (i.preco || i.menu_preco)).toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: y,
+                head: [['Item', 'Total']],
+                body: body,
+                theme: 'plain',
+                styles: { fontSize: 7, cellPadding: 1 },
+                columnStyles: { 1: { halign: 'right' } },
+                margin: { left: margin, right: margin }
+            });
+
+            y = doc.lastAutoTable.finalY + 5;
+
+            // Totais
+            const subtotal = data.itens.reduce((s, i) => s + (i.quantidade * (i.preco || i.menu_preco)), 0);
+            const taxa = subtotal * 0.10;
+            const total = subtotal + taxa;
+
+            doc.setFont("helvetica", "bold");
+            doc.text(`SUBTOTAL: R$ ${subtotal.toFixed(2)}`, 75, y, { align: "right" });
+            y += 4;
+            doc.text(`TAXA (10%): R$ ${taxa.toFixed(2)}`, 75, y, { align: "right" });
+            y += 5;
+            doc.setFontSize(10);
+            doc.text(`TOTAL GERAL: R$ ${total.toFixed(2)}`, 75, y, { align: "right" });
+
+            y += 10;
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text("Obrigado pela visita!", 40, y, { align: "center" });
+
+            doc.save(`cupom-mesa-${sessionMesa.mesa_numero}.pdf`);
         }
 
         let itensPendentesGlobal = false; // Controle global para trava de fechamento
@@ -384,6 +485,7 @@
                 // Renderiza lista de consumo se houver
                 const container = document.getElementById('pedidos-lista');
                 if (container && d.success && d.pedido && d.itens && d.itens.length > 0) {
+                    lastOrderData = d; // Salva para uso no cupom fiscal pós-logout
                     let statusLabel = d.pedido.status.toUpperCase();
                     if (d.pedido.status === 'aguardando_fechamento') statusLabel = 'CONTA SOLICITADA';
 
