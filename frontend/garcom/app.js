@@ -296,6 +296,9 @@ function alternarSom() {
   somAtivo = check ? check.checked : !somAtivo;
   localStorage.setItem('garcom_som_ativo', somAtivo);
   atualizarIconeSom();
+  
+  // Notificação visual (balão/toast)
+  mostrarToast(somAtivo ? "🔊 Som Ativado" : "🔇 Som Desativado");
 }
 
 function tocarCampainha(suave = false) {
