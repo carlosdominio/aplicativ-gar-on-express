@@ -99,6 +99,12 @@ main {
     color: var(--primary-dark);
 }
 
+.pedido-total {
+    font-weight: bold;
+    color: var(--primary-dark);
+    font-size: 1.1rem;
+}
+
 .status-badge {
     padding: 4px 12px;
     border-radius: 20px;
@@ -194,22 +200,43 @@ main {
     font-style: italic;
 }
 
-/* Modal de Alerta Customizado */
+/* Notificações Estilo Balão */
 .toast {
     position: fixed;
-    bottom: 20px;
+    top: -100px;
     left: 50%;
     transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s;
+    background: white;
+    color: var(--text);
+    padding: 15px 25px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: bold;
+    z-index: 2000;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border: 2px solid var(--primary);
+    width: 90%;
+    max-width: 400px;
+}
+
+.toast i {
+    font-size: 1.2rem;
+    color: var(--primary);
 }
 
 .toast.show {
+    top: 20px;
     opacity: 1;
+}
+
+.toast.success {
+    border-color: var(--success);
+}
+
+.toast.success i {
+    color: var(--success);
 }

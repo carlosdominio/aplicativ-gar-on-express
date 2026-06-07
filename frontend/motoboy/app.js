@@ -1,7 +1,29 @@
 let pusher;
 let channel;
 
+const audioNotificacao = new Audio('/notificacao.mp3');
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Força interação inicial para desbloquear áudio no navegador/celular
+    Swal.fire({
+        title: 'Ativar Alertas?',
+        text: 'Clique para ativar o som de novos pedidos e notificações.',
+        icon: 'info',
+        confirmButtonText: '<i class="fas fa-volume-up"></i> ATIVAR ÁUDIO',
+        confirmButtonColor: '#e67e22',
+        allowOutsideClick: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            audioNotificacao.play().then(() => {
+                audioNotificacao.pause();
+                audioNotificacao.currentTime = 0;
+                showToast("Áudio e notificações ativos!", "success");
+            }).catch(e => {
+                console.error('Erro ao desbloquear áudio:', e);
+            });
+        }
+    });
+
     await initPusher();
     loadPedidos();
 });
@@ -22,25 +44,53 @@ async function initPusher() {
         channel.bind('status-atualizado', (data) => {
             console.log('🔔 Status atualizado via Pusher:', data);
             loadPedidos();
+            
+            // FILTRO: Só mostra balão para o motoboy se for DELIVERY
+            if (data.garcom_id === 'DELIVERY') {
+                if (data.status === 'cancelado') {
+                    showToast(`Pedido #${data.pedido_id} foi CANCELADO.`, "warning");
+                } else if (data.status === 'pronto' || data.status === 'servido') {
+                    showToast(`Pedido #${data.pedido_id} está PRONTO!`, "success");
+                } else if (data.status === 'recebido') {
+                    showToast(`Novo pedido #${data.pedido_id} recebido!`, "info");
+                } else if (data.status === 'aguardando_fechamento' || data.status === 'entregue') {
+                    showToast(`Pedido #${data.pedido_id} ENTREGUE!`, "success");
+                }
+            }
         });
 
-        // Escuta novos pedidos
+        // Escuta novos pedidos (Geralmente disparado na criação)
         channel.bind('novo-pedido', (data) => {
             console.log('🆕 Novo pedido via Pusher:', data);
-            showToast("Novo pedido recebido!");
             loadPedidos();
+
+            // FILTRO: Só mostra balão se for DELIVERY
+            const pedido = data.pedido || data;
+            if (pedido.garcom_id === 'DELIVERY') {
+                showToast(`Novo pedido #${pedido.id || pedido.pedido_id} recebido!`, "info");
+            }
         });
 
-        // Escuta cancelamentos
+        // Escuta cancelamentos (Disparado na exclusão)
         channel.bind('pedido-cancelado', (data) => {
             console.log('❌ Pedido cancelado via Pusher:', data);
             loadPedidos();
+
+            // FILTRO: Só mostra balão se for DELIVERY
+            if (data.garcom_id === 'DELIVERY' || (data.mesa_numero && data.mesa_numero.includes('DELIVERY'))) {
+                showToast(`Pedido #${data.id || data.pedido_id} foi REMOVIDO.`, "warning");
+            }
         });
 
-        // Escuta quando itens ficam prontos
+        // Escuta quando itens ficam prontos (Cozinha)
         channel.bind('pedido-pronto', (data) => {
             console.log('🍳 Pedido pronto via Pusher:', data);
             loadPedidos();
+
+            // FILTRO: Só mostra balão se for DELIVERY
+            if (data.garcom_id === 'DELIVERY' || (data.mesa_numero && data.mesa_numero.includes('DELIVERY'))) {
+                showToast("Pedido pronto para entrega!", "success");
+            }
         });
 
     } catch (e) {
@@ -81,20 +131,19 @@ function renderPedidos(pedidos) {
     let nEntregue = 0;
 
     pedidos.forEach(p => {
-        // Classifica o pedido baseado no status
-        if (p.status === 'aguardando_fechamento') {
-            // PEDIDO JÁ ENTREGUE PELO MOTOBOY
-            const card = createPedidoCard(p, true, true);
+        // Classifica o pedido baseado no status e força o label da coluna
+        if (p.status === 'aguardando_fechamento' || p.status === 'entregue') {
+            const card = createPedidoCard(p, 'entregue');
             contEntregues.appendChild(card);
             nEntregue++;
         } else {
-            const isReady = p.status === 'servido' || p.status === 'pronto';
-            const card = createPedidoCard(p, isReady, false);
-            
+            const isReady = p.status === 'servido' || p.status === 'pronto' || p.status === 'saiu_entrega';
             if (isReady) {
+                const card = createPedidoCard(p, 'a-caminho');
                 contPronto.appendChild(card);
                 nPronto++;
             } else {
+                const card = createPedidoCard(p, 'pendente');
                 contPendente.appendChild(card);
                 nPendente++;
             }
@@ -111,14 +160,29 @@ function renderPedidos(pedidos) {
     countEntregues.innerText = nEntregue;
 }
 
-function createPedidoCard(p, isReady, isDelivered) {
+function translateStatus(s) {
+    const map = {
+        'pendente': 'PREPARANDO',
+        'pronto': 'PRONTO',
+        'entregue': 'ENTREGUE',
+        'cancelado': 'CANCELADO',
+        'servido': 'PRONTO',
+        'saiu_entrega': 'A CAMINHO'
+    };
+    return map[s.toLowerCase()] || s.toUpperCase();
+}
+
+function createPedidoCard(p, displayStatus) {
     const card = document.createElement('div');
-    card.className = `pedido-card ${isDelivered ? 'pronto' : (isReady ? 'pronto' : 'pendente')}`;
-    if (isDelivered) card.style.opacity = '0.7'; // Visual diferenciado para entregues
+    
+    // Classes CSS baseadas no displayStatus
+    let statusClass = displayStatus;
+    let statusText = displayStatus.toUpperCase().replace('-', ' ');
+    
+    card.className = `pedido-card ${statusClass}`;
+    if (displayStatus === 'entregue') card.style.opacity = '0.7';
     
     // Extrai Nome e Endereço da observação (formato padrão do delivery)
-    // 👤 Cliente: Nome
-    // 🏠 End: Endereço, Número
     let cliente = "Cliente não identificado";
     let endereco = "Endereço não informado";
     
@@ -133,23 +197,13 @@ function createPedidoCard(p, isReady, isDelivered) {
 
     const time = new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    let statusText = 'PENDENTE';
-    let statusClass = 'pendente';
-
-    if (isDelivered) {
-        statusText = 'ENTREGUE';
-        statusClass = 'entregue';
-    } else if (isReady) {
-        statusText = 'A CAMINHO';
-        statusClass = 'a-caminho';
-    }
-
     let btnHtml = '';
-    if (isDelivered) {
+    if (displayStatus === 'entregue') {
         btnHtml = `<button class="btn-entregar" style="background-color: #95a5a6; box-shadow: 0 4px 0 #7f8c8d;" disabled>
                       <i class="fas fa-check-double"></i> ENTREGA CONCLUÍDA
                    </button>`;
     } else {
+        const isReady = displayStatus === 'a-caminho';
         btnHtml = `<button class="btn-entregar" ${!isReady ? 'disabled' : ''} onclick="confirmarEntrega(${p.id}, this)">
                       ${isReady ? '<i class="fas fa-check"></i> CONFIRMAR ENTREGA' : '<i class="fas fa-clock"></i> AGUARDANDO COZINHA'}
                    </button>`;
@@ -161,13 +215,24 @@ function createPedidoCard(p, isReady, isDelivered) {
                 <span class="pedido-id">#${p.id}</span>
                 <span class="status-badge ${statusClass}">${statusText}</span>
             </div>
-            <span class="pedido-time">${time}</span>
+            <div style="text-align: right;">
+                <div class="pedido-total">R$ ${parseFloat(p.total).toFixed(2).replace('.', ',')}</div>
+                <span class="pedido-time">${time}</span>
+            </div>
         </div>
         <div class="pedido-body">
             <span class="cliente-info">${cliente}</span>
             <span class="endereco-info">${endereco}</span>
             <div class="pedido-itens">
-                ${p.itens.map(i => `<div class="item-row"><span>${i.quantidade}x ${i.nome}</span><span>${i.status}</span></div>`).join('')}
+                ${p.itens.map(i => {
+                    let itemStatusLabel = translateStatus(i.status);
+                    // Se o item está entregue (preparado) mas o pedido ainda está "A CAMINHO", 
+                    // para o motoboy o item está "A CAMINHO"
+                    if (displayStatus === 'a-caminho' && i.status.toLowerCase() === 'entregue') {
+                        itemStatusLabel = 'A CAMINHO';
+                    }
+                    return `<div class="item-row"><span>${i.quantidade}x ${i.nome}</span><span>${itemStatusLabel}</span></div>`;
+                }).join('')}
             </div>
         </div>
         ${btnHtml}
@@ -217,9 +282,27 @@ async function confirmarEntrega(id, btn) {
     }
 }
 
-function showToast(msg) {
+function showToast(msg, type = 'info') {
     const toast = document.getElementById('toast');
-    toast.innerText = msg;
+    const toastMsg = document.getElementById('toast-msg');
+    const toastIcon = document.getElementById('toast-icon');
+
+    // Define ícone baseado no tipo
+    let iconClass = 'fa-bell';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'warning') iconClass = 'fa-exclamation-triangle';
+    if (type === 'info') iconClass = 'fa-info-circle';
+
+    toastIcon.className = `fas ${iconClass}`;
+    toastMsg.innerText = msg;
+    
+    // Remove classes anteriores e adiciona a nova
+    toast.classList.remove('success', 'warning', 'info');
+    if (type !== 'info') toast.classList.add(type);
+
+    // Toca o som
+    audioNotificacao.play().catch(e => console.log('Áudio bloqueado ou erro:', e));
+
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
+    setTimeout(() => toast.classList.remove('show'), 5000); // 5 segundos para o balão
 }
