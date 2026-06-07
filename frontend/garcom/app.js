@@ -616,7 +616,7 @@ function exibirMesas() {
       // DESTAQUE PARA SOLICITAÇÃO DE FECHAMENTO DO CLIENTE (Prioridade)
       if (mesa.solicitou_fechamento && mesa.status !== 'fechando') {
         classeAlerta = 'solicitacao-fechamento';
-        statusTexto = '🙋‍♂️ CLIENTE SOLICITA FECHAMENTO';
+        statusTexto = '🙋‍♂️ SOLICITAÇÃO DE FECHAMENTO';
       } else if (!eMeuPedido && mesa.garcom_id) {
         // SE NÃO É MEU E TEM GARÇOM, BLOQUEIA IMEDIATAMENTE (Independente de pedido_created_at)
         classeBloqueada = 'bloqueada';
@@ -699,7 +699,20 @@ async function mostrarOpcoesMesa(mesa) {
   const btnCancelarCodigo = document.querySelector('.btn-cancelar-codigo');
   
   if (btnVerItens) btnVerItens.style.display = pedidoAbertoNaMesa ? 'block' : 'none';
-  if (btnFecharConta) btnFecharConta.style.display = (pedidoAbertoNaMesa && mesa.status !== 'fechando') ? 'block' : 'none';
+  if (btnFecharConta) {
+      btnFecharConta.style.display = (pedidoAbertoNaMesa && mesa.status !== 'fechando') ? 'block' : 'none';
+      
+      // DESTAQUE PARA PROCESSAR FECHAMENTO (Novo fluxo)
+      if (mesa.solicitou_fechamento && mesa.status !== 'fechando') {
+          btnFecharConta.innerText = '💰 PROCESSAR FECHAMENTO';
+          btnFecharConta.style.background = '#e67e22'; // Laranja
+          btnFecharConta.style.animation = 'pulsar-amarelo 1.5s infinite';
+      } else {
+          btnFecharConta.innerText = '💰 Fechar Conta (Liberar)';
+          btnFecharConta.style.background = '#9b59b6'; // Roxo padrão
+          btnFecharConta.style.animation = 'none';
+      }
+  }
   if (btnAdd) btnAdd.innerText = pedidoAbertoNaMesa ? '➕ Adicionar mais itens' : '📝 Abrir Mesa / Pedido';
 
   // Lógica dos botões de código digital e exibição do código ativo

@@ -1532,9 +1532,11 @@ app.post('/api/cliente/solicitar-conta', async (req, res) => {
     }
 
     // 1. Atualiza o banco de dados
+    // NÃO muda o status da mesa para 'fechando' ainda. 
+    // Mantém 'ocupada' para o garçom processar primeiro, mas marca a flag de solicitação.
     await query("UPDATE pedidos SET solicitou_fechamento = TRUE WHERE id = ?", [pedido.id]);
-    await query("UPDATE mesas SET status = 'fechando' WHERE id = ?", [mesaId]);
-    
+    await query("UPDATE mesas SET status = 'ocupada' WHERE id = ?", [mesaId]); 
+
     // 2. Busca número da mesa para a notificação
     const mesaRes = await query("SELECT numero FROM mesas WHERE id = ?", [mesaId]);
     const mesaNum = mesaRes.rows[0]?.numero || '??';
