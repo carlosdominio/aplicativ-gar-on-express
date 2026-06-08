@@ -154,12 +154,31 @@ function verificarSessao() {
   }
 }
 // FUNÇÕES DE SISTEMA (SUBSTITUIÇÃO DE ALERT/CONFIRM)
-function mostrarAlerta(msg, titulo = "Aviso", icone = "🔔") {
+function mostrarAlerta(msg, titulo = "Aviso", icone = "🔔", textoParaCopiar = null) {
   return new Promise(resolve => {
     document.getElementById('modal-sistema-icon').innerText = icone;
     document.getElementById('modal-sistema-titulo').innerText = titulo;
     document.getElementById('modal-sistema-mensagem').innerHTML = msg;
     document.getElementById('btn-sistema-cancelar').classList.add('hidden');
+    
+    const btnCopiar = document.getElementById('btn-sistema-copiar');
+    if (textoParaCopiar && btnCopiar) {
+      btnCopiar.style.display = 'block';
+      btnCopiar.onclick = () => {
+        navigator.clipboard.writeText(textoParaCopiar).then(() => {
+          const originalText = btnCopiar.innerText;
+          btnCopiar.innerText = "Copiado!";
+          btnCopiar.style.background = "#27ae60";
+          setTimeout(() => {
+            btnCopiar.innerText = originalText;
+            btnCopiar.style.background = "#3498db";
+          }, 2000);
+        });
+      };
+    } else if (btnCopiar) {
+      btnCopiar.style.display = 'none';
+    }
+
     document.getElementById('btn-sistema-confirmar').innerText = "OK";
     document.getElementById('btn-sistema-confirmar').style.background = "#27ae60";
 
@@ -168,6 +187,7 @@ function mostrarAlerta(msg, titulo = "Aviso", icone = "🔔") {
 
     document.getElementById('btn-sistema-confirmar').onclick = () => {
       modal.style.display = 'none';
+      if (btnCopiar) btnCopiar.style.display = 'none';
       resolve(true);
     };
   });
@@ -1491,7 +1511,7 @@ async function gerarCodigoAcesso() {
     const data = await res.json();
     if (data.success) {
       fecharOpcoes();
-      await mostrarAlerta(`CÓDIGO DE ACESSO: ${data.codigo}\n\nInforme este código ao cliente para liberar o cardápio digital na Mesa ${mesaAtual.numero}.`, "Código Gerado", "🔑");
+      await mostrarAlerta(`CÓDIGO DE ACESSO: ${data.codigo}\n\nInforme este código ao cliente para liberar o cardápio digital na Mesa ${mesaAtual.numero}.`, "Código Gerado", "🔑", data.codigo);
     } else {
       await mostrarAlerta("Erro ao gerar código.", "Erro", "❌");
     }
