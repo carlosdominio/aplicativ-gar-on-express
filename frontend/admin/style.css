@@ -896,9 +896,9 @@ button.btn-entregue { background-color: #95a5a6; }
   padding: 0.5rem; 
   border-radius: 8px; 
   position: sticky;
-  top: 77px; /* Ajuste fino para não sumir atrás do header */
+  top: 87px; /* Aumentado para manter gap do header ao rolar */
   z-index: 1000;
-  box-shadow: 0 4px 6px -2px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px -2px rgba(0,0,0,0.1), 0 -10px 0 0 #f5f5f5;
 }
 .tab-btn { 
   background: transparent; 
@@ -1307,11 +1307,11 @@ button.btn-entregue { background-color: #95a5a6; }
   padding: 15px;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
   position: sticky;
-  top: 135px; /* Abaixo do header (77px) + tabs (~58px) */
+  top: 165px; /* Ajustado para manter gap das abas ao rolar */
   z-index: 950;
-  transition: all 0.3s ease;
+  /* Sombra sólida para cima oculta o conteúdo que sobe pelo gap */
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 -20px 0 0 #f5f5f5;
 }
 
 @media (max-width: 768px) {
