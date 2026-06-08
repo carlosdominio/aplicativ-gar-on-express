@@ -471,6 +471,7 @@ async function initDb() {
     await addCol('garcons', 'is_online', 'BOOLEAN DEFAULT FALSE');
     await addCol('garcons', 'last_assigned_at', 'TIMESTAMP');
     await addCol('pedidos', 'cliente_telefone', 'TEXT');
+    await addCol('pedidos', 'pagamentos_detalhados', 'TEXT');
     
     // Garante que a tabela pagamentos tenha as colunas necessárias
     await addCol('pagamentos', 'recebido', 'REAL DEFAULT 0');
