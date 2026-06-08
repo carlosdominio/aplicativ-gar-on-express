@@ -1734,7 +1734,7 @@ async function exibirHistorico() {
     
     const selectFiltro = document.getElementById('filtro-historico-select');
     if (selectFiltro) {
-      selectFiltro.innerHTML = '<option value="">Todas as Mesas / Todos os Garçons</option>';
+      selectFiltro.innerHTML = '<option value="">Todas</option>';
       selectFiltro.value = '';
     }
     return;
@@ -1833,7 +1833,7 @@ async function exibirHistorico() {
       if (p.garcom_nome) opcoes.add(p.garcom_nome);
     });
 
-    let htmlOpcoes = '<option value="">Todas as Mesas / Todos os Garçons</option>';
+    let htmlOpcoes = '<option value="">Todas</option>';
     Array.from(opcoes).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(opt => {
       htmlOpcoes += `<option value="${opt}">${opt}</option>`;
     });

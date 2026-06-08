@@ -909,7 +909,6 @@ button.btn-entregue { background-color: #95a5a6; }
   cursor: pointer; 
   font-weight: bold; 
   flex: 1; 
-  transition: all 0.2s; 
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1304,7 +1303,7 @@ button.btn-entregue { background-color: #95a5a6; }
   gap: 15px;
   align-items: center;
   background: #fff;
-  padding: 15px;
+  padding: 15px 20px; /* Aumentado conforme solicitado */
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   position: sticky;

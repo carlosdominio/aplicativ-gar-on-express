@@ -451,34 +451,44 @@
           </div>    </section>
 
     <section id="historico-section" class="hidden">
-      <!-- Barra de Busca Fixa do Histórico -->
-      <div class="filters-bar">
-          <div style="font-weight: 900; color: #2c3e50; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 1.2rem;">🔍</span> FILTRAR MESA:
-          </div>
-
-          <div style="flex: 2;">
-            <select id="filtro-historico-select" onchange="filtrarHistorico(this.value)"
-                    style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 2.5px solid #e2e8f0; font-size: 1rem; font-weight: bold; outline: none; transition: 0.3s; box-sizing: border-box; background: white; cursor: pointer; color: #2c3e50;">
-              <option value="">Todas as Mesas / Todos os Garçons</option>
-            </select>
-          </div>
+      <!-- Barra de Busca e Resumo Grande e Acessível -->
+      <div class="filters-bar" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; padding: 15px 25px;">
           
-          <button onclick="document.getElementById('filtro-historico-select').value=''; filtrarHistorico('');" 
-                  class="modal-btn modal-btn-outline" style="padding: 10px 20px !important; font-size: 0.8rem !important;">
-            VER TUDO
-          </button>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
-        <h2 style="font-size: 1.2rem; margin: 0;">📅 Histórico de Hoje: <span id="data-historico" style="color: #34495e;"></span></h2>
-        <div style="text-align: right; display: flex; align-items: center; gap: 20px;">
-          <div id="faturamento-total-dia" style="font-weight: 900; font-size: 1.4rem; color: #27ae60;">R$ 0,00</div>
-          <div style="display: flex; gap: 10px;">
-            <button onclick="imprimirResumoDiario()" style="background: #3498db; color: white; padding: 10px 15px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 0 #2980b9;">🖨️ RESUMO</button>
-            <button onclick="limparHistoricoTotal()" style="background: #fff; color: #e74c3c; border: 1.5px solid #e74c3c; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">🗑️ LIMPAR</button>
+          <!-- Lado Esquerdo: Filtro Robusto -->
+          <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 300px;">
+            <div style="font-weight: 900; color: #2c3e50; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+              <span style="font-size: 1.3rem;">🔍</span> FILTRAR MESA:
+            </div>
+            <select id="filtro-historico-select" onchange="filtrarHistorico(this.value)"
+                    style="flex: 0 1 250px; padding: 12px 15px; border-radius: 10px; border: 2.5px solid #e2e8f0; font-size: 1rem; font-weight: bold; outline: none; background: white; cursor: pointer; color: #2c3e50; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); max-width: 250px;">
+              <option value="">Todas</option>
+            </select>
+            <button onclick="document.getElementById('filtro-historico-select').value=''; filtrarHistorico('');" 
+                    style="background: #f8fafc; color: #64748b; border: 2px solid #e2e8f0; padding: 10px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 900; cursor: pointer; white-space: nowrap; transition: 0.2s;">
+              VER TUDO
+            </button>
           </div>
-        </div>
+
+          <!-- Lado Direito: Info e Ações de Destaque -->
+          <div style="display: flex; align-items: center; gap: 25px; flex-wrap: wrap;">
+            <!-- Data e Faturamento -->
+            <div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.3;">
+              <span id="data-historico" style="font-size: 0.85rem; font-weight: 900; color: #e74c3c; text-transform: uppercase;">00/00/0000</span>
+              <div id="faturamento-total-dia" style="font-weight: 900; font-size: 1.3rem; color: #27ae60; text-shadow: 0 1px 2px rgba(0,0,0,0.05);">R$ 0,00</div>
+            </div>
+
+            <!-- Botões de Ação Grandes -->
+            <div style="display: flex; gap: 12px;">
+              <button onclick="imprimirResumoDiario()" 
+                      style="background: #3498db; color: white; padding: 12px 20px; border-radius: 12px; font-weight: 900; border: none; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 0 #2980b9; transition: 0.2s;">
+                🖨️ RESUMO DIÁRIO
+              </button>
+              <button onclick="limparHistoricoTotal()" 
+                      style="background: #fff; color: #e74c3c; border: 2.5px solid #e74c3c; padding: 12px 20px; border-radius: 12px; font-weight: 900; cursor: pointer; font-size: 0.9rem; transition: 0.2s;">
+                🗑️ LIMPAR
+              </button>
+            </div>
+          </div>
       </div>
 
       <div id="historico-list" style="display: flex; gap: 2rem; align-items: flex-start;">
