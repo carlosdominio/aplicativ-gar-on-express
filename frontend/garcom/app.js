@@ -489,12 +489,12 @@ async function mostrarRascunho(data) {
   const btnCancelar = document.getElementById('btn-sistema-cancelar');
   const btnConfirmar = document.getElementById('btn-sistema-confirmar');
   
-  btnCancelar.classList.remove('hidden');
-  btnCancelar.innerText = "SÓ VER";
-  btnCancelar.style.background = "#95a5a6";
+  // Esconde o botão de cancelar ("SÓ VER") conforme solicitado pelo usuário
+  btnCancelar.classList.add('hidden');
   
-  btnConfirmar.innerText = "ACEITAR / CARREGAR";
-  btnConfirmar.style.background = "#f39c12";
+  btnConfirmar.innerText = "ACEITAR / CARREGAR ITENS";
+  btnConfirmar.style.background = "#2ecc71"; // Verde para ação positiva
+  btnConfirmar.style.width = "100%"; // Ocupa todo o espaço já que o outro sumiu
 
   const modal = document.getElementById('modal-sistema');
   modal.style.display = 'flex';

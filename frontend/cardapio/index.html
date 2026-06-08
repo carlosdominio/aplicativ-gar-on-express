@@ -229,6 +229,44 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("🚀 Cardápio Digital v2.1 carregado!");
             
+            // 1. Verifica se há um ID de mesa na URL (Escaneamento QR direto)
+            const urlParams = new URLSearchParams(window.location.search);
+            const mesaIdQR = urlParams.get('id') || urlParams.get('mesa');
+
+            // Se escaneou um QR, tenta o login automático mesmo que já tenha uma sessão (pode ser outra mesa)
+            if (mesaIdQR) {
+                // Se já estiver logado na MESMA mesa, apenas limpa a URL e segue
+                if (sessionMesa && sessionMesa.mesa_id == mesaIdQR) {
+                    console.log("✅ Já logado nesta mesa via QR. Ignorando re-login.");
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } else {
+                    console.log(`🔍 Escaneamento QR detectado para mesa ID: ${mesaIdQR}`);
+                    showLoading(true);
+                    try {
+                        const res = await fetch('/api/acesso/qr', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ mesa_id: mesaIdQR })
+                        });
+                        const d = await res.json();
+                        if (d.success) {
+                            sessionMesa = { mesa_id: d.mesa_id, mesa_numero: d.mesa_numero, token: d.token_acesso, pedido_id: d.pedido_id };
+                            localStorage.setItem('sessionMesa', JSON.stringify(sessionMesa));
+                            showMainContent();
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                            return; 
+                        } else {
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                            Swal.fire('Aviso', d.error || 'Falha ao acessar via QR Code.', 'warning');
+                        }
+                    } catch (err) {
+                        console.error('Erro no auto-login QR:', err);
+                    } finally {
+                        showLoading(false);
+                    }
+                }
+            }
+
             // 1. Verifica status inicial
             await verificarCaixa();
 

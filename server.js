@@ -2304,6 +2304,12 @@ app.post('/api/acesso/qr', async (req, res) => {
     const mesa = (await query("SELECT * FROM mesas WHERE id = ?", [mesa_id])).rows[0];
     if (!mesa) return res.status(404).json({ error: 'Mesa não encontrada' });
 
+    // 2.5 BLOQUEIO: Se já existe um código ativo (gerado pelo garçom), impede o escaneamento direto
+    const acessoExistente = (await query("SELECT id FROM codigos_acesso WHERE mesa_id = ? AND status = 'ativo'", [mesa_id])).rows[0];
+    if (acessoExistente) {
+        return res.status(400).json({ success: false, error: 'Esta mesa já possui um código ativo. Por favor, insira o código manualmente ou peça ao garçom.' });
+    }
+
     let acesso;
     if (mesa.status === 'livre') {
       // LÃ“GICA DE RODÍZIO (Round-Robin): Pega o garçom online que está há mais tempo sem atender
