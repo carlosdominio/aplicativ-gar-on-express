@@ -376,7 +376,7 @@
                 const icon = (d && d.status === 'cancelado') ? 'error' : 'info';
                 const title = (d && d.status === 'cancelado') ? 'Acesso Cancelado' : 'Sessão Encerrada';
 
-                if (finalData && finalData.itens && finalData.itens.length > 0) {
+                if (d.status !== 'cancelado' && finalData && finalData.itens && finalData.itens.length > 0) {
                     Swal.fire({
                         title: 'Conta Finalizada!',
                         html: `
