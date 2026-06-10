@@ -8,19 +8,17 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="style.css?v=1.0.5">
   <style>
-    /* Histórico Kanban - Estilo Limpo e Sem Scroll */
     #historico-section:not(.hidden) {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 215px) !important; /* Ajuste fino para o 3º card aparecer sem scroll de página */
+      height: calc(100vh - 180px) !important; /* Esticado ao máximo para baixo */
       overflow: hidden !important;
-      margin: 0 !important;
+      margin-top: 20px !important; /* MANTIDA A SEPARAÇÃO DAS ABAS */
     }
     
-    /* Remove padding do main apenas quando o histórico está visível para ganhar espaço */
+    /* Remove preenchimentos inúteis do topo para o conteúdo caber na tela */
     main:has(#historico-section:not(.hidden)) {
-      padding-bottom: 0 !important;
-      padding-top: 0.3rem !important;
+      padding: 0 10px !important;
       margin-top: 0 !important;
     }
 
@@ -28,11 +26,28 @@
       flex-shrink: 0;
       position: relative !important;
       top: 0 !important;
-      margin-bottom: 4px !important; /* Mais compacto */
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+      margin-bottom: 0 !important; /* Colado na lista para ganhar espaço */
+      box-shadow: 0 4px 6px rgba(0,0,0,0.07) !important; 
       background: white;
-      border-radius: 8px;
-      padding: 4px 10px; /* Mais compacto */
+      border-radius: 10px;
+      padding: 12px 20px; /* MANTIDA A ESPESSURA SOLICITADA */
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Compacta o cabeçalho das colunas para os cards subirem */
+    #historico-list .kanban-col h3 {
+      margin-top: 0 !important;
+      margin-bottom: 4px !important;
+      padding-bottom: 2px !important;
+      font-size: 0.85rem !important;
+    }
+    #historico-section .filters-left {
+      flex: 3 !important;
+    }
+    #filtro-historico-busca {
+      width: 280px !important; 
     }
     #historico-list {
       display: flex;
