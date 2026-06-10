@@ -67,7 +67,7 @@ let pedidosFiltradosHistoricoFinalizados = [];
 let pedidosFiltradosHistoricoCancelados = [];
 let paginaAtualFinalizados = 1;
 let paginaAtualCancelados = 1;
-const ITENS_POR_PAGINA_HISTORICO = 4;
+const ITENS_POR_PAGINA_HISTORICO = 3;
 let mesaAtual = null;
 let pedidoEmEdicao = null;
 let itensEmEdicao = [];
@@ -1721,181 +1721,162 @@ async function carregarHistorico() {
 }
 
 async function exibirHistorico() {
-  const listContainer = document.getElementById('historico-list');
-  const containerFinalizados = document.getElementById('lista-finalizados');
-  const containerCancelados = document.getElementById('lista-cancelados');
-  if (!containerFinalizados || !containerCancelados || !listContainer) return;
-
-  // Limpar estados anteriores
-  containerFinalizados.innerHTML = '';
-  containerCancelados.innerHTML = '';
-
-  document.getElementById('historico-finalizados').style.display = 'block';
-  document.getElementById('historico-cancelados').style.display = 'block';
-
-  const dataHoje = new Date().toLocaleDateString('pt-BR');
-  document.getElementById('data-historico').innerText = dataHoje;
-
-  let faturamentoTotal = 0;
-
-  if (historico.length === 0) {
-    containerFinalizados.innerHTML = '<p style="text-align:center; padding: 1.5rem; opacity: 0.5; font-weight:bold;">Nenhum pedido finalizado hoje.</p>';
-    containerCancelados.innerHTML = '<p style="text-align:center; padding: 1.5rem; opacity: 0.5; font-weight:bold;">Nenhum pedido cancelado hoje.</p>';
-    document.getElementById('faturamento-total-dia').innerText = `R$ 0,00`;
-    
-    const selectFiltro = document.getElementById('filtro-historico-select');
-    if (selectFiltro) {
-      selectFiltro.innerHTML = '<option value="">Todas</option>';
-      selectFiltro.value = '';
-    }
-    return;
-  }
-
-  for (const pedido of historico) {
-    const valorConsolidado = (pedido.total || 0) + (pedido.pago_parcial || 0);
-    if (pedido.status === 'entregue') faturamentoTotal += valorConsolidado;
-
-    const itens = pedido.itens || [];
-    const pagamentos = pedido.pagamentos || [];
-
-    const card = document.createElement('div');
-    card.className = `pedido-card status-${pedido.status} minimized`;
-    card.style.cursor = 'pointer'; // Ensure cursor indicates it's clickable
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('button')) return; // Ignore button clicks
-      card.classList.toggle('minimized');
-    });
-    
-    const isDelivery = (pedido.garcom_id === 'DELIVERY');
-    const mesaNomeExibicao = isDelivery ? `🛵 DELIVERY #${pedido.id}` : (pedido.mesa_numero ? `Mesa ${pedido.mesa_numero}` : `Pedido #${pedido.id}`);
-
-    let htmlPagamentos = '';
-    if (pagamentos.length > 0) {
-      htmlPagamentos = `
-        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; text-align: left;">
-          <h4 style="margin: 0 0 5px 0; font-size: 0.85rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 3px;">💳 Resumo de Pagamentos</h4>
-          ${pagamentos.map((pag, idx) => `
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 2px;">
-              <span>Parte ${idx + 1} (${pag.forma_pagamento}):</span>
-              <span style="font-weight: bold;">R$ ${(pag.valor || 0).toFixed(2)}</span>
-            </div>
-          `).join('')}
-          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 5px; padding-top: 3px; border-top: 1px dashed #ced4da; font-weight: bold; color: #212529;">
-            <span>TOTAL PAGO:</span>
-            <span>R$ ${(pedido.pago_parcial || 0).toFixed(2)}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // Não mostra a observação crua (com os dados do cliente) se for um pedido de delivery
-    const obsHtml = (pedido.observacao && !isDelivery) ? `<small style="display:block; color:#e67e22; font-weight:bold; margin-top:2px;">📝 ${pedido.observacao}</small>` : '';
-
-    card.innerHTML = `
-      <div class="pedido-header">
-        <div>
-          <h3>${mesaNomeExibicao}</h3>
-          <span class="status-badge ${pedido.status}">${pedido.status === 'entregue' ? 'PAGO' : pedido.status.toUpperCase()}</span>
-          <small style="display:block; margin-top:4px;">📅 ${formatarData(pedido.created_at)}</small>
-          <small style="display:block; font-weight:bold; color: #2c3e50;">👤 Garçom: ${pedido.garcom_nome || pedido.garcom_id || 'Administrador'}</small>
-          ${obsHtml}
-          ${(pagamentos.length > 1 || pedido.num_pessoas > 1) && !isDelivery ? `<small style="display:block; color:#2980b9; font-weight:bold; margin-top:2px;">👥 DIVIDIDO POR: ${Math.max(pagamentos.length, pedido.num_pessoas || 1)} PESSOAS</small>` : ''}
-        </div>
-        <div style="text-align: right;">
-          <div class="pedido-valor">R$ ${valorConsolidado.toFixed(2)}</div>
-          <div style="display:flex; flex-direction:column; gap:5px; margin-top:5px;">
-            <button style="background:#2c3e50; border:1px solid #34495e; font-size: 0.75rem; width: 100%; padding: 5px 10px;" onclick="reimprimirCupomById(${pedido.id})">🖨️ Re-imprimir</button>
-            <button style="background:#e74c3c; font-size: 0.75rem; width: 100%; padding: 5px 10px;" onclick="excluirPedido(${pedido.id})">🗑️ Excluir</button>
-          </div>
-        </div>
-      </div>
-      <div class="pedido-itens">${itens.map(item => `
-        <div class="pedido-item">
-          <span>• ${item.quantidade}x ${item.nome} <span style="font-size:0.75rem; color:#7f8c8d;">(R$ ${(item.preco * item.quantidade).toFixed(2)})</span></span>
-          ${item.observacao ? `<br><small style="color:#e67e22; margin-left:15px;">Obs: ${item.observacao}</small>` : ''}
-        </div>`).join('')}</div>
-      ${htmlPagamentos}
-    `;
-
-    if (pedido.status === 'cancelado') {
-      containerCancelados.appendChild(card);
-    } else {
-      containerFinalizados.appendChild(card);
-    }
-  }
-
-  if (containerFinalizados.children.length === 0) {
-      containerFinalizados.innerHTML = '<p style="text-align:center; padding: 1rem; opacity: 0.5;">Nenhum pedido finalizado.</p>';
-  }
-  if (containerCancelados.children.length === 0) {
-      containerCancelados.innerHTML = '<p style="text-align:center; padding: 1rem; opacity: 0.5;">Nenhum pedido cancelado.</p>';
-  }
-
-  document.getElementById('faturamento-total-dia').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
-
-  const selectFiltro = document.getElementById('filtro-historico-select');
-  if (selectFiltro) {
-    const valorAtual = selectFiltro.value;
-    const opcoes = new Set();
-    historico.forEach(p => {
-      const isDelivery = (p.garcom_id === 'DELIVERY');
-      if (isDelivery) {
-        opcoes.add('DELIVERY');
-      } else if (p.mesa_numero) {
-        opcoes.add(`Mesa ${p.mesa_numero}`);
-      } else {
-        opcoes.add('BALCÃO');
-      }
-      if (p.garcom_nome) opcoes.add(p.garcom_nome);
-    });
-
-    let htmlOpcoes = '<option value="">Todas</option>';
-    Array.from(opcoes).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(opt => {
-      htmlOpcoes += `<option value="${opt}">${opt}</option>`;
-    });
-    selectFiltro.innerHTML = htmlOpcoes;
-    selectFiltro.value = valorAtual;
-
-    if (valorAtual) filtrarHistorico(valorAtual);
-  }
-}
-
-function atualizarPaginacaoHistorico() {
   const containerFinalizados = document.getElementById('lista-finalizados');
   const containerCancelados = document.getElementById('lista-cancelados');
   if (!containerFinalizados || !containerCancelados) return;
 
-  const totalFinalizados = pedidosFiltradosHistoricoFinalizados.length;
-  const totalCancelados = pedidosFiltradosHistoricoCancelados.length;
+  // 1. Filtrar Dados (Select Inteligente + Busca Texto)
+  const filtroMesa = document.getElementById('filtro-historico-select')?.value || '';
+  const buscaTexto = document.getElementById('filtro-historico-busca')?.value.toLowerCase().trim() || '';
+  
+  let pedidosFiltrados = historico;
+  
+  if (filtroMesa || buscaTexto) {
+    pedidosFiltrados = historico.filter(p => {
+      const mesaIdentificador = p.garcom_id === 'DELIVERY' ? 'DELIVERY' : (p.mesa_numero ? `Mesa ${p.mesa_numero}` : `BALCÃO #${p.id}`);
+      const garcom = (p.garcom_nome || '').toLowerCase();
+      const idPedido = String(p.id);
+      
+      // Match do Select
+      const matchesSelect = !filtroMesa || (mesaIdentificador === filtroMesa || p.garcom_nome === filtroMesa);
+      
+      // Match da Busca (ID, Mesa ou Garçom)
+      const matchesBusca = !buscaTexto || (
+        idPedido.includes(buscaTexto) || 
+        mesaIdentificador.toLowerCase().includes(buscaTexto) || 
+        garcom.includes(buscaTexto)
+      );
+      
+      return matchesSelect && matchesBusca;
+    });
+  }
 
-  const totalPaginasFinalizados = Math.max(1, Math.ceil(totalFinalizados / ITENS_POR_PAGINA_HISTORICO));
-  const totalPaginasCancelados = Math.max(1, Math.ceil(totalCancelados / ITENS_POR_PAGINA_HISTORICO));
+  pedidosFiltradosHistoricoFinalizados = pedidosFiltrados.filter(p => p.status === 'entregue');
+  pedidosFiltradosHistoricoCancelados = pedidosFiltrados.filter(p => p.status === 'cancelado');
+
+  // 2. Faturamento e População do Select
+  let faturamentoTotal = 0;
+  const opcoesFiltro = new Set();
+  
+  historico.forEach(p => {
+    const valorConsolidado = (p.total || 0) + (p.pago_parcial || 0);
+    if (p.status === 'entregue') faturamentoTotal += valorConsolidado;
+    
+    if (p.garcom_id === 'DELIVERY') {
+      opcoesFiltro.add('DELIVERY');
+    } else if (p.mesa_numero) {
+      opcoesFiltro.add(`Mesa ${p.mesa_numero}`);
+    } else {
+      opcoesFiltro.add(`BALCÃO #${p.id}`);
+    }
+    if (p.garcom_nome) opcoesFiltro.add(p.garcom_nome);
+  });
+  
+  document.getElementById('faturamento-total-dia').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
+  document.getElementById('data-historico').innerText = new Date().toLocaleDateString('pt-BR');
+
+  const selectFiltro = document.getElementById('filtro-historico-select');
+  if (selectFiltro && selectFiltro.options.length <= 1) {
+    const valAnterior = selectFiltro.value;
+    selectFiltro.innerHTML = '<option value="">Todas</option>';
+    Array.from(opcoesFiltro).sort((a,b) => a.localeCompare(b, undefined, {numeric:true})).forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.innerText = opt;
+      selectFiltro.appendChild(o);
+    });
+    selectFiltro.value = valAnterior;
+  }
+
+  // 3. Renderizar Colunas
+  renderizarColunaHistorico('finalizados', pedidosFiltradosHistoricoFinalizados, paginaAtualFinalizados, containerFinalizados);
+  renderizarColunaHistorico('cancelados', pedidosFiltradosHistoricoCancelados, paginaAtualCancelados, containerCancelados);
+
+  // 4. Atualizar UI de Paginação
+  atualizarPaginacaoHistorico();
+}
+
+function renderizarColunaHistorico(tipo, lista, pagina, container) {
+  container.innerHTML = '';
+  const inicio = (pagina - 1) * ITENS_POR_PAGINA_HISTORICO;
+  const fim = inicio + ITENS_POR_PAGINA_HISTORICO;
+  const itensPagina = lista.slice(inicio, fim);
+
+  if (itensPagina.length === 0) {
+    container.innerHTML = `<p style="text-align:center; padding: 2rem; opacity: 0.5; font-size: 0.8rem;">Nenhum pedido ${tipo}.</p>`;
+    return;
+  }
+
+  itensPagina.forEach(p => {
+    const card = document.createElement('div');
+    card.className = `pedido-card status-${p.status}`;
+    card.style.cursor = 'pointer';
+    card.style.margin = '0 0 6px 0';
+    card.style.padding = '8px 12px';
+    card.style.borderRadius = '8px';
+    card.style.borderLeft = `4px solid ${p.status === 'cancelado' ? '#e74c3c' : '#27ae60'}`;
+    card.style.background = '#fff';
+    card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.justifyContent = 'center';
+    card.style.minHeight = '65px';
+    
+    const mesaNome = p.garcom_id === 'DELIVERY' ? '🚚 DELIVERY' : (p.mesa_numero ? `🪑 MESA ${p.mesa_numero}` : `🛍️ BALCÃO #${p.id}`);
+    const valor = (p.total || 0) + (p.pago_parcial || 0);
+
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="line-height: 1.1;">
+          <h4 style="margin: 0; font-size: 0.85rem; color: #2c3e50; font-weight: 800;">${mesaNome}</h4>
+          <small style="color: #94a3b8; font-size: 0.65rem;">ID #${p.id}</small>
+        </div>
+        <div style="text-align: right; line-height: 1.1;">
+          <div style="font-weight: 900; color: #2c3e50; font-size: 0.95rem;">R$ ${valor.toFixed(2)}</div>
+          <small style="color: #94a3b8; font-size: 0.6rem;">${new Date(p.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</small>
+        </div>
+      </div>
+      <div style="margin-top: 4px; border-top: 1px solid #f1f5f9; padding-top: 3px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span style="font-size: 0.6rem; font-weight: 800; color: #94a3b8;">👤 ${p.garcom_nome || 'Admin'}</span>
+        <span style="font-size: 0.55rem; color: #3498db; font-weight: 900; text-transform: uppercase;">DETALHES</span>
+      </div>
+    `;
+
+    card.addEventListener('click', () => abrirModalDetalheHistorico(p));
+    container.appendChild(card);
+  });
+}
+
+function mudarPaginaHistorico(tipo, direcao) {
+  if (tipo === 'finalizados') {
+    paginaAtualFinalizados += direcao;
+  } else {
+    paginaAtualCancelados += direcao;
+  }
+  // Garantir que a página não seja menor que 1
+  if (paginaAtualFinalizados < 1) paginaAtualFinalizados = 1;
+  if (paginaAtualCancelados < 1) paginaAtualCancelados = 1;
+  exibirHistorico();
+}
+
+function atualizarPaginacaoHistorico() {
+  const totalFinalizados = (pedidosFiltradosHistoricoFinalizados || []).length;
+  const totalCancelados = (pedidosFiltradosHistoricoCancelados || []).length;
+  
+  const totalPaginasFinalizados = Math.ceil(totalFinalizados / ITENS_POR_PAGINA_HISTORICO) || 1;
+  const totalPaginasCancelados = Math.ceil(totalCancelados / ITENS_POR_PAGINA_HISTORICO) || 1;
 
   if (paginaAtualFinalizados > totalPaginasFinalizados) paginaAtualFinalizados = totalPaginasFinalizados;
   if (paginaAtualCancelados > totalPaginasCancelados) paginaAtualCancelados = totalPaginasCancelados;
+  if (paginaAtualFinalizados < 1) paginaAtualFinalizados = 1;
+  if (paginaAtualCancelados < 1) paginaAtualCancelados = 1;
 
-  const inicioFin = (paginaAtualFinalizados - 1) * ITENS_POR_PAGINA_HISTORICO;
-  const inicioCan = (paginaAtualCancelados - 1) * ITENS_POR_PAGINA_HISTORICO;
+  // Badges
+  const bFin = document.getElementById('count-historico-finalizados');
+  const bCan = document.getElementById('count-historico-cancelados');
+  if (bFin) bFin.innerText = totalFinalizados;
+  if (bCan) bCan.innerText = totalCancelados;
 
-  // Atualizar visualização - Finalizados
-  pedidosFiltradosHistoricoFinalizados.forEach((card, index) => {
-    if (index >= inicioFin && index < inicioFin + ITENS_POR_PAGINA_HISTORICO) {
-      card.style.display = 'flex'; // Changed from block to flex for minimization layout
-    } else {
-      card.style.display = 'none';
-    }
-  });
-
-  // Atualizar visualização - Cancelados
-  pedidosFiltradosHistoricoCancelados.forEach((card, index) => {
-    if (index >= inicioCan && index < inicioCan + ITENS_POR_PAGINA_HISTORICO) {
-      card.style.display = 'flex'; // Changed from block to flex
-    } else {
-      card.style.display = 'none';
-    }
-  });
-
-  // Atualizar controles UI
   const pagFinEl = document.getElementById('paginacao-finalizados');
   const pagCanEl = document.getElementById('paginacao-cancelados');
   const txtFin = document.getElementById('texto-pag-finalizados');
@@ -1906,90 +1887,105 @@ function atualizarPaginacaoHistorico() {
   const btnProxCan = document.getElementById('btn-prox-cancelados');
 
   if (pagFinEl) {
-    pagFinEl.style.display = totalFinalizados > ITENS_POR_PAGINA_HISTORICO ? 'flex' : 'none';
-    if (txtFin) txtFin.textContent = `${paginaAtualFinalizados} / ${totalPaginasFinalizados}`;
-    if (btnAntFin) btnAntFin.disabled = paginaAtualFinalizados <= 1;
-    if (btnProxFin) btnProxFin.disabled = paginaAtualFinalizados >= totalPaginasFinalizados;
+    pagFinEl.style.display = totalFinalizados > 0 ? 'flex' : 'none';
+    if (txtFin) txtFin.textContent = `${paginaAtualFinalizados}/${totalPaginasFinalizados}`;
+    
+    if (btnAntFin) {
+      const podeVoltar = paginaAtualFinalizados > 1;
+      btnAntFin.disabled = !podeVoltar;
+      btnAntFin.style.opacity = podeVoltar ? '1' : '0.15';
+      btnAntFin.style.cursor = podeVoltar ? 'pointer' : 'default';
+    }
+    if (btnProxFin) {
+      const podeAvancar = paginaAtualFinalizados < totalPaginasFinalizados;
+      btnProxFin.disabled = !podeAvancar;
+      btnProxFin.style.opacity = podeAvancar ? '1' : '0.15';
+      btnProxFin.style.cursor = podeAvancar ? 'pointer' : 'default';
+    }
   }
 
   if (pagCanEl) {
-    pagCanEl.style.display = totalCancelados > ITENS_POR_PAGINA_HISTORICO ? 'flex' : 'none';
-    if (txtCan) txtCan.textContent = `${paginaAtualCancelados} / ${totalPaginasCancelados}`;
-    if (btnAntCan) btnAntCan.disabled = paginaAtualCancelados <= 1;
-    if (btnProxCan) btnProxCan.disabled = paginaAtualCancelados >= totalPaginasCancelados;
+    pagCanEl.style.display = totalCancelados > 0 ? 'flex' : 'none';
+    if (txtCan) txtCan.textContent = `${paginaAtualCancelados}/${totalPaginasCancelados}`;
+    
+    if (btnAntCan) {
+      const podeVoltar = paginaAtualCancelados > 1;
+      btnAntCan.disabled = !podeVoltar;
+      btnAntCan.style.opacity = podeVoltar ? '1' : '0.15';
+      btnAntCan.style.cursor = podeVoltar ? 'pointer' : 'default';
+    }
+    if (btnProxCan) {
+      const podeAvancar = paginaAtualCancelados < totalPaginasCancelados;
+      btnProxCan.disabled = !podeAvancar;
+      btnProxCan.style.opacity = podeAvancar ? '1' : '0.15';
+      btnProxCan.style.cursor = podeAvancar ? 'pointer' : 'default';
+    }
   }
-}
-
-function mudarPaginaHistorico(tipo, direcao) {
-  if (tipo === 'finalizados') {
-    paginaAtualFinalizados += direcao;
-  } else {
-    paginaAtualCancelados += direcao;
-  }
-  atualizarPaginacaoHistorico();
 }
 
 function filtrarHistorico(valor) {
-  const busca = valor.toLowerCase().trim();
-  const containerFinalizados = document.getElementById('lista-finalizados');
-  const containerCancelados = document.getElementById('lista-cancelados');
-  if (!containerFinalizados || !containerCancelados) return;
+  exibirHistorico();
+}
 
-  const cards = document.querySelectorAll('.pedido-card');
+// --- FUNÇÕES DO MODAL DE DETALHES DO HISTÓRICO ---
+function abrirModalDetalheHistorico(p) {
+  const modal = document.getElementById('modal-detalhe-historico');
+  if (!modal) return;
 
-  // Reset arrays
-  pedidosFiltradosHistoricoFinalizados = [];
-  pedidosFiltradosHistoricoCancelados = [];
+  const header = document.getElementById('modal-historico-header');
+  const titulo = document.getElementById('modal-historico-titulo');
+  const info = document.getElementById('modal-historico-info');
+  const horarios = document.getElementById('modal-historico-horarios');
+  const responsavel = document.getElementById('modal-historico-responsavel');
+  const itensLista = document.getElementById('modal-historico-itens-lista');
+  const financeiro = document.getElementById('modal-historico-financeiro');
+  const btnReimprimir = document.getElementById('btn-reimprimir-historico');
 
-  cards.forEach(card => {
-    // Só filtra cards que estão dentro dos containers do histórico
-    const isFinalizado = containerFinalizados.contains(card);
-    const isCancelado = containerCancelados.contains(card);
-    if (!isFinalizado && !isCancelado) return;
-
-    const h3 = card.querySelector('h3');
-    const mesaTexto = h3 ? h3.innerText.toLowerCase() : '';
-    const textoCompleto = card.innerText.toLowerCase();
-
-    let matches = false;
-    if (!busca) {
-      matches = true;
-    } else {
-      // Se a busca começa com "mesa " ou "pedido ", tentamos match exato
-      if (busca.startsWith('mesa ') || busca.startsWith('pedido ')) {
-        matches = (mesaTexto === busca);
-      } else {
-        matches = textoCompleto.includes(busca);
-      }
-    }
-
-    if (matches) {
-      if (isCancelado) {
-        pedidosFiltradosHistoricoCancelados.push(card);
-      } else {
-        pedidosFiltradosHistoricoFinalizados.push(card);
-      }
-    } else {
-      card.style.display = 'none';
-    }
-  });
-
-  // Reset paginação para 1 ao filtrar
-  paginaAtualFinalizados = 1;
-  paginaAtualCancelados = 1;
-  atualizarPaginacaoHistorico();
-
-  const msgFin = containerFinalizados.querySelector('p.empty-msg');
-  const msgCan = containerCancelados.querySelector('p.empty-msg');
-
-  if (msgFin) {
-    msgFin.style.display = (pedidosFiltradosHistoricoFinalizados.length === 0) ? 'block' : 'none';
-    if (pedidosFiltradosHistoricoFinalizados.length === 0) msgFin.innerText = busca ? 'Nenhum finalizado encontrado para esta busca.' : 'Nenhum pedido finalizado hoje.';
+  if (header) header.style.background = p.status === 'cancelado' ? '#e74c3c' : '#27ae60';
+  if (titulo) titulo.innerText = `Pedido #${p.id || '---'}`;
+  if (info) info.innerText = `${(p.tipo || 'Pedido').toUpperCase()} - ${(p.mesa_numero ? 'MESA ' + p.mesa_numero : (p.garcom_id === 'DELIVERY' ? 'DELIVERY' : 'BALCÃO'))}`;
+  
+  // Horários Inteligentes
+  let encerramentoRaw = p.data_hora_fechamento;
+  if (!encerramentoRaw && p.status === 'entregue' && p.pagamentos && p.pagamentos.length > 0) {
+    const ultimoPagamento = p.pagamentos[p.pagamentos.length - 1];
+    if (ultimoPagamento.data) encerramentoRaw = ultimoPagamento.data;
   }
-  if (msgCan) {
-    msgCan.style.display = (pedidosFiltradosHistoricoCancelados.length === 0) ? 'block' : 'none';
-    if (pedidosFiltradosHistoricoCancelados.length === 0) msgCan.innerText = busca ? 'Nenhum cancelado encontrado para esta busca.' : 'Nenhum pedido cancelado hoje.';
+
+  const aberturaFormatada = p.created_at ? formatarData(p.created_at).split(' ')[1] : '--:--';
+  let encerramentoFormatado = '--:--';
+  if (encerramentoRaw) encerramentoFormatado = formatarData(encerramentoRaw).split(' ')[1];
+  else if (p.status === 'cancelado') encerramentoFormatado = 'Cancelado';
+
+  if (horarios) horarios.innerHTML = `<b>Abertura:</b> ${aberturaFormatada}<br><b>Encerramento:</b> ${encerramentoFormatado}`;
+  if (responsavel) responsavel.innerText = p.garcom_nome || p.garcom_id || 'Administrador';
+
+  if (itensLista) {
+    itensLista.innerHTML = (p.itens && p.itens.length > 0) ? p.itens.map(item => `
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding: 4px 0; border-bottom: 1px solid #f8fafc;">
+        <span><b style="color: #2c3e50;">${item.quantidade}x</b> ${item.nome}</span>
+        <span style="font-weight: bold; color: #64748b;">R$ ${(item.preco * item.quantidade).toFixed(2)}</span>
+      </div>`).join('') : '<p style="text-align: center; opacity: 0.5; font-size: 0.85rem;">Nenhum item.</p>';
   }
+
+  const total = (p.total || 0) + (p.pago_parcial || 0);
+  if (financeiro) {
+    financeiro.innerHTML = `
+      <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 1.2rem;">
+        <span>TOTAL PAGO:</span><span>R$ ${total.toFixed(2)}</span>
+      </div>
+      <div style="font-size: 0.75rem; margin-top: 5px; opacity: 0.9; text-align: right;">💳 Forma: ${p.forma_pagamento || 'N/A'}</div>`;
+  }
+
+  if (btnReimprimir) btnReimprimir.onclick = () => reimprimirCupomById(p.id);
+
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+}
+
+function fecharModalDetalheHistorico() {
+  const modal = document.getElementById('modal-detalhe-historico');
+  if (modal) modal.style.display = 'none';
 }
 
 async function limparHistoricoTotal() {

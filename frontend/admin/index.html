@@ -8,25 +8,48 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="style.css?v=1.0.5">
   <style>
+    /* Histórico Kanban - Estilo Limpo e Sem Scroll */
+    #historico-section:not(.hidden) {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 175px) !important;
+      overflow: hidden !important;
+    }
+    #historico-section .filters-bar {
+      flex-shrink: 0;
+      position: relative !important;
+      top: 0 !important;
+      margin-bottom: 10px !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+    }
     #historico-list {
-      display: flex !important;
-      gap: 20px !important;
-      align-items: flex-start !important;
-      width: 100% !important;
-      flex-wrap: nowrap !important;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      width: 100%;
+      flex-wrap: nowrap;
+      flex: 1;
+      overflow: hidden !important;
     }
     #historico-finalizados, #historico-cancelados {
-      flex: 1 !important;
-      min-width: 300px !important;
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      min-width: 300px;
+      background: #f8fafc;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden !important;
     }
-    @media (max-width: 1000px) {
-      #historico-list {
-        flex-direction: column !important;
-      }
-      #historico-finalizados, #historico-cancelados {
-        width: 100% !important;
-        min-width: 100% !important;
-      }
+    #lista-finalizados, #lista-cancelados {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden !important;
+      justify-content: flex-start;
     }
 
     /* Visualizador de Imagem Global (Fora do Iframe) */
@@ -451,7 +474,8 @@
                 <div id="list-fechamento-delivery" class="pedidos-list"></div>
               </div>
             </div>
-          </div>    </section>
+          </div>
+    </section>
 
     <section id="historico-section" class="hidden">
       <!-- Barra de Busca e Resumo Grande e Acessível -->
@@ -460,14 +484,20 @@
           <!-- Lado Esquerdo: Filtro Robusto -->
           <div class="filters-left">
             <div class="label-filtrar">
-              <span style="font-size: 1.3rem;">🔍</span> FILTRAR MESA:
+              <span style="font-size: 1.3rem;">🔍</span> BUSCA:
             </div>
-            <select id="filtro-historico-select" onchange="filtrarHistorico(this.value)">
+            <input type="text" id="filtro-historico-busca" placeholder="ID ou Mesa..." 
+                   oninput="filtrarHistorico(this.value)"
+                   style="padding: 10px; border-radius: 8px; border: 2px solid #edf2f7; font-size: 0.95rem; width: 150px; font-weight: bold;">
+            
+            <select id="filtro-historico-select" onchange="document.getElementById('filtro-historico-busca').value=''; filtrarHistorico(this.value)"
+                    style="padding: 10px; border-radius: 8px; border: 2px solid #edf2f7; font-weight: bold; background: white;">
               <option value="">Todas</option>
             </select>
-            <button onclick="document.getElementById('filtro-historico-select').value=''; filtrarHistorico('');" 
+            
+            <button onclick="document.getElementById('filtro-historico-busca').value=''; document.getElementById('filtro-historico-select').value=''; filtrarHistorico('');" 
                     class="btn-ver-tudo">
-              VER TUDO
+              LIMPAR
             </button>
           </div>
 
@@ -491,33 +521,59 @@
           </div>
       </div>
 
-      <div id="historico-list" style="display: flex; gap: 2rem; align-items: flex-start;">
-        <div id="historico-finalizados">
-          <h3 style="color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <span>✅ Pedidos Finalizados</span>
-            <!-- Controles de Paginação Mini -->
-            <div id="paginacao-finalizados" class="paginacao-controles" style="display: none; align-items: center; gap: 8px; background: #fff; padding: 2px 6px; border-radius: 6px; border: 1px solid #e2e8f0;">
-              <button onclick="mudarPaginaHistorico('finalizados', -1)" class="btn-paginacao-mini" id="btn-ant-finalizados" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 4px;">⬅️</button>
-              <span id="texto-pag-finalizados" style="font-size: 0.8rem; font-weight: bold; color: #2c3e50;">1/1</span>
-              <button onclick="mudarPaginaHistorico('finalizados', 1)" class="btn-paginacao-mini" id="btn-prox-finalizados" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 4px;">➡️</button>
+      <div id="historico-list" class="kanban-board">
+        <!-- Coluna Finalizados -->
+        <div class="kanban-col" id="historico-finalizados">
+          <h3 style="color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 2px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.9rem; font-weight: 800;">✅ Finalizados <span class="badge-mini" id="count-historico-finalizados" style="background:#27ae60; color:white; padding: 1px 4px; border-radius: 4px; font-size: 0.6rem;">0</span></span>
+            <!-- Paginação Compacta Integrada -->
+            <div id="paginacao-finalizados" class="paginacao-controles" style="display: none; align-items: center; gap: 4px; background: #fff; padding: 1px 4px; border-radius: 4px; border: 1px solid #cbd5e1;">
+              <button onclick="mudarPaginaHistorico('finalizados', -1)" id="btn-ant-finalizados" style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; color: #1e293b; font-weight: bold;">◀</button>
+              <span id="texto-pag-finalizados" style="font-size: 0.75rem; font-weight: 900; color: #1e293b; min-width: 30px; text-align: center;">1/1</span>
+              <button onclick="mudarPaginaHistorico('finalizados', 1)" id="btn-prox-finalizados" style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; color: #1e293b; font-weight: bold;">▶</button>
             </div>
           </h3>
-          <div id="lista-finalizados"></div>
+          <div id="lista-finalizados" style="flex: 1; display: flex; flex-direction: column; gap: 4px;"></div>
         </div>
-        <div id="historico-cancelados">
-          <h3 style="color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <span>❌ Pedidos Cancelados</span>
-            <!-- Controles de Paginação Mini -->
-            <div id="paginacao-cancelados" class="paginacao-controles" style="display: none; align-items: center; gap: 8px; background: #fff; padding: 2px 6px; border-radius: 6px; border: 1px solid #e2e8f0;">
-              <button onclick="mudarPaginaHistorico('cancelados', -1)" class="btn-paginacao-mini" id="btn-ant-cancelados" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 4px;">⬅️</button>
-              <span id="texto-pag-cancelados" style="font-size: 0.8rem; font-weight: bold; color: #2c3e50;">1/1</span>
-              <button onclick="mudarPaginaHistorico('cancelados', 1)" class="btn-paginacao-mini" id="btn-prox-cancelados" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 4px;">➡️</button>
+
+        <!-- Coluna Cancelados -->
+        <div class="kanban-col" id="historico-cancelados">
+          <h3 style="color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 2px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.9rem; font-weight: 800;">❌ Cancelados <span class="badge-mini" id="count-historico-cancelados" style="background:#e74c3c; color:white; padding: 1px 4px; border-radius: 4px; font-size: 0.6rem;">0</span></span>
+            <!-- Paginação Compacta Integrada -->
+            <div id="paginacao-cancelados" class="paginacao-controles" style="display: none; align-items: center; gap: 4px; background: #fff; padding: 1px 4px; border-radius: 4px; border: 1px solid #cbd5e1;">
+              <button onclick="mudarPaginaHistorico('cancelados', -1)" id="btn-ant-cancelados" style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; color: #1e293b; font-weight: bold;">◀</button>
+              <span id="texto-pag-cancelados" style="font-size: 0.75rem; font-weight: 900; color: #1e293b; min-width: 30px; text-align: center;">1/1</span>
+              <button onclick="mudarPaginaHistorico('cancelados', 1)" id="btn-prox-cancelados" style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; color: #1e293b; font-weight: bold;">▶</button>
             </div>
           </h3>
-          <div id="lista-cancelados"></div>
+          <div id="lista-cancelados" style="flex: 1; display: flex; flex-direction: column; gap: 4px;"></div>
         </div>
       </div>
     </section>
+
+    <!-- Modal de Detalhes do Histórico -->
+    <div id="modal-detalhe-historico" class="modal">
+      <div class="modal-content" style="max-width: 500px; padding: 0; border-radius: 12px; overflow: hidden;">
+        <div id="modal-historico-header" style="padding: 15px 20px; color: white; display: flex; justify-content: space-between; align-items: center;">
+          <h2 id="modal-historico-titulo" style="margin: 0; font-size: 1.3rem;">Pedido #---</h2>
+          <span class="close" onclick="fecharModalDetalheHistorico()" style="color: white; opacity: 0.8; font-size: 1.8rem; cursor: pointer;">&times;</span>
+        </div>
+        <div style="padding: 20px; background: #f8fafc;">
+          <p id="modal-historico-info" style="font-weight: bold; color: #64748b; margin-top: 0;"></p>
+          <div id="modal-historico-horarios" style="font-size: 0.85rem; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 8px;"></div>
+          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 15px; padding-left: 5px;">
+            <b>Responsável:</b> <span id="modal-historico-responsavel">---</span>
+          </div>
+          <div id="modal-historico-itens-lista" style="background: white; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
+          <div id="modal-historico-financeiro" style="background: #2c3e50; color: white; padding: 15px; border-radius: 8px;"></div>
+        </div>
+        <div style="padding: 15px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 10px;">
+          <button id="btn-reimprimir-historico" style="flex: 1; padding: 10px; background: #3498db; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">🖨️ REIMPRIMIR</button>
+          <button onclick="fecharModalDetalheHistorico()" style="flex: 1; padding: 10px; background: #f1f2f6; color: #2c3e50; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">FECHAR</button>
+        </div>
+      </div>
+    </div>
 
     <section id="configuracoes-section" class="hidden">
       <div class="config-grid">
