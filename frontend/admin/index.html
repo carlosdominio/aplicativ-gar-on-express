@@ -603,101 +603,133 @@
     </div>
 
     <section id="configuracoes-section" class="hidden">
-      <div class="config-grid">
-        <!-- Gerenciamento de Mesas -->
-        <div class="config-card">
-          <h3>Mesas do Bar</h3>
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-            <input type="number" id="nova-mesa-num" placeholder="Nº da Mesa">
-            <button onclick="adicionarMesa()">Adicionar</button>
-          </div>
-          <div id="lista-mesas-config"></div>
-        </div>
+      <div class="config-layout">
+        <!-- Sidebar de Configurações -->
+        <aside class="config-sidebar">
+          <button class="config-nav-btn active" onclick="switchConfigSubTab('mesas')">
+            <i class="fa-solid fa-table"></i> Mesas
+          </button>
+          <button class="config-nav-btn" onclick="switchConfigSubTab('equipe')">
+            <i class="fa-solid fa-users"></i> Equipe
+          </button>
+          <button class="config-nav-btn" onclick="switchConfigSubTab('cardapio')">
+            <i class="fa-solid fa-book-open"></i> Cardápio
+          </button>
+          <button class="config-nav-btn" onclick="switchConfigSubTab('cozinha')">
+            <i class="fa-solid fa-utensils"></i> Cozinha
+          </button>
+        </aside>
 
-        <!-- Gerenciamento de Garçons -->
-        <div class="config-card">
-          <h3>Gerenciar Garçons</h3>
-          <div style="margin-bottom: 1.5rem; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
-            <div class="modal-form-group">
-              <label>Nome Completo</label>
-              <input type="text" id="garcom-nome" placeholder="Nome do Garçom">
-            </div>
-            
-            <div class="modal-form-group">
-              <label>Usuário (Login)</label>
-              <input type="text" id="garcom-usuario" placeholder="Usuário (ex: joao123)">
-            </div>
-
-            <div class="modal-form-group">
-              <label>WhatsApp / Telefone</label>
-              <input type="text" id="garcom-telefone" placeholder="Telefone (ex: 5511999999999)">
-            </div>
-
-            <div class="modal-form-group">
-              <label>Comissão (%)</label>
-              <input type="number" id="garcom-comissao" placeholder="Ex: 5" step="0.1">
-            </div>
-
-            <div class="modal-form-group">
-              <label id="label-senha-garcom">Senha de Acesso</label>
-              <input type="password" id="garcom-senha" placeholder="Senha">
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-              <button id="btn-acao-garcom" onclick="processarAcaoGarcom()" style="flex: 2; padding: 12px; font-weight: bold;">Cadastrar</button>
-              <button id="btn-cancelar-garcom" class="hidden" onclick="cancelarEdicaoGarcom()" style="flex: 1; background-color: #95a5a6; padding: 12px; font-weight: bold;">Cancelar</button>
+        <!-- Conteúdo das Configurações -->
+        <div class="config-content">
+          
+          <!-- Sub-seção: Mesas -->
+          <div id="config-sub-mesas" class="config-sub-section active">
+            <div class="config-card">
+              <h3>Mesas do Bar</h3>
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <input type="number" id="nova-mesa-num" placeholder="Nº da Mesa">
+                <button onclick="adicionarMesa()">Adicionar</button>
+              </div>
+              <div id="lista-mesas-config"></div>
             </div>
           </div>
-          <div id="lista-garcons-config" style="display: flex; flex-direction: column; gap: 0.8rem;"></div>
-        </div>
 
-        <!-- Ordem das Categorias -->
-        <div class="config-card">
-          <h3>📂 Ordem das Categorias no Cardápio</h3>
-          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Defina a prioridade de exibição das categorias (cima/baixo).</p>
-          <div id="config-ordem-categorias-lista" style="display: flex; flex-direction: column; gap: 8px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; max-height: 400px; overflow-y: auto;">
-            <!-- Injetado via JS -->
-            <p style="text-align:center; opacity:0.5;">Carregando categorias...</p>
-          </div>
-          <button onclick="salvarOrdemCategorias()" style="width: 100%; margin-top: 15px; background: #3498db; font-weight: bold;">SALVAR ORDEM</button>
-        </div>
-
-        <!-- Configuração Global de Cozinha -->
-        <div class="config-card">
-          <h3>⚙️ Configurações do Painel de Cozinha</h3>
-          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Marque as categorias que devem ser enviadas automaticamente para a cozinha:</p>
-          <div id="lista-categorias-cozinha-config" style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; max-height: 300px; overflow-y: auto;">
-            <!-- Injetado via JS -->
-            <p style="text-align:center; opacity:0.5;">Carregando categorias...</p>
-          </div>
-          <button onclick="salvarConfigCategoriasCozinha()" style="width: 100%; margin-top: 15px; background: #2c3e50;">SALVAR CONFIGURAÇÃO</button>
-        </div>
-
-        <!-- Gerenciamento de Cardápio -->
-        <div class="config-card config-card-full">
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #3498db; padding-bottom: 1rem; gap: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 300px;">
-              <h3 style="margin:0; border:none; white-space: nowrap;">Gerenciar Cardápio</h3>
-              
-              <!-- FILTROS DO CARDÁPIO -->
-              <div style="display: flex; gap: 10px; flex: 1;">
-                <div style="flex: 1; position: relative;">
-                  <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
-                  <input type="text" id="filtro-menu-busca" oninput="exibirMenuConfig()" placeholder="Buscar por nome..." 
-                         style="width: 100%; padding: 8px 10px 8px 32px; border-radius: 8px; border: 1px solid #cbd5e0; font-size: 0.9rem; outline: none;">
+          <!-- Sub-seção: Equipe -->
+          <div id="config-sub-equipe" class="config-sub-section">
+            <div class="config-card">
+              <h3>Gerenciar Garçons</h3>
+              <div style="margin-bottom: 1.5rem; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div class="modal-form-group">
+                  <label>Nome Completo</label>
+                  <input type="text" id="garcom-nome" placeholder="Nome do Garçom">
                 </div>
-                <select id="filtro-menu-categoria" onchange="exibirMenuConfig()" 
-                        style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e0; font-weight: bold; background: white; cursor: pointer; min-width: 150px;">
-                  <option value="">📂 Todas as Categorias</option>
-                </select>
+                
+                <div class="modal-form-group">
+                  <label>Usuário (Login)</label>
+                  <input type="text" id="garcom-usuario" placeholder="Usuário (ex: joao123)">
+                </div>
+
+                <div class="modal-form-group">
+                  <label>WhatsApp / Telefone</label>
+                  <input type="text" id="garcom-telefone" placeholder="Telefone (ex: 5511999999999)">
+                </div>
+
+                <div class="modal-form-group">
+                  <label>Comissão (%)</label>
+                  <input type="number" id="garcom-comissao" placeholder="Ex: 5" step="0.1">
+                </div>
+
+                <div class="modal-form-group">
+                  <label id="label-senha-garcom">Senha de Acesso</label>
+                  <input type="password" id="garcom-senha" placeholder="Senha">
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                  <button id="btn-acao-garcom" onclick="processarAcaoGarcom()" style="flex: 2; padding: 12px; font-weight: bold;">Cadastrar</button>
+                  <button id="btn-cancelar-garcom" class="hidden" onclick="cancelarEdicaoGarcom()" style="flex: 1; background-color: #95a5a6; padding: 12px; font-weight: bold;">Cancelar</button>
+                </div>
+              </div>
+              <div id="lista-garcons-config" style="display: flex; flex-direction: column; gap: 0.8rem;"></div>
+            </div>
+          </div>
+
+          <!-- Sub-seção: Cardápio -->
+          <div id="config-sub-cardapio" class="config-sub-section">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- Ordem das Categorias -->
+              <div class="config-card">
+                <h3>📂 Ordem das Categorias no Cardápio</h3>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Defina a prioridade de exibição das categorias (cima/baixo).</p>
+                <div id="config-ordem-categorias-lista" style="display: flex; flex-direction: column; gap: 8px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; max-height: 400px; overflow-y: auto;">
+                  <!-- Injetado via JS -->
+                  <p style="text-align:center; opacity:0.5;">Carregando categorias...</p>
+                </div>
+                <button onclick="salvarOrdemCategorias()" style="width: 100%; margin-top: 15px; background: #3498db; font-weight: bold;">SALVAR ORDEM</button>
+              </div>
+
+              <!-- Gerenciamento de Cardápio -->
+              <div class="config-card">
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #3498db; padding-bottom: 1rem; gap: 15px;">
+                  <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 300px;">
+                    <h3 style="margin:0; border:none; white-space: nowrap;">Gerenciar Cardápio</h3>
+                    
+                    <!-- FILTROS DO CARDÁPIO -->
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                      <div style="flex: 1; position: relative;">
+                        <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+                        <input type="text" id="filtro-menu-busca" oninput="exibirMenuConfig()" placeholder="Buscar por nome..." 
+                               style="width: 100%; padding: 8px 10px 8px 32px; border-radius: 8px; border: 1px solid #cbd5e0; font-size: 0.9rem; outline: none;">
+                      </div>
+                      <select id="filtro-menu-categoria" onchange="exibirMenuConfig()" 
+                              style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e0; font-weight: bold; background: white; cursor: pointer; min-width: 150px;">
+                        <option value="">📂 Todas</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <button onclick="abrirModalItemMenu()" style="background: #27ae60; padding: 10px 20px; border-radius: 10px; font-weight: bold; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                    ➕ NOVO ITEM
+                  </button>
+                </div>
+                <div id="lista-menu-config" class="menu-config-grid"></div>
               </div>
             </div>
-            
-            <button onclick="abrirModalItemMenu()" style="background: #27ae60; padding: 10px 20px; border-radius: 10px; font-weight: bold; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
-              ➕ ADICIONAR NOVO ITEM
-            </button>
           </div>
-          <div id="lista-menu-config" class="menu-config-grid"></div>
+
+          <!-- Sub-seção: Cozinha -->
+          <div id="config-sub-cozinha" class="config-sub-section">
+            <div class="config-card">
+              <h3>⚙️ Configurações do Painel de Cozinha</h3>
+              <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Marque as categorias que devem ser enviadas automaticamente para a cozinha:</p>
+              <div id="lista-categorias-cozinha-config" style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; max-height: 400px; overflow-y: auto;">
+                <!-- Injetado via JS -->
+                <p style="text-align:center; opacity:0.5;">Carregando categorias...</p>
+              </div>
+              <button onclick="salvarConfigCategoriasCozinha()" style="width: 100%; margin-top: 15px; background: #2c3e50;">SALVAR CONFIGURAÇÃO</button>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>

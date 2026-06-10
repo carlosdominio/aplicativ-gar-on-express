@@ -1667,18 +1667,106 @@ input:checked + .slider:before {
 }
 
 /* Estado Expandido do Histórico */
-#lista-finalizados .pedido-card:not(.minimized),
-#lista-cancelados .pedido-card:not(.minimized) {
-  max-height: 1000px;
-  cursor: pointer;
+/* --- Novo Layout de Configurações com Sidebar --- */
+.config-layout {
+  display: flex;
+  gap: 20px;
+  background: #fff;
+  border-radius: 15px;
+  border: 1px solid #e2e8f0;
+  min-height: calc(100vh - 250px);
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 
-@media (max-width: 1024px) {
-  #historico-list {
+.config-sidebar {
+  width: 240px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 10px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.config-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.config-nav-btn:hover {
+  background: #f1f5f9;
+  color: #3498db;
+}
+
+.config-nav-btn.active {
+  background: #3498db;
+  color: white;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.config-nav-btn i {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.config-content {
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+  max-height: calc(100vh - 250px);
+}
+
+.config-sub-section {
+  display: none;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.config-sub-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .config-layout {
     flex-direction: column;
-    gap: 1.5rem;
   }
-  #historico-finalizados, #historico-cancelados {
+  .config-sidebar {
     width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 10px;
+    scrollbar-width: none;
+  }
+  .config-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .config-nav-btn {
+    white-space: nowrap;
+    width: auto;
+    padding: 10px 15px;
+  }
+  .config-content {
+    max-height: none;
   }
 }

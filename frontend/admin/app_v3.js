@@ -516,10 +516,32 @@ function switchTab(tab) {
 
   if (tab === 'ativos') carregarPedidos();
   else if (tab === 'historico') carregarHistorico();
-  else if (tab === 'configuracoes') carregarDadosConfig();
+  else if (tab === 'configuracoes') {
+    carregarDadosConfig();
+    switchConfigSubTab('mesas'); // Abre por padrão na sub-aba de Mesas
+  }
   else if (tab === 'caixa') carregarStatusCaixa();
   else if (tab === 'lancar') prepararLancarPedido();
   else if (tab === 'whatsapp') carregarStatusWhatsApp();
+}
+
+/**
+ * Alterna entre sub-abas dentro da aba de Configurações
+ */
+function switchConfigSubTab(subTab) {
+  // Remove classe active de todos os botões da sidebar
+  document.querySelectorAll('.config-nav-btn').forEach(btn => btn.classList.remove('active'));
+  
+  // Oculta todas as sub-seções
+  document.querySelectorAll('.config-sub-section').forEach(sec => sec.classList.remove('active'));
+  
+  // Ativa o botão correspondente
+  const btn = document.querySelector(`.config-nav-btn[onclick*="'${subTab}'"]`);
+  if (btn) btn.classList.add('active');
+  
+  // Exibe a seção correspondente
+  const section = document.getElementById(`config-sub-${subTab}`);
+  if (section) section.classList.add('active');
 }
 
 async function carregarStatusWhatsApp() {
