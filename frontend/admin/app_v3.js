@@ -1960,21 +1960,87 @@ function abrirModalDetalheHistorico(p) {
   if (horarios) horarios.innerHTML = `<b>Abertura:</b> ${aberturaFormatada}<br><b>Encerramento:</b> ${encerramentoFormatado}`;
   if (responsavel) responsavel.innerText = p.garcom_nome || p.garcom_id || 'Administrador';
 
+  // --- SEÇÃO DE ITENS E OBSERVAÇÕES ---
   if (itensLista) {
-    itensLista.innerHTML = (p.itens && p.itens.length > 0) ? p.itens.map(item => `
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding: 4px 0; border-bottom: 1px solid #f8fafc;">
-        <span><b style="color: #2c3e50;">${item.quantidade}x</b> ${item.nome}</span>
-        <span style="font-weight: bold; color: #64748b;">R$ ${(item.preco * item.quantidade).toFixed(2)}</span>
-      </div>`).join('') : '<p style="text-align: center; opacity: 0.5; font-size: 0.85rem;">Nenhum item.</p>';
+    let htmlContent = '';
+    
+    // Observação (se houver)
+    if (p.observacao) {
+      htmlContent += `
+        <div style="margin-bottom: 12px; padding: 10px; background: #fff9db; border-radius: 8px; border: 1px solid #fab005; font-size: 0.85rem; color: #856404; line-height: 1.4;">
+          <b style="display: block; margin-bottom: 2px;">📝 OBSERVAÇÃO:</b>
+          ${p.observacao}
+        </div>`;
+    }
+
+    // Divisão (se houver)
+    const numPessoas = p.num_pessoas || (p.pagamentos ? p.pagamentos.length : 1);
+    if (numPessoas > 1) {
+      htmlContent += `
+        <div style="margin-bottom: 12px; padding: 10px; background: #e7f5ff; border-radius: 8px; border: 1px solid #a5d8ff; font-size: 0.85rem; color: #1971c2; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.1rem;">👥</span>
+          <span><b>DIVISÃO:</b> Pedido dividido entre <b>${numPessoas} pessoas</b></span>
+        </div>`;
+    }
+
+    // Título da Lista de Itens
+    htmlContent += `<div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Itens do Pedido</div>`;
+
+    // Itens
+    const itensHTML = (p.itens && p.itens.length > 0) ? p.itens.map(item => `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+        <span style="color: #334155;"><b style="color: #0f172a;">${item.quantidade}x</b> ${item.nome}</span>
+        <span style="font-weight: 600; color: #475569; white-space: nowrap; margin-left: 10px;">R$ ${(item.preco * item.quantidade).toFixed(2)}</span>
+      </div>`).join('') : '<p style="text-align: center; opacity: 0.5; font-size: 0.85rem; padding: 10px 0;">Nenhum item registrado.</p>';
+    
+    itensLista.innerHTML = htmlContent + itensHTML;
   }
 
-  const total = (p.total || 0) + (p.pago_parcial || 0);
+  // --- SEÇÃO FINANCEIRA ---
   if (financeiro) {
-    financeiro.innerHTML = `
-      <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 1.2rem;">
-        <span>TOTAL PAGO:</span><span>R$ ${total.toFixed(2)}</span>
+    const totalPedido = (p.total || 0) + (p.pago_parcial || 0);
+    const subtotal = p.subtotal || totalPedido;
+    const taxa = p.taxa_servico || 0;
+    
+    let htmlFin = '<div style="display: flex; flex-direction: column; gap: 6px;">';
+    
+    // Subtotal e Taxa (se existirem e forem relevantes)
+    if (taxa > 0) {
+      htmlFin += `
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; opacity: 0.8;">
+          <span>Subtotal:</span><span>R$ ${subtotal.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; opacity: 0.8;">
+          <span>Taxa de Serviço:</span><span>R$ ${taxa.toFixed(2)}</span>
+        </div>`;
+    }
+
+    // Listagem de Pagamentos (se houver múltiplos)
+    if (p.pagamentos && p.pagamentos.length > 1) {
+      htmlFin += `<div style="margin: 8px 0; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">`;
+      p.pagamentos.forEach((pag, idx) => {
+        htmlFin += `
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+            <span style="opacity: 0.7;">P${idx + 1}: ${pag.forma_pagamento}</span>
+            <span style="font-weight: bold;">R$ ${(pag.valor || 0).toFixed(2)}</span>
+          </div>`;
+      });
+      htmlFin += `</div>`;
+    } else {
+       htmlFin += `<div style="margin-top: 5px;"></div>`;
+    }
+
+    // Total Final
+    htmlFin += `
+      <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 1.4rem; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">
+        <span>TOTAL PAGO:</span><span>R$ ${totalPedido.toFixed(2)}</span>
       </div>
-      <div style="font-size: 0.75rem; margin-top: 5px; opacity: 0.9; text-align: right;">💳 Forma: ${p.forma_pagamento || 'N/A'}</div>`;
+      <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.9; text-align: right; font-style: italic;">
+        💳 Forma Principal: ${p.forma_pagamento || 'N/A'}
+      </div>`;
+    
+    htmlFin += '</div>';
+    financeiro.innerHTML = htmlFin;
   }
 
   if (btnReimprimir) btnReimprimir.onclick = () => reimprimirCupomById(p.id);

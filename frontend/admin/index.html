@@ -12,8 +12,9 @@
     #historico-section:not(.hidden) {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 175px) !important;
+      height: calc(100vh - 210px) !important; /* Aumentado o offset para garantir que não estoure a tela */
       overflow: hidden !important;
+      margin-bottom: 0 !important;
     }
     #historico-section .filters-bar {
       flex-shrink: 0;
@@ -21,6 +22,9 @@
       top: 0 !important;
       margin-bottom: 10px !important;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
     }
     #historico-list {
       display: flex;
@@ -533,7 +537,7 @@
               <button onclick="mudarPaginaHistorico('finalizados', 1)" id="btn-prox-finalizados" style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; color: #1e293b; font-weight: bold;">▶</button>
             </div>
           </h3>
-          <div id="lista-finalizados" style="flex: 1; display: flex; flex-direction: column; gap: 4px;"></div>
+          <div id="lista-finalizados" class="pedidos-list" style="gap: 4px;"></div>
         </div>
 
         <!-- Coluna Cancelados -->
@@ -547,7 +551,7 @@
               <button onclick="mudarPaginaHistorico('cancelados', 1)" id="btn-prox-cancelados" style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; color: #1e293b; font-weight: bold;">▶</button>
             </div>
           </h3>
-          <div id="lista-cancelados" style="flex: 1; display: flex; flex-direction: column; gap: 4px;"></div>
+          <div id="lista-cancelados" class="pedidos-list" style="gap: 4px;"></div>
         </div>
       </div>
     </section>
@@ -559,7 +563,7 @@
           <h2 id="modal-historico-titulo" style="margin: 0; font-size: 1.3rem;">Pedido #---</h2>
           <span class="close" onclick="fecharModalDetalheHistorico()" style="color: white; opacity: 0.8; font-size: 1.8rem; cursor: pointer;">&times;</span>
         </div>
-        <div style="padding: 20px; background: #f8fafc;">
+        <div style="padding: 20px; background: #f8fafc; overflow-y: auto; flex: 1;">
           <p id="modal-historico-info" style="font-weight: bold; color: #64748b; margin-top: 0;"></p>
           <div id="modal-historico-horarios" style="font-size: 0.85rem; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 8px;"></div>
           <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 15px; padding-left: 5px;">
