@@ -39,12 +39,15 @@
 
   <header>
     <div class="header-content" style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
-      <div class="header-info">
-        <h1>GarçomExpress</h1>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <p id="garcom-nome-exibicao">Aguardando Login...</p>
-          <span id="caixa-status-badge" class="badge-caixa" style="display:none;"></span>
+      <div class="header-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+          <h1 style="margin: 0; font-size: 1.2rem;">GarçomExpress</h1>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <p id="garcom-nome-exibicao" style="margin: 0; font-size: 0.8rem;">Aguardando Login...</p>
+            <span id="caixa-status-badge" class="badge-caixa" style="display:none;"></span>
+          </div>
         </div>
+        <button onclick="logout()" style="width: auto; background: rgba(255,255,255,0.1); color: #fff; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 6px; margin-bottom: 0; font-weight: bold; flex-shrink: 0;">SAIR</button>
       </div>
       <div class="header-controls" style="display:flex; align-items:center; gap:10px;">
         <button id="btn-header-mesas" onclick="voltarParaMesas()" style="display:none; width: auto; background: #e74c3c; color: #fff; font-size: 0.8rem; border: none; padding: 6px 12px; border-radius: 6px; margin-bottom: 0; font-weight: bold; align-items: center; gap: 8px;">
@@ -54,7 +57,7 @@
           MESAS
         </button>
         
-        <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);">
+        <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; white-space: nowrap;">
           <span id="label-som" style="color: white; font-size: 0.75rem; font-weight: bold;">SOM</span>
           <label class="switch">
             <input type="checkbox" id="check-som" onchange="alternarSom()">
@@ -63,15 +66,13 @@
         </div>
 
         <!-- Botão Pausar Atendimento (Toggle Style) -->
-        <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);">
+        <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; white-space: nowrap;">
           <span id="label-pausa" style="color: white; font-size: 0.75rem; font-weight: bold;">FILA</span>
           <label class="switch">
             <input type="checkbox" id="check-pausa" onchange="togglePausa()">
             <span class="slider" id="slider-pausa"></span>
           </label>
         </div>
-
-        <button onclick="logout()" style="width: auto; background: transparent; color: #fff; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.3); padding: 6px 12px; border-radius: 6px; margin-bottom: 0;">SAIR</button>
       </div>
     </div>
   </header>
