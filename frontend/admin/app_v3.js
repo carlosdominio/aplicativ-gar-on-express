@@ -1726,7 +1726,8 @@ async function exibirHistorico() {
   if (!containerFinalizados || !containerCancelados) return;
 
   // 1. Filtrar Dados (Select Inteligente + Busca Texto)
-  const filtroMesa = document.getElementById('filtro-historico-select')?.value || '';
+  const selectFiltro = document.getElementById('filtro-historico-select');
+  const filtroMesa = selectFiltro?.value || '';
   const buscaTexto = document.getElementById('filtro-historico-busca')?.value.toLowerCase().trim() || '';
   
   let pedidosFiltrados = historico;
@@ -1737,14 +1738,13 @@ async function exibirHistorico() {
       const garcom = (p.garcom_nome || '').toLowerCase();
       const idPedido = String(p.id);
       
-      // Match do Select
+      const matchesItens = !buscaTexto || (p.itens && p.itens.some(item => (item.nome || '').toLowerCase().includes(buscaTexto)));
       const matchesSelect = !filtroMesa || (mesaIdentificador === filtroMesa || p.garcom_nome === filtroMesa);
-      
-      // Match da Busca (ID, Mesa ou Garçom)
       const matchesBusca = !buscaTexto || (
         idPedido.includes(buscaTexto) || 
         mesaIdentificador.toLowerCase().includes(buscaTexto) || 
-        garcom.includes(buscaTexto)
+        garcom.includes(buscaTexto) ||
+        matchesItens
       );
       
       return matchesSelect && matchesBusca;
@@ -1772,20 +1772,29 @@ async function exibirHistorico() {
     if (p.garcom_nome) opcoesFiltro.add(p.garcom_nome);
   });
   
-  document.getElementById('faturamento-total-dia').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
-  document.getElementById('data-historico').innerText = new Date().toLocaleDateString('pt-BR');
+  const fatEl = document.getElementById('faturamento-total-dia');
+  if (fatEl) fatEl.innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
+  
+  const dataEl = document.getElementById('data-historico');
+  if (dataEl) dataEl.innerText = new Date().toLocaleDateString('pt-BR');
 
-  const selectFiltro = document.getElementById('filtro-historico-select');
-  if (selectFiltro && selectFiltro.options.length <= 1) {
+  if (selectFiltro) {
     const valAnterior = selectFiltro.value;
-    selectFiltro.innerHTML = '<option value="">Todas</option>';
-    Array.from(opcoesFiltro).sort((a,b) => a.localeCompare(b, undefined, {numeric:true})).forEach(opt => {
-      const o = document.createElement('option');
-      o.value = opt;
-      o.innerText = opt;
-      selectFiltro.appendChild(o);
-    });
-    selectFiltro.value = valAnterior;
+    const currentOptions = Array.from(selectFiltro.options).map(o => o.value).filter(v => v !== "");
+    const newOptionsList = Array.from(opcoesFiltro).sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    
+    if (JSON.stringify(currentOptions) !== JSON.stringify(newOptionsList)) {
+      selectFiltro.innerHTML = '<option value="">Todos</option>';
+      newOptionsList.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.innerText = opt;
+        selectFiltro.appendChild(o);
+      });
+      if (newOptionsList.includes(valAnterior)) {
+        selectFiltro.value = valAnterior;
+      }
+    }
   }
 
   // 3. Renderizar Colunas
@@ -1863,13 +1872,25 @@ function atualizarPaginacaoHistorico() {
   const totalFinalizados = (pedidosFiltradosHistoricoFinalizados || []).length;
   const totalCancelados = (pedidosFiltradosHistoricoCancelados || []).length;
   
-  const totalPaginasFinalizados = Math.ceil(totalFinalizados / ITENS_POR_PAGINA_HISTORICO) || 1;
-  const totalPaginasCancelados = Math.ceil(totalCancelados / ITENS_POR_PAGINA_HISTORICO) || 1;
+  const totalPaginasFinalizados = Math.ceil(totalFinalizados / ITENS_POR_PAGINA_HISTORICO);
+  const totalPaginasCancelados = Math.ceil(totalCancelados / ITENS_POR_PAGINA_HISTORICO);
 
-  if (paginaAtualFinalizados > totalPaginasFinalizados) paginaAtualFinalizados = totalPaginasFinalizados;
-  if (paginaAtualCancelados > totalPaginasCancelados) paginaAtualCancelados = totalPaginasCancelados;
-  if (paginaAtualFinalizados < 1) paginaAtualFinalizados = 1;
-  if (paginaAtualCancelados < 1) paginaAtualCancelados = 1;
+  // Ajuste de segurança para a página atual
+  if (totalFinalizados === 0) {
+    paginaAtualFinalizados = 0;
+  } else if (paginaAtualFinalizados < 1) {
+    paginaAtualFinalizados = 1;
+  } else if (paginaAtualFinalizados > totalPaginasFinalizados) {
+    paginaAtualFinalizados = totalPaginasFinalizados;
+  }
+
+  if (totalCancelados === 0) {
+    paginaAtualCancelados = 0;
+  } else if (paginaAtualCancelados < 1) {
+    paginaAtualCancelados = 1;
+  } else if (paginaAtualCancelados > totalPaginasCancelados) {
+    paginaAtualCancelados = totalPaginasCancelados;
+  }
 
   // Badges
   const bFin = document.getElementById('count-historico-finalizados');
@@ -1887,8 +1908,10 @@ function atualizarPaginacaoHistorico() {
   const btnProxCan = document.getElementById('btn-prox-cancelados');
 
   if (pagFinEl) {
-    pagFinEl.style.display = totalFinalizados > 0 ? 'flex' : 'none';
-    if (txtFin) txtFin.textContent = `${paginaAtualFinalizados}/${totalPaginasFinalizados}`;
+    pagFinEl.style.display = 'flex';
+    if (txtFin) {
+      txtFin.textContent = totalFinalizados === 0 ? '0/0' : `${paginaAtualFinalizados}/${totalPaginasFinalizados}`;
+    }
     
     if (btnAntFin) {
       const podeVoltar = paginaAtualFinalizados > 1;
@@ -1897,7 +1920,7 @@ function atualizarPaginacaoHistorico() {
       btnAntFin.style.cursor = podeVoltar ? 'pointer' : 'default';
     }
     if (btnProxFin) {
-      const podeAvancar = paginaAtualFinalizados < totalPaginasFinalizados;
+      const podeAvancar = paginaAtualFinalizados > 0 && paginaAtualFinalizados < totalPaginasFinalizados;
       btnProxFin.disabled = !podeAvancar;
       btnProxFin.style.opacity = podeAvancar ? '1' : '0.15';
       btnProxFin.style.cursor = podeAvancar ? 'pointer' : 'default';
@@ -1905,8 +1928,10 @@ function atualizarPaginacaoHistorico() {
   }
 
   if (pagCanEl) {
-    pagCanEl.style.display = totalCancelados > 0 ? 'flex' : 'none';
-    if (txtCan) txtCan.textContent = `${paginaAtualCancelados}/${totalPaginasCancelados}`;
+    pagCanEl.style.display = 'flex';
+    if (txtCan) {
+      txtCan.textContent = totalCancelados === 0 ? '0/0' : `${paginaAtualCancelados}/${totalPaginasCancelados}`;
+    }
     
     if (btnAntCan) {
       const podeVoltar = paginaAtualCancelados > 1;
@@ -1915,7 +1940,7 @@ function atualizarPaginacaoHistorico() {
       btnAntCan.style.cursor = podeVoltar ? 'pointer' : 'default';
     }
     if (btnProxCan) {
-      const podeAvancar = paginaAtualCancelados < totalPaginasCancelados;
+      const podeAvancar = paginaAtualCancelados > 0 && paginaAtualCancelados < totalPaginasCancelados;
       btnProxCan.disabled = !podeAvancar;
       btnProxCan.style.opacity = podeAvancar ? '1' : '0.15';
       btnProxCan.style.cursor = podeAvancar ? 'pointer' : 'default';
@@ -4426,7 +4451,10 @@ async function configurarPusher() {
       mostrarAlerta(msg, "💰 FECHAMENTO DE CONTA", "💰");
       
       clearTimeout(timeoutPusher);
-      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+      timeoutPusher = setTimeout(() => {
+        carregarPedidos();
+        carregarHistorico();
+      }, 100);
     });
 
     // EVENTO: NOVO PEDIDO
@@ -4451,7 +4479,10 @@ async function configurarPusher() {
       mostrarToast(`🚀 NOVO PEDIDO: ${nomeExibicao}`);
 
       clearTimeout(timeoutPusher);
-      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+      timeoutPusher = setTimeout(() => {
+        carregarPedidos();
+        carregarHistorico();
+      }, 100);
     });
 
     // EVENTO: PEDIDO PRONTO (COZINHA)
@@ -4469,7 +4500,10 @@ async function configurarPusher() {
       mostrarAlerta(msgSimples, "🍳 Cozinha", "🍳");
 
       clearTimeout(timeoutPusher);
-      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+      timeoutPusher = setTimeout(() => {
+        carregarPedidos();
+        carregarHistorico();
+      }, 100);
       });
 
       // EVENTO: MENU ATUALIZADO (SINCRONIZAÇÃO DE ESTOQUE)
@@ -4549,7 +4583,10 @@ async function configurarPusher() {
       }
 
       clearTimeout(timeoutPusher);
-      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+      timeoutPusher = setTimeout(() => {
+        carregarPedidos();
+        carregarHistorico();
+      }, 100);
     });
 
     // EVENTO: CAIXA ATUALIZADO
@@ -4558,7 +4595,10 @@ async function configurarPusher() {
       tocarNotificacao();
       carregarStatusCaixa();
       clearTimeout(timeoutPusher);
-      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+      timeoutPusher = setTimeout(() => {
+        carregarPedidos();
+        carregarHistorico();
+      }, 100);
     });
 
     // EVENTO: STATUS DO DELIVERY
@@ -4584,7 +4624,10 @@ async function configurarPusher() {
       carregarCardapio();
       // Recarrega pedidos também para garantir sincronia de estoque na tela
       clearTimeout(timeoutPusher);
-      timeoutPusher = setTimeout(() => carregarPedidos(), 100);
+      timeoutPusher = setTimeout(() => {
+        carregarPedidos();
+        carregarHistorico();
+      }, 100);
     });
 
     // EVENTO: STATUS DO GARÇOM ALTERADO (RODÍZIO)
