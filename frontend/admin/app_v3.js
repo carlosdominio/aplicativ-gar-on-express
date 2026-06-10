@@ -4136,7 +4136,7 @@ function imprimirCupomParcialFracao(pedido, itens, valorPago, saldoRestante, pes
         <span>R$ ${taxa.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size: 12pt; font-weight: 900; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px;">
-        <span>TOTAL A PAGAR:</span>
+        <span>TOTAL PAGO:</span>
         <span>R$ ${totalMesa.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-weight:bold; margin-top:2px;">
@@ -4194,7 +4194,7 @@ function imprimirCupomParcialItens(pedido, itensPagos, totalPago, cobrarTaxa) {
         <span>R$ ${taxaPagos.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size: 12pt; font-weight: 900; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px;">
-        <span>TOTAL A PAGAR:</span>
+        <span>TOTAL PAGO:</span>
         <span>R$ ${totalPago.toFixed(2)}</span>
       </div>
     </div>
@@ -5138,7 +5138,7 @@ async function imprimirCupom(pedido, itens) {
       </div>
 
       <div style="display:flex; justify-content:space-between; font-weight: 900; margin-top: 5px; font-size: 13pt; border-top: 2px solid #000; padding-top: 4px; background: #eee;">
-        <span>${isReimpressaoHistorico ? 'TOTAL PAGO:' : 'TOTAL A PAGAR:'}</span>
+        <span>${(isReimpressaoHistorico || pedido.isFechamentoFinal) ? 'TOTAL PAGO:' : 'TOTAL A PAGAR:'}</span>
         <span>R$ ${pagoAgora.toFixed(2)}</span>
       </div>
 
