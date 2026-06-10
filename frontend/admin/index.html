@@ -102,16 +102,42 @@
       cursor: default;
     }
     #global-image-viewer .btn-fechar-global {
-      position: absolute;
-      top: 20px;
-      right: 30px;
-      color: white;
-      font-size: 50px;
-      font-weight: bold;
-      cursor: pointer;
-      line-height: 1;
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
     }
-  </style>
+
+    /* FORÇAR ESTILO DO BOTÃO FECHAR (X) */
+    .close {
+      font-size: 2rem !important;
+      font-weight: 900 !important;
+      color: #ff0000 !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 40px !important;
+      height: 40px !important;
+      transition: all 0.2s !important;
+      position: relative !important;
+      z-index: 9999 !important;
+      line-height: 1 !important;
+      opacity: 0.8 !important;
+    }
+
+    .close:hover {
+      opacity: 1 !important;
+      color: #cc0000 !important;
+      transform: scale(1.1) !important;
+      background: rgba(255,0,0,0.05) !important;
+      border-radius: 50% !important;
+    }
+    </style>
 </head>
 <body>
   <!-- Visualizador Global -->
@@ -161,6 +187,25 @@
             </label>
           </div>
         </div>
+        <div class="dropdown-menu-header" id="notificacoes-container">
+          <button onclick="toggleDropdownNotificacoes()" class="dropbtn-header" style="position: relative; padding: 8px 12px !important;">
+            <i class="fa-solid fa-bell" style="font-size: 1.1rem;"></i>
+            <span id="notificacoes-badge" class="badge-notificacao hidden">0</span>
+          </button>
+          <div id="dropdown-notificacoes" class="dropdown-content-header" style="width: 320px; max-height: 450px; display: none; flex-direction: column;">
+            <div style="padding: 12px 15px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0;">
+              <strong style="color: #2c3e50; font-size: 0.9rem;">🔔 Notificações</strong>
+              <button onclick="limparNotificacoes()" style="background: none; border: none; color: #3498db; font-size: 0.75rem; cursor: pointer; font-weight: bold; text-transform: uppercase;">Limpar Tudo</button>
+            </div>
+            <div id="notificacoes-lista" style="overflow-y: auto; flex: 1; min-height: 100px;">
+              <div style="padding: 30px 20px; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                <i class="fa-solid fa-circle-check" style="display: block; font-size: 2rem; margin-bottom: 10px; opacity: 0.3;"></i>
+                Tudo em dia por aqui!
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="dropdown-menu-header">
           <button onclick="toggleDropdownAcessos()" class="dropbtn-header">
             🚀 ACESSOS <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i>
@@ -584,7 +629,7 @@
       <div class="modal-content" style="max-width: 500px; padding: 0; border-radius: 12px; overflow: hidden;">
         <div id="modal-historico-header" style="padding: 15px 20px; color: white; display: flex; justify-content: space-between; align-items: center;">
           <h2 id="modal-historico-titulo" style="margin: 0; font-size: 1.3rem;">Pedido #---</h2>
-          <span class="close" onclick="fecharModalDetalheHistorico()" style="color: white; opacity: 0.8; font-size: 1.8rem; cursor: pointer;">&times;</span>
+          <span class="close" onclick="fecharModalDetalheHistorico()">&times;</span>
         </div>
         <div style="padding: 20px; background: #f8fafc; overflow-y: auto; flex: 1;">
           <p id="modal-historico-info" style="font-weight: bold; color: #64748b; margin-top: 0;"></p>
@@ -743,7 +788,7 @@
         <h2 id="modal-item-titulo" style="margin: 0; font-size: 1.2rem; font-weight: 900; text-transform: uppercase;">Novo Item</h2>
         <div style="display: flex; gap: 15px; align-items: center;">
           <button id="btn-excluir-item-menu" class="hidden" onclick="excluirDoMenuAtual()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ff7675; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s;" onmouseover="this.style.background='rgba(231, 76, 60, 0.2)'" onmouseout="this.style.background='transparent'" title="Excluir este item permanentemente">🗑️</button>
-          <span class="close" onclick="fecharModalItemMenu()" style="color: white; opacity: 0.8; font-size: 2rem;">&times;</span>
+          <span class="close" onclick="fecharModalItemMenu()">&times;</span>
         </div>
       </div>
 
@@ -878,7 +923,7 @@
   <!-- Modal de Fechamento Admin -->
   <div id="modal-fechamento-admin" class="modal">
     <div class="modal-content" style="max-width: 850px; height: 65vh; min-height: 500px; max-height: 75vh; display: flex; flex-direction: column;">
-      <div class="modal-header" style="flex-shrink: 0;">
+      <div class="modal-header">
         <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2 style="margin:0;">Finalizar e Liberar <span id="fechamento-mesa-admin">--</span></h2>
@@ -888,10 +933,10 @@
         </div>
       </div>
 
-      <div class="modal-body" style="padding: 0; flex: 1; min-height: 200px; position: relative; overflow: hidden;">
+      <div class="modal-body" style="flex: 1; min-height: 200px; position: relative; overflow: hidden; padding: 15px 20px;">
           
           <!-- COLUNA ESQUERDA: LISTA DE ITENS -->
-          <div style="position: absolute; top: 0; left: 0; bottom: 0; width: 45%; padding: 20px; border-right: 1px solid #edf2f7; background: #f8fafc; display: flex; flex-direction: column; box-sizing: border-box;">
+          <div style="position: absolute; top: 15px; left: 20px; bottom: 15px; width: calc(45% - 25px); padding: 20px; border-right: 1px solid #edf2f7; background: #f8fafc; display: flex; flex-direction: column; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
               <h4 style="margin:0; color: #2c3e50; font-size: 0.95rem;">📋 Itens do Pedido</h4>
               <div style="display: flex; gap: 8px;">
@@ -1043,7 +1088,7 @@
 
   <!-- Modal Decisão Pós-Lançamento -->
   <div id="modal-decisao-pos-lancar" class="modal">
-    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2rem;">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 25px 20px;">
       <h2 style="margin-bottom: 1.5rem; color: #2c3e50;">Pedido Lançado! 🚀</h2>
       <p style="margin-bottom: 2rem; color: #7f8c8d; font-weight: bold;">O que deseja fazer agora com este pedido?</p>
       
@@ -1056,7 +1101,7 @@
 
   <!-- Modal de Sistema (Alert/Confirm) -->
   <div id="modal-sistema" class="modal">
-    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2rem;">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 25px 20px;">
       <div id="modal-sistema-icon" style="font-size: 3.5rem; margin-bottom: 1rem;">🔔</div>
       <h2 id="modal-sistema-titulo" style="margin-bottom: 1rem; color: #2c3e50;">Aviso</h2>
       <p id="modal-sistema-mensagem" style="margin-bottom: 2rem; color: #7f8c8d; font-size: 1.1rem; line-height: 1.4;"></p>
@@ -1118,7 +1163,7 @@
           </div>
           <div style="display: flex; gap: 15px; align-items: center;">
             <button onclick="confirmarCancelamentoDesdeOpcoes()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ff7675; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s;" onmouseover="this.style.background='rgba(231, 76, 60, 0.2)'" onmouseout="this.style.background='transparent'" title="CANCELAR TODO O PEDIDO">🗑️</button>
-            <span class="close" onclick="fecharModalOpcoes()" style="color: white; opacity: 0.8; font-size: 2rem;">&times;</span>
+            <span class="close" onclick="fecharModalOpcoes()">&times;</span>
           </div>
         </div>
 

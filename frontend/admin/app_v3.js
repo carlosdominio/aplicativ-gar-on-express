@@ -269,6 +269,7 @@ async function iniciarPainelAdmin() {
   inicializarConfiguracaoImpressao();
   inicializarConfiguracaoSom(); 
   solicitarPermissaoNotificacao();
+  carregarNotificacoes();
   
   // Define o estado inicial padrão
   abaAtiva = 'ativos';
@@ -4377,6 +4378,16 @@ function pararPiscarTitulo() { clearInterval(intervalPiscaTitulo); intervalPisca
 function solicitarPermissaoNotificacao() { if ("Notification" in window) Notification.requestPermission(); }
 function exibirNotificacaoNativa(tit, msg, tagId = 'geral') { 
   const somWindows = localStorage.getItem('admin_som_windows') === 'true';
+  
+  // Adiciona à nossa central de notificações geral
+  let icone = '🔔';
+  if (tit.includes('CHAMADO')) icone = '🛎️';
+  else if (tit.includes('CONTA')) icone = '💰';
+  else if (tit.includes('PEDIDO')) icone = '🚀';
+  else if (tit.includes('PRONTO')) icone = '🍳';
+  else if (tit.includes('ESTOQUE')) icone = '⚠️';
+  adicionarNotificacao(tit, msg, icone);
+
   if ("Notification" in window && Notification.permission === "granted") {
     const n = new Notification(tit, { 
       body: msg,
@@ -5663,3 +5674,128 @@ function atualizarIconeDelivery(enabled) {
     label.style.color = enabled ? '#2ecc71' : '#e74c3c';
   }
 }
+
+// --- CENTRAL DE NOTIFICAÇÕES (NOTIFICAÇÃO GERAL NO CABEÇALHO) ---
+let notificacoesGerais = [];
+
+function toggleDropdownNotificacoes() {
+  const dropdown = document.getElementById('dropdown-notificacoes');
+  if (!dropdown) return;
+  const isVisible = dropdown.style.display === 'flex';
+  
+  // Fecha o dropdown de acessos se estiver aberto
+  const acessos = document.getElementById('dropdown-acessos');
+  if (acessos) acessos.classList.remove('show');
+
+  if (isVisible) {
+    dropdown.style.display = 'none';
+  } else {
+    dropdown.style.display = 'flex';
+    // Ao abrir, marcamos as visíveis como lidas
+    notificacoesGerais.forEach(n => n.lida = true);
+    atualizarBadgeNotificacoes();
+    salvarNotificacoes();
+    renderizarNotificacoes();
+  }
+}
+
+function adicionarNotificacao(titulo, descricao, icone = '🔔') {
+  const nova = {
+    id: Date.now() + Math.random(),
+    titulo,
+    descricao,
+    icone,
+    data: new Date().toISOString(),
+    lida: false
+  };
+
+  notificacoesGerais.unshift(nova);
+  // Limite de 40 notificações para não pesar o storage
+  if (notificacoesGerais.length > 40) notificacoesGerais.pop();
+
+  salvarNotificacoes();
+  renderizarNotificacoes();
+  atualizarBadgeNotificacoes();
+}
+
+function renderizarNotificacoes() {
+  const lista = document.getElementById('notificacoes-lista');
+  if (!lista) return;
+
+  if (notificacoesGerais.length === 0) {
+    lista.innerHTML = `
+      <div style="padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+        <i class="fa-solid fa-circle-check" style="display: block; font-size: 2.5rem; margin-bottom: 12px; opacity: 0.2;"></i>
+        Tudo em dia por aqui!
+      </div>`;
+    return;
+  }
+
+  lista.innerHTML = notificacoesGerais.map(n => {
+    const dataObj = new Date(n.data);
+    const hora = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    
+    return `
+      <div class="notificacao-item ${n.lida ? '' : 'nao-lida'}" onclick="marcarNotificacaoComoLida(${n.id})">
+        <div class="notificacao-icon">${n.icone}</div>
+        <div class="notificacao-content">
+          <strong class="notificacao-title">${n.titulo}</strong>
+          <div class="notificacao-desc">${n.descricao}</div>
+          <span class="notificacao-time">🕒 ${hora}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function atualizarBadgeNotificacoes() {
+  const badge = document.getElementById('notificacoes-badge');
+  if (!badge) return;
+
+  const naoLidas = notificacoesGerais.filter(n => !n.lida).length;
+  if (naoLidas > 0) {
+    badge.innerText = naoLidas;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function limparNotificacoes() {
+  notificacoesGerais = [];
+  salvarNotificacoes();
+  renderizarNotificacoes();
+  atualizarBadgeNotificacoes();
+}
+
+function marcarNotificacaoComoLida(id) {
+  const n = notificacoesGerais.find(item => item.id === id);
+  if (n) n.lida = true;
+  salvarNotificacoes();
+  renderizarNotificacoes();
+  atualizarBadgeNotificacoes();
+}
+
+function salvarNotificacoes() {
+  localStorage.setItem('admin_notificacoes_v1', JSON.stringify(notificacoesGerais));
+}
+
+function carregarNotificacoes() {
+  try {
+    const salvas = localStorage.getItem('admin_notificacoes_v1');
+    if (salvas) {
+      notificacoesGerais = JSON.parse(salvas);
+      renderizarNotificacoes();
+      atualizarBadgeNotificacoes();
+    }
+  } catch(e) { console.error('Erro ao carregar notificações:', e); }
+}
+
+// Fecha dropdown ao clicar fora
+document.addEventListener('click', (e) => {
+  const container = document.getElementById('notificacoes-container');
+  const dropdown = document.getElementById('dropdown-notificacoes');
+  if (container && !container.contains(e.target) && dropdown) {
+    dropdown.style.display = 'none';
+  }
+});

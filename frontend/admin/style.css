@@ -725,7 +725,7 @@ button.btn-entregue { background-color: #95a5a6; }
   align-items: center;
   margin-bottom: 1rem;
   border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
+  padding: 15px 20px;
   flex-shrink: 0;
 }
 
@@ -734,17 +734,31 @@ button.btn-entregue { background-color: #95a5a6; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  padding: 15px 20px;
+}
+  flex-direction: column;
 }
 
 .close {
-  font-size: 2rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  font-size: 3.5rem !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+  color: #ff0000 !important; /* Vermelho para ser impossível não ver */
+  line-height: 1 !important;
+  z-index: 9999 !important;
+  position: relative !important;
+}
+
+.close:hover {
+  background-color: rgba(255, 0, 0, 0.1) !important;
+  color: #cc0000 !important;
+  transform: scale(1.2) !important;
 }
 
 .item-edicao {
@@ -1770,4 +1784,78 @@ input:checked + .slider:before {
   .config-content {
     max-height: none;
   }
+}
+
+/* central de Notifica��es */
+.badge-notificacao {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  border: 2px solid #2c3e50;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.badge-notificacao.hidden { display: none; }
+
+.notificacao-item {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.notificacao-item:hover { background-color: #f8fafc; }
+
+.notificacao-item.nao-lida {
+  background-color: #f0f9ff;
+  border-left: 3px solid #3498db;
+}
+
+.notificacao-item .notificacao-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.notificacao-item .notificacao-content { flex: 1; }
+
+.notificacao-item .notificacao-title {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #1e293b;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.notificacao-item .notificacao-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.notificacao-item .notificacao-time {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-top: 5px;
+  display: block;
+  font-weight: bold;
 }
