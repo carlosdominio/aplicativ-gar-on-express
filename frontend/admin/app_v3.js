@@ -4132,7 +4132,7 @@ function imprimirCupomParcialFracao(pedido, itens, valorPago, saldoRestante, pes
         <span style="font-weight:900;">R$ ${subtotal.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-weight: 900; font-size: 10pt; background: #f1f2f6; padding: 2px 4px; border-radius: 4px; margin: 2px 0;">
-        <span>TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'}):</span>
+        <span>${isDelivery ? 'TAXA ENTREGA' : `TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'})`}:</span>
         <span>R$ ${taxa.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size: 12pt; font-weight: 900; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px;">
@@ -4161,8 +4161,9 @@ function imprimirCupomParcialItens(pedido, itensPagos, totalPago, cobrarTaxa) {
   if (!container) return;
   aplicarConfiguracaoImpressao();
 
+  const isDelivery = (pedido.garcom_id === 'DELIVERY');
   const subtotalPagos = itensPagos.reduce((sum, i) => sum + (i.preco * i.quantidade), 0);
-  const taxaPagos = cobrarTaxa ? subtotalPagos * 0.10 : 0;
+  const taxaPagos = cobrarTaxa ? (isDelivery ? 0 : subtotalPagos * 0.10) : 0;
   // O totalPago já vem calculado com taxa/desconto/acréscimo da função chamadora
 
   const html = `
@@ -4190,7 +4191,7 @@ function imprimirCupomParcialItens(pedido, itensPagos, totalPago, cobrarTaxa) {
         <span style="font-weight:900;">R$ ${subtotalPagos.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-weight: 900; font-size: 10pt; background: #f1f2f6; padding: 2px 4px; border-radius: 4px; margin: 2px 0;">
-        <span>TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'}):</span>
+        <span>${isDelivery ? 'TAXA ENTREGA' : `TAXA SERV (${cobrarTaxa ? '10%' : 'OFF'})`}:</span>
         <span>R$ ${taxaPagos.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size: 12pt; font-weight: 900; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px;">
@@ -5126,7 +5127,7 @@ async function imprimirCupom(pedido, itens) {
         <span>R$ ${subtotal.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-weight: 900; font-size: 10pt; background: #f1f2f6; padding: 2px 4px; border-radius: 4px; margin: 2px 0;">
-        <span>TAXA SERV (${cobrarTaxaNoCupom ? '10%' : 'OFF'}):</span>
+        <span>${isDeliveryCupom ? 'TAXA ENTREGA' : `TAXA SERV (${cobrarTaxaNoCupom ? '10%' : 'OFF'})`}:</span>
         <span>R$ ${taxa.toFixed(2)}</span>
       </div>
       ${acrescimo > 0 ? `<div style="display:flex; justify-content:space-between; opacity: 0.8; font-size: 9pt;"><span>ACRÉSCIMO:</span><span>R$ ${acrescimo.toFixed(2)}</span></div>` : ''}
