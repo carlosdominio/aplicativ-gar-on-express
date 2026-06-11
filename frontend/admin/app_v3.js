@@ -1757,7 +1757,7 @@ async function exibirHistorico() {
   
   if (filtroMesa || buscaTexto) {
     pedidosFiltrados = historico.filter(p => {
-      const mesaIdentificador = p.garcom_id === 'DELIVERY' ? 'DELIVERY' : (p.mesa_numero ? `Mesa ${p.mesa_numero}` : `BALCÃO #${p.id}`);
+      const mesaIdentificador = p.garcom_id === 'DELIVERY' ? 'DELIVERY' : (p.mesa_numero ? `Mesa ${p.mesa_numero}` : `BALCÃO`);
       const garcom = (p.garcom_nome || '').toLowerCase();
       const idPedido = String(p.id);
       
@@ -1790,7 +1790,7 @@ async function exibirHistorico() {
     } else if (p.mesa_numero) {
       opcoesFiltro.add(`Mesa ${p.mesa_numero}`);
     } else {
-      opcoesFiltro.add(`BALCÃO #${p.id}`);
+      opcoesFiltro.add(`BALCÃO`);
     }
     if (p.garcom_nome) opcoesFiltro.add(p.garcom_nome);
   });
