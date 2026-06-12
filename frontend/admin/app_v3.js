@@ -4793,9 +4793,11 @@ function mostrarToast(msg, tipo = 'success', titulo = '', duracao = 5000) {
   t.innerHTML = html;
   container.appendChild(t);
 
+  // NOVO: Espelha para notificação nativa do Windows automaticamente
+  exibirNotificacaoNativa(titulo || (classeTipo.toUpperCase() + ": " + (icones[classeTipo] || "")), msg, 'toast-' + Date.now());
+
   // Trigger animação de entrada
   setTimeout(() => t.classList.add('show'), 10);
-
   // Auto-close
   const autoClose = setTimeout(() => {
     fecharToast(t);

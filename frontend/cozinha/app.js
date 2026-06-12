@@ -112,6 +112,11 @@ function mostrarToast(msg, tipo = 'success', titulo = '', duracao = 5000) {
     t.innerHTML = html;
     container.appendChild(t);
 
+    // NOVO: Espelha para notificação nativa do Windows automaticamente
+    if (typeof exibirNotificacaoNativa === 'function') {
+        exibirNotificacaoNativa(titulo || (classeTipo.toUpperCase() + ": " + (icones[classeTipo] || "")), msg, 'toast-' + Date.now());
+    }
+
     // Trigger animação
     setTimeout(() => t.classList.add('show'), 10);
 
