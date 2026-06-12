@@ -440,9 +440,17 @@ async function configurarPusher() {
 
           if (msg) {
             mostrarToast(msg, data.status === 'cancelado' ? 'error' : 'info');
-            // Toca som para notificações vindas do Admin ou sistema
-            tocarCampainha(data.status !== 'cancelado'); // Som normal para cancelamento, suave para outros
+            tocarCampainha(data.status !== 'cancelado');
             exibirNotificacaoNativa('📢 ATUALIZAÇÃO DE PEDIDO', msg, tagId);
+
+            // Se a mesa que o garçom está olhando foi cancelada/liberada, fecha os detalhes
+            if (data.status === 'cancelado' || data.status === 'liberada') {
+               if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
+                  fecharOpcoes();
+                  fecharResumoMesa();
+                  voltarParaMesas();
+               }
+            }
           }
         }
       }, 50);
@@ -455,6 +463,13 @@ async function configurarPusher() {
       tocarCampainha();
       mostrarToast(msg, 'error', '❌ PEDIDO REMOVIDO');
       exibirNotificacaoNativa('❌ PEDIDO REMOVIDO', msg, `cancel-${data.pedido_id}`);
+
+      // Reset de estado se for a mesa atual
+      if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
+          fecharOpcoes();
+          fecharResumoMesa();
+          voltarParaMesas();
+      }
       
       clearTimeout(timeoutPusher);
       timeoutPusher = setTimeout(() => carregarMesas(), 50);
