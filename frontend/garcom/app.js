@@ -3,13 +3,56 @@ let mesas = [];
 let timeoutPusher = null;
 let configCozinhaCategorias = []; // Estado global das categorias da cozinha
 
-// REGISTRO DE SERVICE WORKER (PWA)
+// REGISTRO DE SERVICE WORKER (PWA) E WEB PUSH
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/garcom/sw.js')
-      .then(reg => console.log('🚀 Service Worker registrado!', reg))
+      .then(reg => {
+        console.log('🚀 Service Worker registrado!', reg);
+        if (localStorage.getItem('garcom_token')) subscribeToPush();
+      })
       .catch(err => console.log('❌ Erro ao registrar Service Worker:', err));
   });
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function subscribeToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
+    
+    if (!subscription) {
+      const response = await fetch('/api/vapid-publicKey');
+      const data = await response.json();
+      const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
+      
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+    }
+    
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('garcom_token')
+      }
+    });
+    console.log('✅ Web Push (Background Nativo) ativado com sucesso!');
+  } catch (error) {
+    console.error('❌ Falha ao inscrever no Web Push:', error);
+  }
 }
 
 let configCozinhaLoaded = false; // Flag para saber se já carregou do servidor

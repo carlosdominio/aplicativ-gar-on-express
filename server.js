@@ -15,6 +15,17 @@ const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const ioClient = require('socket.io-client');
+const webpush = require('web-push');
+
+// --- Configuração VAPID (Web Push) ---
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BMyiv6uhCaW8LUu4EsraMpa-aiSYPEScoustJawyZDCgW0JmT9_UH4cQipSyEY5RZVNQuNvEu7cfNfumLAn_0i8';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'E4g3M62wJcFlgy8IeJzB_VlKE6fkfvTqETIall5pce4';
+
+webpush.setVapidDetails(
+  'mailto:contato@garconnexpress.com',
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
 
 // Configuração de ambiente
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -275,12 +286,71 @@ async function safePusherTrigger(channel, event, data) {
     // No Vercel, precisamos de uma confirmação real do envio
     await pusher.trigger(channel, event, data);
     console.log(`✅ [Pusher] Sucesso: ${event}`);
+    
+    // --- WEB PUSH NATIVO (BACKGROUND) ---
+    // Dispara notificação nativa para todos os garçons inscritos quando houver eventos cruciais
+    if (['novo-pedido', 'pedido-cancelado', 'chamado-garcom'].includes(event)) {
+      try {
+        const subs = (await query("SELECT * FROM push_subscriptions")).rows;
+        let pushMsg = '';
+        if (event === 'novo-pedido') pushMsg = `NOVO PEDIDO: ${data.pedido.mesa_numero}`;
+        if (event === 'pedido-cancelado') pushMsg = `CANCELADO: Mesa ${data.mesa_numero}`;
+        if (event === 'chamado-garcom') pushMsg = `CHAMADO: Mesa ${data.mesa_numero}`;
+        
+        const payload = JSON.stringify({ title: 'GarçomExpress', body: pushMsg, event });
+        
+        for (const sub of subs) {
+          const pushSubscription = {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth }
+          };
+          webpush.sendNotification(pushSubscription, payload).catch(async err => {
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              console.log('🗑️ Removendo inscrição inativa:', sub.endpoint);
+              await query("DELETE FROM push_subscriptions WHERE id = ?", [sub.id]);
+            } else {
+              console.error('❌ Erro no Web Push:', err.message);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao buscar subscriptions:', err.message);
+      }
+    }
+    
     return true;
   } catch (e) {
     console.error(`❌ [Pusher] Falha (${event}):`, e.message);
     return false;
   }
 }
+
+// --- ROTAS WEB PUSH ---
+app.get('/api/vapid-publicKey', (req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/subscribe', isAuthenticated, async (req, res) => {
+  const subscription = req.body;
+  const garcomId = req.user.id || req.user.usuario; // Depende de como está no token
+  try {
+    // Tenta encontrar se a inscrição já existe
+    const exists = await query("SELECT id FROM push_subscriptions WHERE endpoint = ?", [subscription.endpoint]);
+    if (exists.rows.length === 0) {
+      if (isPostgres) {
+         await query("INSERT INTO push_subscriptions (garcom_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)", 
+           [garcomId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]);
+      } else {
+         await query("INSERT INTO push_subscriptions (garcom_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)", 
+           [garcomId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]);
+      }
+    }
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error("Erro ao salvar inscrição push:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 async function verificarEstoqueBaixo(menuId) {
   try {
@@ -390,6 +460,7 @@ async function initDb() {
     `CREATE TABLE IF NOT EXISTS sistema_config (chave TEXT PRIMARY KEY, valor TEXT)`,
     `CREATE TABLE IF NOT EXISTS fluxo_caixa (id SERIAL PRIMARY KEY, data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP, data_fechamento TIMESTAMP, valor_inicial REAL NOT NULL, valor_final REAL, status TEXT DEFAULT 'aberto', total_dinheiro REAL DEFAULT 0, total_pix REAL DEFAULT 0, total_cartao REAL DEFAULT 0, total_vendas REAL DEFAULT 0)`,
     `CREATE TABLE IF NOT EXISTS codigos_acesso (id SERIAL PRIMARY KEY, mesa_id INTEGER, codigo TEXT NOT NULL, status TEXT DEFAULT 'ativo', criado_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS push_subscriptions (id SERIAL PRIMARY KEY, garcom_id TEXT, endpoint TEXT, p256dh TEXT, auth TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
     `CREATE INDEX IF NOT EXISTS idx_pedido_itens_pedido_id ON pedido_itens(pedido_id)`,
     `CREATE INDEX IF NOT EXISTS idx_pedidos_mesa_id ON pedidos(mesa_id)`,
     `CREATE INDEX IF NOT EXISTS idx_pedidos_status ON pedidos(status)`
