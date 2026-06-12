@@ -978,14 +978,20 @@ async function carregarStatusCaixa() {
 }
 
 async function abrirCaixa() {
-  const valor = parseFloat(document.getElementById('caixa-valor-inicial').value) || 0;
+  const inputValor = document.getElementById('caixa-valor-inicial');
+  const valor = parseFloat(inputValor.value) || 0;
+
+  if (valor <= 0) {
+    return await mostrarAlerta("O valor inicial do caixa deve ser maior que zero (Fundo de troco).", "Aviso", "⚠️");
+  }
+
   const res = await fetch('/api/caixa/abrir', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ valor_inicial: valor })
   });
   if (res.ok) {
-    mostrarToast("Caixa aberto com sucesso!");
+    mostrarToast("Caixa aberto com sucesso!", "success");
     carregarStatusCaixa();
   }
 }
