@@ -1196,6 +1196,7 @@ async function marcarComoServido(idPedido) {
     if (res.ok) {
       await mostrarAlerta("Sucesso! Todos os itens foram entregues.", "Sucesso", "✅");
       document.getElementById('modal-resumo-mesa').style.display = 'none';
+      atualizarBloqueioScroll();
       carregarMesas();
     }
   } catch (error) { await mostrarAlerta("Erro ao atualizar status de entrega.", "Erro", "❌"); }
