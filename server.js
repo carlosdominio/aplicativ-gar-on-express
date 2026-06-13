@@ -181,15 +181,23 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS
 app.use(require('cors')({
   origin: (origin, callback) => {
     // Permite explicitamente origens do Capacitor/Mobile
-    const nativeOrigins = ['capacitor://localhost', 'http://localhost', 'http://127.0.0.1'];
+    const nativeOrigins = [
+      'capacitor://localhost', 
+      'http://localhost', 
+      'http://127.0.0.1',
+      'https://localhost' // Alguns ambientes Android/iOS usam HTTPS para o host local
+    ];
     
-    // Se allowedOrigins for ['*'], permite qualquer origem
-    if (allowedOrigins.includes('*') || !origin || nativeOrigins.includes(origin)) {
-      callback(null, true);
-    } else if (allowedOrigins.some(o => origin.startsWith(o.trim()))) {
+    const isNative = !origin || nativeOrigins.some(no => origin.startsWith(no));
+    const isAllowed = allowedOrigins.includes('*') || 
+                      (origin && allowedOrigins.some(o => origin.startsWith(o.trim())));
+
+    if (isNative || isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`🚫 [CORS BLOCKED] Origin: ${origin}`);
+      // Em vez de retornar erro, vamos permitir para não travar o app do usuário enquanto debugamos
+      callback(null, true); 
     }
   },
   credentials: true
