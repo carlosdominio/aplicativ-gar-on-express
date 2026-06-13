@@ -43,6 +43,20 @@ try {
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
+
+// Middleware manual para garantir que OPTIONS responda sempre com sucesso e headers corretos
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -172,36 +186,9 @@ async function sendWhatsAppMessage(text, targetNumber = null) {
 
 // Log global de todas as requisições
 app.use((req, res, next) => {
-  console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+  console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
   next();
 });
-
-// Configuração de CORS dinâmica baseada em ALLOWED_ORIGINS
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['*'];
-app.use(require('cors')({
-  origin: (origin, callback) => {
-    // Permite explicitamente origens do Capacitor/Mobile
-    const nativeOrigins = [
-      'capacitor://localhost', 
-      'http://localhost', 
-      'http://127.0.0.1',
-      'https://localhost' // Alguns ambientes Android/iOS usam HTTPS para o host local
-    ];
-    
-    const isNative = !origin || nativeOrigins.some(no => origin.startsWith(no));
-    const isAllowed = allowedOrigins.includes('*') || 
-                      (origin && allowedOrigins.some(o => origin.startsWith(o.trim())));
-
-    if (isNative || isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`🚫 [CORS BLOCKED] Origin: ${origin}`);
-      // Em vez de retornar erro, vamos permitir para não travar o app do usuário enquanto debugamos
-      callback(null, true); 
-    }
-  },
-  credentials: true
-}));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'seusegredomuitolouco123';
 const saltRounds = 10;
