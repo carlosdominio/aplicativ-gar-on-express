@@ -1,4 +1,4 @@
-const CACHE_NAME = 'garcom-cache-v5'; // Incrementado para forçar atualização
+const CACHE_NAME = 'garcom-cache-v6'; // Incrementado para forçar atualização
 const urlsToCache = [
   'index.html',
   'style.css',
@@ -50,40 +50,44 @@ self.addEventListener('activate', event => {
 
 // --- WEB PUSH (BACKGROUND NOTIFICATIONS) ---
 self.addEventListener('push', event => {
+  let data = { title: '🚨 GarçomExpress', body: 'Nova atualização recebida.' };
+  
   if (event.data) {
     try {
-      const data = event.data.json();
-      
-      // Criamos um 'tag' único para cada mensagem baseado no tempo se não houver um,
-      // ou usamos o evento. Isso FORÇA o Android a tratar como uma nova notificação
-      // e tocar o som/vibrar novamente mesmo que a anterior não tenha sido lida.
-      const uniqueTag = data.tag || `${data.event || 'push'}-${Date.now()}`;
-      
-      const options = {
-        body: data.body,
-        icon: '/garcom/favicon.svg',
-        badge: '/garcom/favicon.svg',
-        // Padrão de vibração "SOS/Emergência" ultra-agressivo
-        vibrate: [1000, 200, 1000, 200, 1000, 200, 500, 100, 500, 100, 500, 100, 1000, 200, 1000, 200, 1000],
-        requireInteraction: true, // Não deixa a notificação sumir sozinha
-        renotify: true, // Força vibrar/tocar mesmo se houver outra notificação do mesmo app
-        silent: false,
-        tag: uniqueTag, 
-        data: {
-          url: self.registration.scope
-        },
-        actions: [
-          { action: 'open', title: '✅ VER AGORA' }
-        ]
-      };
-
-      event.waitUntil(
-        self.registration.showNotification(data.title || '🚨 GarçomExpress', options)
-      );
+      data = event.data.json();
     } catch (e) {
-      console.error('Erro ao processar push:', e);
+      console.error('Erro ao converter JSON do Push:', e);
+      data.body = event.data.text();
     }
   }
+
+  // Criamos um 'tag' único para cada mensagem baseado no tempo se não houver um,
+  // ou usamos o evento. Isso FORÇA o Android a tratar como uma nova notificação.
+  const uniqueTag = data.tag || `${data.event || 'push'}-${Date.now()}`;
+  
+  const options = {
+    body: data.body,
+    icon: '/garcom/favicon.svg', // Ideal seria um PNG
+    badge: '/garcom/favicon.svg',
+    // Padrão de vibração "SOS/Emergência" ultra-agressivo
+    vibrate: [1000, 200, 1000, 200, 1000, 200, 500, 100, 500, 100, 500, 100, 1000, 200, 1000, 200, 1000],
+    requireInteraction: true,
+    renotify: true,
+    silent: false,
+    tag: uniqueTag, 
+    data: {
+      url: self.registration.scope
+    }
+  };
+
+  // Tenta adicionar ações apenas se suportado (evita quebra em navegadores antigos)
+  if ('actions' in Notification.prototype) {
+    options.actions = [{ action: 'open', title: '✅ VER AGORA' }];
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || '🚨 GarçomExpress', options)
+  );
 });
 
 self.addEventListener('notificationclick', event => {

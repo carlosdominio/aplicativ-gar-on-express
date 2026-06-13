@@ -1930,9 +1930,17 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
         await query("UPDATE pedidos SET pago_parcial = pago_parcial + total, total = 0 WHERE id = ?", [id]);
       }
     }
+    // Busca status anterior para controle de estoque
+    const prevStatusRes = await query("SELECT status FROM pedidos WHERE id = ?", [id]);
+    const prevStatus = prevStatusRes.rows[0] ? prevStatusRes.rows[0].status : null;
+
     await query('UPDATE pedidos SET status = ? WHERE id = ?', [status, id]);
     
-    if (status === 'cancelado') {
+    if (status === 'cancelado' && prevStatus !== 'cancelado' && prevStatus !== 'rascunho') {
+      const itens = (await query("SELECT menu_id, quantidade FROM pedido_itens WHERE pedido_id = ?", [id])).rows;
+      for (const item of itens) {
+        await query("UPDATE menu SET estoque = CASE WHEN estoque = -1 THEN -1 ELSE estoque + ? END WHERE id = ?", [item.quantidade, item.menu_id]);
+      }
       await query("UPDATE pedido_itens SET status = 'cancelado' WHERE pedido_id = ?", [id]);
     }
     const pm = (await query("SELECT p.mesa_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
