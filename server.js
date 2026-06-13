@@ -30,13 +30,23 @@ webpush.setVapidDetails(
 
 // --- Configuração Firebase Admin (App Nativo Android/iOS) ---
 try {
-  const serviceAccount = require('./firebase-adminsdk.json');
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-  console.log('✅ Firebase Admin SDK inicializado com sucesso.');
+  let serviceAccount;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    console.log('📦 Firebase Admin inicializado via Variável de Ambiente.');
+  } else {
+    serviceAccount = require('./firebase-adminsdk.json');
+    console.log('📦 Firebase Admin inicializado via Arquivo Local.');
+  }
+
+  if (admin.apps.length === 0) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('✅ Firebase Admin SDK pronto.');
+  }
 } catch (error) {
-  console.log('⚠️ Firebase Admin SDK não configurado. Notificações Nativas não funcionarão.', error.message);
+  console.log('⚠️ Firebase Admin SDK não configurado:', error.message);
 }
 
 // Configuração de ambiente
