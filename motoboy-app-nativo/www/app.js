@@ -138,8 +138,10 @@ async function initPusher() {
             if (data.garcom_id === 'DELIVERY') {
                 if (data.status === 'cancelado') {
                     showToast(`Pedido #${data.pedido_id} foi CANCELADO.`, "warning");
+                    exibirNotificacaoNativa(`❌ PEDIDO CANCELADO`, `O pedido #${data.pedido_id} foi cancelado.`);
                 } else if (data.status === 'pronto' || data.status === 'servido') {
                     showToast(`Pedido #${data.pedido_id} está PRONTO!`, "success");
+                    exibirNotificacaoNativa(`🍳 PEDIDO PRONTO`, `O pedido #${data.pedido_id} está pronto para entrega.`);
                 } else if (data.status === 'recebido') {
                     showToast(`Novo pedido #${data.pedido_id} recebido!`, "info");
                 } else if (data.status === 'aguardando_fechamento' || data.status === 'entregue') {

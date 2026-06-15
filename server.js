@@ -1401,8 +1401,15 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
     const itensRestantes = (await query("SELECT status FROM pedido_itens WHERE pedido_id = ?", [item.pedido_id])).rows;
     if (itensRestantes.length === 0) {
       const pedido = (await query("SELECT mesa_id, m.numero, p.garcom_id FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [item.pedido_id])).rows[0];
-      // Notifica ANTES de deletar para que o notifyStatus consiga buscar os dados (garcom_id etc)
+      const mesaNum = pedido.garcom_id === 'DELIVERY' ? `DELIVERY #${item.pedido_id}` : (pedido.numero || 'BALCÃO');
       await notifyStatus(item.pedido_id, pedido ? pedido.mesa_id : null, 'cancelado');
+      await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
+        id: item.pedido_id,
+        pedido_id: item.pedido_id, 
+        mesa_numero: mesaNum,
+        garcom_id: pedido.garcom_id,
+        mensagem: `🚨 O Pedido #${item.pedido_id} foi CANCELADO (último item removido).` 
+      });
 
       await query("DELETE FROM pedidos WHERE id = ?", [item.pedido_id]);
       if (pedido && pedido.mesa_id) {
