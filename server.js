@@ -369,29 +369,24 @@ async function safePusherTrigger(channel, event, data) {
           const isMotoboy = sub.garcom_id === 'DELIVERY';
           
           // Filtro robusto para identificar se o evento é de Delivery
-          // Se for cancelamento, tentamos ser mais permissivos ou buscar no DB se necessário
           let isDeliveryEvent = 
             (data.garcom_id === 'DELIVERY') || 
             (data.pedido && data.pedido.garcom_id === 'DELIVERY') ||
             (mesaNum && String(mesaNum).toUpperCase().includes('DELIVERY'));
 
-          // Caso especial para cancelamento onde data pode estar incompleta
-          if (!isDeliveryEvent && event === 'pedido-cancelado' && data.pedido_id) {
-             // Se não detectou pelos dados, mas temos o pedido_id, o Motoboy precisa saber se era dele
-             // Para não pesar o loop com queries, confiamos no isMotoboy para enviar se o evento for global
-             isDeliveryEvent = true; 
+          // Caso especial para cancelamento: Se for cancelamento, enviamos para AMBOS (Garçom e Motoboy) 
+          // para garantir que ninguém perca a informação, já que o status do pedido pode já ter sido alterado no DB.
+          const isCancelamento = (event === 'pedido-cancelado') || (event === 'status-atualizado' && data.status === 'cancelado');
+          if (isCancelamento) {
+             isDeliveryEvent = isMotoboy; // Se é motoboy, trata como evento dele. Se é garçom, também.
           }
             
-          if (event === 'pedido-cancelado') {
-             console.log(`[DEBUG-PUSH] Evento: cancelado | isMotoboy: ${isMotoboy} | isDeliveryEvent: ${isDeliveryEvent} | pedidoId: ${data.pedido_id} | mesaNum: ${mesaNum}`);
+          if (isCancelamento) {
+             console.log(`[DEBUG-PUSH] 🚨 CANCELAMENTO: isMotoboy=${isMotoboy} | Token=${sub.endpoint.substring(0, 10)}...`);
           }
           
-          if (isMotoboy && !isDeliveryEvent) {
-             continue;
-          }
-          if (!isMotoboy && isDeliveryEvent) {
-             continue; 
-          }
+          if (isMotoboy && !isDeliveryEvent) continue;
+          if (!isMotoboy && isDeliveryEvent && !isCancelamento) continue; 
 
           if (sub.endpoint.includes('fcm.googleapis.com') || sub.endpoint.startsWith('https://')) {
              // ... [Web Push remains same] ...
@@ -407,6 +402,8 @@ async function safePusherTrigger(channel, event, data) {
                  },
                  data: {
                    event: event,
+                   pedido_id: String(data.pedido_id || data.id || ''),
+                   status: String(data.status || ''),
                    sound: 'notificacao',
                    title: 'GarçomExpress',
                    body: pushMsg
@@ -414,9 +411,14 @@ async function safePusherTrigger(channel, event, data) {
                  android: {
                    priority: 'high',
                    notification: {
+                     title: 'GarçomExpress',
+                     body: pushMsg,
                      sound: 'notificacao',
                      channelId: 'pedidos',
-                     defaultSound: false,
+                     icon: 'ic_stat_name',
+                     color: '#ff0000',
+                     priority: 'high',
+                     visibility: 'public',
                      clickAction: 'FCM_PLUGIN_ACTIVITY'
                    }
                  },
@@ -424,7 +426,8 @@ async function safePusherTrigger(channel, event, data) {
                    payload: {
                      aps: {
                        sound: 'notificacao.caf',
-                       badge: 1
+                       badge: 1,
+                       contentAvailable: true
                      }
                    }
                  },
