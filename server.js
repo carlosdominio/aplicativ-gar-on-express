@@ -348,6 +348,7 @@ async function safePusherTrigger(channel, event, data) {
         else if (event === 'status-atualizado') {
            if (data.status === 'servido' || data.status === 'entregue') pushMsg = `✅ ENTREGUE: ${mesaNum}`;
            else if (data.status === 'saiu_entrega') pushMsg = `🛵 SAIU ENTREGA: ${mesaNum}`;
+           else if (data.status === 'cancelado') pushMsg = `❌ CANCELADO: ${mesaNum}`;
            else return true; 
         }
         else pushMsg = `Notificação: ${event}`;
@@ -1390,27 +1391,11 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
     const itensRestantes = (await query("SELECT status FROM pedido_itens WHERE pedido_id = ?", [item.pedido_id])).rows;
     if (itensRestantes.length === 0) {
       const pedido = (await query("SELECT mesa_id, m.numero, p.garcom_id FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [item.pedido_id])).rows[0];
+      // Notifica ANTES de deletar para que o notifyStatus consiga buscar os dados (garcom_id etc)
+      await notifyStatus(item.pedido_id, pedido ? pedido.mesa_id : null, 'cancelado');
+
       await query("DELETE FROM pedidos WHERE id = ?", [item.pedido_id]);
       if (pedido && pedido.mesa_id) {
-        await query("UPDATE mesas SET status = 'livre' WHERE id = ?", [pedido.mesa_id]);
-        await query("UPDATE codigos_acesso SET status = 'expirado' WHERE mesa_id = ? AND status = 'ativo'", [pedido.mesa_id]);
-
-        // Notifica o cliente para encerrar o acesso
-        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pedido.mesa_id}`, { 
-          status: 'cancelado',
-          mensagem: "Seu pedido foi cancelado e a mesa liberada. O acesso foi encerrado." 
-        });
-      }
-
-      const mesaNum = pedido ? (pedido.garcom_id === 'DELIVERY' ? `DELIVERY #${item.pedido_id}` : (pedido.numero || 'BALCÃO')) : 'BALCÃO';
-      await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
-        pedido_id: item.pedido_id, 
-        mesa_numero: mesaNum,
-        garcom_id: pedido ? pedido.garcom_id : null,
-        mensagem: `🚨 O Pedido #${item.pedido_id} (Mesa ${mesaNum}) foi CANCELADO.` 
-      });
-
-      await notifyStatus(item.pedido_id, pedido ? pedido.mesa_id : null, 'cancelado');
     } else {
       const temPendente = itensRestantes.some(i => i.status === 'pendente');
       if (!temPendente) { await query("UPDATE pedidos SET status = 'servido' WHERE id = ?", [item.pedido_id]); await notifyStatus(item.pedido_id, null, 'servido'); }
