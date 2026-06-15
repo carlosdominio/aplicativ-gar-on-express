@@ -5,7 +5,10 @@ let channel;
 const audioNotificacao = new Audio(API_BASE_URL + '/notificacao.mp3');
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Verifica status do caixa primeiro
+    // 1. Verifica autenticação
+    if (!verificarAutenticacao()) return;
+
+    // 2. Verifica status do caixa
     await verificarStatusCaixa();
     setInterval(verificarStatusCaixa, 30000);
 
@@ -34,6 +37,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadPedidos();
 });
 
+function verificarAutenticacao() {
+    const token = localStorage.getItem('motoboy_token');
+    const loginScreen = document.getElementById('login-screen');
+    
+    if (!token) {
+        loginScreen.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        setupLoginForm();
+        return false;
+    }
+    
+    loginScreen.style.display = 'none';
+    document.body.style.overflow = '';
+    return true;
+}
+
+function setupLoginForm() {
+    const form = document.getElementById('login-form');
+    if (!form) return;
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const usuario = document.getElementById('login-user').value;
+        const senha = document.getElementById('login-pass').value;
+        const btn = form.querySelector('button');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AUTENTICANDO...';
+
+        try {
+            const res = await fetch(API_BASE_URL + '/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario, senha })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('motoboy_token', data.token);
+                localStorage.setItem('motoboy_user', JSON.stringify(data.garcom));
+                
+                Swal.fire({
+                    title: 'Bem-vindo!',
+                    text: `Olá ${data.garcom.nome}, bom trabalho!`,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                Swal.fire('Erro', 'Usuário ou senha incorretos.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ENTRAR';
+            }
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Erro', 'Falha na conexão com o servidor.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ENTRAR';
+        }
+    };
+}
+
 async function initNativePush() {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         const { PushNotifications } = Capacitor.Plugins;
@@ -61,9 +129,13 @@ async function initNativePush() {
             console.log('Push registration success, token: ' + token.value);
             // Envia o token para o servidor para permitir notificações em segundo plano
             try {
+                const motoboyToken = localStorage.getItem('motoboy_token');
                 await fetch(API_BASE_URL + '/api/subscribe-motoboy', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${motoboyToken}`
+                    },
                     body: JSON.stringify({ endpoint: token.value })
                 });
                 console.log('✅ Token FCM registrado no servidor!');
@@ -194,7 +266,17 @@ async function initPusher() {
 
 async function loadPedidos() {
     try {
-        const res = await fetch(API_BASE_URL + '/api/pedidos/ativos-detalhado');
+        const token = localStorage.getItem('motoboy_token');
+        const res = await fetch(API_BASE_URL + '/api/pedidos/ativos-detalhado', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem('motoboy_token');
+            location.reload();
+            return;
+        }
+
         const allPedidos = await res.json();
         
         // Filtra apenas os pedidos de DELIVERY
@@ -353,10 +435,14 @@ async function confirmarEntrega(id, btn) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSANDO...';
 
     try {
+        const token = localStorage.getItem('motoboy_token');
         // Envia status 'aguardando_fechamento' para que no Admin caia na coluna de entregue/fechamento
         const res = await fetch(API_BASE_URL + `/api/pedidos/${id}/status`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ status: 'aguardando_fechamento' })
         });
 
