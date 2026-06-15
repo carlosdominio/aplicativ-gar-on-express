@@ -1396,6 +1396,13 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
 
       await query("DELETE FROM pedidos WHERE id = ?", [item.pedido_id]);
       if (pedido && pedido.mesa_id) {
+        await query("UPDATE mesas SET status = 'livre' WHERE id = ?", [pedido.mesa_id]);
+        await query("UPDATE codigos_acesso SET status = 'expirado' WHERE mesa_id = ? AND status = 'ativo'", [pedido.mesa_id]);
+        await safePusherTrigger('garconnexpress', `deslogar-mesa-${pedido.mesa_id}`, { 
+          status: 'cancelado',
+          mensagem: "Este pedido foi removido pelo estabelecimento. Seu acesso foi encerrado." 
+        });
+      }
     } else {
       const temPendente = itensRestantes.some(i => i.status === 'pendente');
       if (!temPendente) { await query("UPDATE pedidos SET status = 'servido' WHERE id = ?", [item.pedido_id]); await notifyStatus(item.pedido_id, null, 'servido'); }
