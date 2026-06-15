@@ -29,24 +29,47 @@ webpush.setVapidDetails(
 );
 
 // --- Configuração Firebase Admin (App Nativo Android/iOS) ---
+let firebaseGarcomApp = null;
+let firebaseMotoboyApp = null;
+
 try {
-  let serviceAccount;
+  let serviceAccountGarcom;
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    console.log('📦 Firebase Admin inicializado via Variável de Ambiente.');
+    serviceAccountGarcom = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   } else {
-    serviceAccount = require('./firebase-adminsdk.json');
-    console.log('📦 Firebase Admin inicializado via Arquivo Local.');
+    try {
+      serviceAccountGarcom = require('./firebase-adminsdk.json');
+    } catch (e) { console.log('⚠️ Arquivo firebase-adminsdk.json não encontrado.'); }
   }
 
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('✅ Firebase Admin SDK pronto.');
+  if (serviceAccountGarcom) {
+    firebaseGarcomApp = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccountGarcom)
+    }, 'garcom');
+    console.log('✅ Firebase Admin (Garçom) pronto.');
   }
 } catch (error) {
-  console.log('⚠️ Firebase Admin SDK não configurado:', error.message);
+  console.log('⚠️ Erro ao configurar Firebase Garçom:', error.message);
+}
+
+try {
+  let serviceAccountMotoboy;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_MOTOBOY) {
+    serviceAccountMotoboy = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_MOTOBOY);
+  } else {
+    try {
+      serviceAccountMotoboy = require('./firebase-motoboy-adminsdk.json');
+    } catch (e) { /* ignore */ }
+  }
+
+  if (serviceAccountMotoboy) {
+    firebaseMotoboyApp = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccountMotoboy)
+    }, 'motoboy');
+    console.log('✅ Firebase Admin (Motoboy) pronto.');
+  }
+} catch (error) {
+  console.log('⚠️ Erro ao configurar Firebase Motoboy:', error.message);
 }
 
 // Configuração de ambiente
@@ -345,7 +368,9 @@ async function safePusherTrigger(channel, event, data) {
              // ... [Web Push remains same] ...
           } else {
              // Tratamento para Token Nativo (Capacitor/Firebase SDK)
-             if (admin.apps.length > 0) {
+             const firebaseAppToUse = isMotoboy ? firebaseMotoboyApp : firebaseGarcomApp;
+
+             if (firebaseAppToUse) {
                const message = {
                  notification: {
                    title: 'GarçomExpress',
@@ -374,12 +399,12 @@ async function safePusherTrigger(channel, event, data) {
                  token: sub.endpoint
                };
                
-               admin.messaging().send(message)
+               admin.messaging(firebaseAppToUse).send(message)
                  .then((response) => {
-                   console.log('✅ FCM Nativo enviado com sucesso:', response);
+                   console.log(`✅ FCM Nativo (${isMotoboy ? 'Motoboy' : 'Garçom'}) enviado com sucesso:`, response);
                  })
                  .catch(async (error) => {
-                   console.error('❌ Erro enviando FCM Nativo:', error);
+                   console.error(`❌ Erro enviando FCM Nativo (${isMotoboy ? 'Motoboy' : 'Garçom'}):`, error);
                    // Remove tokens inválidos
                    if (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered') {
                       console.log('🗑️ Removendo token FCM inativo:', sub.endpoint);
