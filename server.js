@@ -404,17 +404,30 @@ app.post('/api/subscribe', isAuthenticated, async (req, res) => {
     // Tenta encontrar se a inscrição já existe
     const exists = await query("SELECT id FROM push_subscriptions WHERE endpoint = ?", [subscription.endpoint]);
     if (exists.rows.length === 0) {
-      if (isPostgres) {
-         await query("INSERT INTO push_subscriptions (garcom_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)", 
-           [garcomId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]);
-      } else {
-         await query("INSERT INTO push_subscriptions (garcom_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)", 
-           [garcomId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]);
-      }
+      await query("INSERT INTO push_subscriptions (garcom_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)",
+        [garcomId, subscription.endpoint, subscription.keys?.p256dh || '', subscription.keys?.auth || '']);
     }
     res.status(201).json({ success: true });
   } catch (error) {
     console.error("Erro ao salvar inscrição push:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/subscribe-motoboy', async (req, res) => {
+  const subscription = req.body;
+  const garcomId = 'DELIVERY';
+  try {
+    // Inscrição para Motoboy (Pode ser Token FCM direto do Capacitor ou WebPush)
+    const exists = await query("SELECT id FROM push_subscriptions WHERE endpoint = ?", [subscription.endpoint]);
+    if (exists.rows.length === 0) {
+      await query("INSERT INTO push_subscriptions (garcom_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)",
+        [garcomId, subscription.endpoint, subscription.keys?.p256dh || '', subscription.keys?.auth || '']);
+      console.log('✅ Novo dispositivo Motoboy inscrito para Push:', subscription.endpoint);
+    }
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error("Erro ao salvar inscrição push motoboy:", error);
     res.status(500).json({ error: error.message });
   }
 });

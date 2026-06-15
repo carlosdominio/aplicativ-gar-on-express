@@ -45,18 +45,42 @@ async function initNativePush() {
         }
 
         if (perm.receive === 'granted') {
+            // Cria canal de notificação (Obrigatório para Android 8+)
+            await PushNotifications.createChannel({
+                id: 'pedidos',
+                name: 'Pedidos e Alertas',
+                description: 'Notificações de novos pedidos e atualizações de status',
+                sound: 'notificacao.mp3',
+                importance: 5,
+                visibility: 1
+            });
             await PushNotifications.register();
         }
 
-        PushNotifications.addListener('registration', (token) => {
+        PushNotifications.addListener('registration', async (token) => {
             console.log('Push registration success, token: ' + token.value);
-            // Aqui você poderia enviar o token para o seu servidor se quiser enviar via Firebase direto
+            // Envia o token para o servidor para permitir notificações em segundo plano
+            try {
+                await fetch(API_BASE_URL + '/api/subscribe-motoboy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: token.value })
+                });
+                console.log('✅ Token FCM registrado no servidor!');
+            } catch (e) {
+                console.error('❌ Erro ao registrar token FCM no servidor:', e);
+            }
         });
 
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
             console.log('Push received: ', notification);
             loadPedidos();
             mostrarToast(notification.body, 'info', notification.title);
+        });
+
+        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+            console.log('Push action performed: ', notification);
+            loadPedidos();
         });
     }
 }
