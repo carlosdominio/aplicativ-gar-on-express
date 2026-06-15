@@ -332,6 +332,15 @@ async function safePusherTrigger(channel, event, data) {
         const payload = JSON.stringify({ title: 'GarçomExpress', body: pushMsg, event });
         
         for (const sub of subs) {
+          const isMotoboy = sub.garcom_id === 'DELIVERY';
+          const isDeliveryEvent = (data.garcom_id === 'DELIVERY') || (mesaNum && mesaNum.includes('DELIVERY'));
+          
+          // Lógica de Filtro:
+          // 1. Se for motoboy, só recebe se o evento for de Delivery.
+          // 2. Se for garçom, só recebe se o evento NÃO for de Delivery (ou se for algo geral).
+          if (isMotoboy && !isDeliveryEvent) continue;
+          if (!isMotoboy && isDeliveryEvent && event !== 'novo-pedido') continue; 
+
           if (sub.endpoint.includes('fcm.googleapis.com') || sub.endpoint.startsWith('https://')) {
              // ... [Web Push remains same] ...
           } else {
