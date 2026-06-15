@@ -399,7 +399,7 @@ async function safePusherTrigger(channel, event, data) {
                  token: sub.endpoint
                };
                
-               admin.messaging(firebaseAppToUse).send(message)
+               firebaseAppToUse.messaging().send(message)
                  .then((response) => {
                    console.log(`✅ FCM Nativo (${isMotoboy ? 'Motoboy' : 'Garçom'}) enviado com sucesso:`, response);
                  })
