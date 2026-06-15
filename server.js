@@ -366,26 +366,26 @@ async function safePusherTrigger(channel, event, data) {
         for (const sub of uniqueSubs) {
           const isMotoboy = sub.garcom_id === 'DELIVERY';
           
-          // Detecção ultra-robusta de Delivery e Cancelamento
           const gId = String(data.garcom_id || (data.pedido ? data.pedido.garcom_id : '')).toUpperCase();
           const sStatus = String(data.status || (data.pedido ? data.pedido.status : '')).toLowerCase();
           const isCancelamento = (event === 'pedido-cancelado') || (sStatus === 'cancelado');
           const isDeliveryEvent = (gId === 'DELIVERY') || (mesaNum && String(mesaNum).toUpperCase().includes('DELIVERY'));
 
-          // Se for motoboy, recebe se for Delivery OU se for um Cancelamento (segurança extra)
           if (isMotoboy && !isDeliveryEvent && !isCancelamento) continue;
-          // Se for garçom, recebe se NÃO for Delivery OU se for um Cancelamento
           if (!isMotoboy && isDeliveryEvent && !isCancelamento) continue; 
 
           if (sub.endpoint.includes('fcm.googleapis.com') || sub.endpoint.startsWith('https://')) {
-             // ... [Web Push remains same] ...
+             // Web Push
           } else {
              const firebaseAppToUse = isMotoboy ? firebaseMotoboyApp : firebaseGarcomApp;
              if (firebaseAppToUse) {
                const pId = String(data.pedido_id || data.id || (data.pedido ? data.pedido.id : ''));
                
                const message = {
-                 notification: { title: 'GarçomExpress', body: pushMsg },
+                 notification: { 
+                   title: 'GarçomExpress', 
+                   body: pushMsg 
+                 },
                  data: {
                    event: String(event),
                    id: pId,
@@ -398,6 +398,7 @@ async function safePusherTrigger(channel, event, data) {
                  },
                  android: {
                    priority: 'high',
+                   ttl: 3600 * 1000,
                    notification: {
                      title: 'GarçomExpress',
                      body: pushMsg,
@@ -406,12 +407,27 @@ async function safePusherTrigger(channel, event, data) {
                      sound: 'notificacao',
                      channelId: 'pedidos',
                      priority: 'high',
+                     visibility: 'public',
                      tag: pId,
+                     ticker: pushMsg,
                      clickAction: 'FCM_PLUGIN_ACTIVITY'
                    }
                  },
                  token: sub.endpoint
                };
+               
+               firebaseAppToUse.messaging().send(message)
+                 .then((response) => {
+                   console.log(`✅ FCM (${isMotoboy ? 'Motoboy' : 'Garçom'}):`, response);
+                 })
+                 .catch(async (error) => {
+                   if (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered') {
+                      await query("DELETE FROM push_subscriptions WHERE id = ?", [sub.id]);
+                   }
+                 });
+             }
+          }
+        }
                
                firebaseAppToUse.messaging().send(message)
                  .then((response) => {
