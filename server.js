@@ -349,50 +349,32 @@ async function safePusherTrigger(channel, event, data) {
            if (data.status === 'servido' || data.status === 'entregue') pushMsg = `✅ ENTREGUE: ${mesaNum}`;
            else if (data.status === 'saiu_entrega') pushMsg = `🛵 SAIU ENTREGA: ${mesaNum}`;
            else if (data.status === 'cancelado') pushMsg = `❌ CANCELADO: ${mesaNum}`;
-           else return true; 
+           else pushMsg = `Atualização: ${data.status} - ${mesaNum}`;
         }
         else pushMsg = `Notificação: ${event}`;
         
-        const payload = JSON.stringify({ title: 'GarçomExpress', body: pushMsg, event });
-        
-        // Deduplicação de tokens para evitar envios repetidos ao mesmo aparelho
-        const uniqueSubs = [];
-        const seenTokens = new Set();
-        for (const s of subs) {
-          if (!seenTokens.has(s.endpoint)) {
-            seenTokens.add(s.endpoint);
-            uniqueSubs.push(s);
-          }
-        }
-
         for (const sub of uniqueSubs) {
           const isMotoboy = sub.garcom_id === 'DELIVERY';
           
-          // Filtro robusto para identificar se o evento é de Delivery
-          const isDeliveryEvent = 
-            (data.garcom_id === 'DELIVERY') || 
-            (data.pedido && data.pedido.garcom_id === 'DELIVERY') ||
-            (mesaNum && String(mesaNum).toUpperCase().includes('DELIVERY'));
+          // Filtro para identificar se o evento é de Delivery
+          const garcomIdPayload = String(data.garcom_id || (data.pedido ? data.pedido.garcom_id : '')).toUpperCase();
+          const isDeliveryEvent = (garcomIdPayload === 'DELIVERY') || (mesaNum && String(mesaNum).toUpperCase().includes('DELIVERY'));
 
-          // Debug para cancelamento
-          if (event === 'pedido-cancelado' || (event === 'status-atualizado' && data.status === 'cancelado')) {
-             console.log(`[DEBUG-PUSH] 🚨 CANCELAMENTO: isMotoboy=${isMotoboy} | isDeliveryEvent=${isDeliveryEvent} | Token=${sub.endpoint.substring(0, 10)}...`);
-          }
+          // Se for cancelamento, tentamos ser mais permissivos para garantir o envio
+          const isCancelamento = (event === 'pedido-cancelado') || (data.status === 'cancelado');
           
-          if (isMotoboy && !isDeliveryEvent) continue;
-          if (!isMotoboy && isDeliveryEvent) continue; 
+          if (isMotoboy && !isDeliveryEvent && !isCancelamento) continue;
+          if (!isMotoboy && isDeliveryEvent && !isCancelamento) continue; 
 
           if (sub.endpoint.includes('fcm.googleapis.com') || sub.endpoint.startsWith('https://')) {
              // ... [Web Push remains same] ...
           } else {
-             // Tratamento para Token Nativo (Capacitor/Firebase SDK)
+             // Tratamento para Token Nativo
              const firebaseAppToUse = isMotoboy ? firebaseMotoboyApp : firebaseGarcomApp;
 
              if (firebaseAppToUse) {
-               // Normaliza IDs para String para evitar erros no FCM
                const pId = String(data.pedido_id || data.id || (data.pedido ? data.pedido.id : ''));
-               const gId = String(data.garcom_id || (data.pedido ? data.pedido.garcom_id : ''));
-               const sStatus = String(data.status || (data.pedido ? data.pedido.status : ''));
+               const statusFinal = String(data.status || (data.pedido ? data.pedido.status : (isCancelamento ? 'cancelado' : '')));
 
                const message = {
                  notification: {
@@ -403,8 +385,7 @@ async function safePusherTrigger(channel, event, data) {
                    event: String(event),
                    id: pId,
                    pedido_id: pId,
-                   garcom_id: gId,
-                   status: sStatus,
+                   status: statusFinal,
                    mesa_numero: String(mesaNum || ''),
                    title: 'GarçomExpress',
                    body: pushMsg,
@@ -426,13 +407,7 @@ async function safePusherTrigger(channel, event, data) {
                    }
                  },
                  apns: {
-                   payload: {
-                     aps: {
-                       sound: 'notificacao.caf',
-                       badge: 1,
-                       contentAvailable: true
-                     }
-                   }
+                   payload: { aps: { sound: 'notificacao.caf', badge: 1, contentAvailable: true } }
                  },
                  token: sub.endpoint
                };
@@ -1410,6 +1385,7 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
         pedido_id: item.pedido_id, 
         mesa_numero: mesaNum,
         garcom_id: pedido.garcom_id,
+        status: 'cancelado',
         mensagem: `🚨 O Pedido #${item.pedido_id} foi CANCELADO (último item removido).` 
       });
 
@@ -1457,6 +1433,7 @@ app.delete('/api/pedidos/:id', async (req, res) => {
         pedido_id: id, 
         mesa_numero: mesaNum,
         garcom_id: pedido.garcom_id,
+        status: 'cancelado',
         mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi REMOVIDO pelo Admin.` 
       });
     }
@@ -2061,6 +2038,7 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
             pedido_id: id, 
             mesa_numero: mesaNum,
             garcom_id: pm ? pm.garcom_id : null,
+            status: 'cancelado',
             mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi CANCELADO pelo Admin.` 
           });
         }
