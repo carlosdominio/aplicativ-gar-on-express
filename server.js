@@ -344,6 +344,7 @@ async function safePusherTrigger(channel, event, data) {
                  },
                  data: {
                    event: event,
+                   click_action: 'FCM_PLUGIN_ACTIVITY',
                    sound: 'notificacao'
                  },
                  android: {
@@ -351,7 +352,8 @@ async function safePusherTrigger(channel, event, data) {
                    notification: {
                      sound: 'notificacao',
                      channelId: 'pedidos',
-                     defaultSound: false
+                     defaultSound: false,
+                     clickAction: 'FCM_PLUGIN_ACTIVITY'
                    }
                  },
                  apns: {

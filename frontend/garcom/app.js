@@ -613,48 +613,21 @@ async function configurarPusher() {
     });
 
     // Desbloqueia áudio no primeiro clique do usuário
-    function desbloquearAudio() {
+    document.addEventListener('click', () => {
       if (audioDesbloqueado) return;
+      audioDesbloqueado = true;
       
-      // Tenta carregar e tocar silenciosamente para ganhar permissão do navegador
-      audioNotificacao.load();
       audioNotificacao.muted = true;
-      const playPromise = audioNotificacao.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
+      audioNotificacao.play().then(() => {
           audioNotificacao.pause();
           audioNotificacao.currentTime = 0;
-          
-          audioDesbloqueado = true;
           // Só desmuda se o som estiver ativo
           if (somAtivo) {
-            audioNotificacao.muted = false;
+              audioNotificacao.muted = false;
           }
           console.log('🔊 Áudio preparado!');
-          
-          // Remove os listeners agora que funcionou
-          document.removeEventListener('click', desbloquearAudio);
-          document.removeEventListener('touchstart', desbloquearAudio);
-          document.removeEventListener('mousedown', desbloquearAudio);
-          document.removeEventListener('keydown', desbloquearAudio);
-          document.removeEventListener('pointerdown', desbloquearAudio);
-        }).catch(e => {
-          // Se falhou por falta de interação válida, mantemos audioDesbloqueado = false 
-          // para que a próxima interação tente novamente. Silenciamos NotAllowedError.
-          if (e.name !== 'NotAllowedError') {
-            console.warn('Erro ao preparar áudio:', e);
-          }
-        });
-      }
-    }
-
-    // Escuta interações para desbloquear o som
-    document.addEventListener('click', desbloquearAudio);
-    document.addEventListener('touchstart', desbloquearAudio);
-    document.addEventListener('mousedown', desbloquearAudio);
-    document.addEventListener('keydown', desbloquearAudio);
-    document.addEventListener('pointerdown', desbloquearAudio);
+      }).catch(e => console.log('Erro ao preparar áudio:', e));
+    }, { once: true });
 
   } catch (e) { console.warn('Pusher init error:', e); }
 }
