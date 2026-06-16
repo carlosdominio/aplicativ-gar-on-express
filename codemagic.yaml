@@ -26,7 +26,3 @@ workflows:
           cd android && ./gradlew assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/app-debug.apk
-    publishing:
-      email:
-        recipients:
-          - YOUR_EMAIL_HERE # Altere para o seu e-mail se quiser receber aviso
