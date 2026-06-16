@@ -346,8 +346,9 @@ async function safePusherTrigger(channel, event, data) {
         else if (event === 'rascunho-recebido') pushMsg = `📝 RASCUNHO: ${mesaNum}`;
         else if (event === 'solicitacao-fechamento-cliente') pushMsg = `💰 FECHAMENTO: ${mesaNum}`;
         else if (event === 'status-atualizado') {
-           if (data.status === 'servido' || data.status === 'entregue') pushMsg = `✅ ENTREGUE: ${mesaNum}`;
-           else if (data.status === 'saiu_entrega') pushMsg = `🛵 SAIU ENTREGA: ${mesaNum}`;
+           if (data.status === 'servido') pushMsg = `✅ SERVIDO: ${mesaNum}`;
+           else if (data.status === 'entregue' || data.status === 'aguardando_fechamento') pushMsg = `✅ ENTREGUE: ${mesaNum}`;
+           else if (data.status === 'saiu_entrega') pushMsg = `🛵 A CAMINHO: ${mesaNum}`;
            else if (data.status === 'cancelado') pushMsg = `❌ CANCELADO: ${mesaNum}`;
            else pushMsg = `Atualização: ${data.status} - ${mesaNum}`;
         }
@@ -369,22 +370,34 @@ async function safePusherTrigger(channel, event, data) {
           const gId = String(data.garcom_id || (data.pedido ? data.pedido.garcom_id : '')).toUpperCase();
           const sStatus = String(data.status || (data.pedido ? data.pedido.status : '')).toLowerCase();
           const isCancelamento = (event === 'pedido-cancelado') || (sStatus === 'cancelado');
+          // FLEXIBILIZAÇÃO: Se for cancelamento, permitimos que chegue tanto para garçom quanto motoboy para garantir visibilidade
           const isDeliveryEvent = (gId === 'DELIVERY') || (mesaNum && String(mesaNum).toUpperCase().includes('DELIVERY'));
 
-          if (isMotoboy && !isDeliveryEvent && !isCancelamento) continue;
+          // Regra de Roteamento:
+          // Se for motoboy, SÓ recebe se for evento de Delivery.
+          if (isMotoboy && !isDeliveryEvent) continue;
+          // Se for garçom, recebe se NÃO for Delivery OU se for um Cancelamento geral
           if (!isMotoboy && isDeliveryEvent && !isCancelamento) continue; 
 
+          let msgFinal = pushMsg;
+          if (isMotoboy && event === 'status-atualizado' && (sStatus === 'servido' || sStatus === 'saiu_entrega')) {
+              msgFinal = `🛵 A CAMINHO: ${mesaNum}`;
+          }
+
+          const pushTitle = isMotoboy ? 'Motoboy Pro' : 'GarçomExpress';
+
           if (sub.endpoint.includes('fcm.googleapis.com') || sub.endpoint.startsWith('https://')) {
-             // Web Push
+             // Web Push - Não implementado para motoboy nativo
           } else {
              const firebaseAppToUse = isMotoboy ? firebaseMotoboyApp : firebaseGarcomApp;
              if (firebaseAppToUse) {
                const pId = String(data.pedido_id || data.id || (data.pedido ? data.pedido.id : ''));
+               console.log(`🚀 [Push] Enviando via Firebase ${isMotoboy ? 'Motoboy' : 'Garçom'} para token: ${sub.endpoint.substring(0, 10)}...`);
                
                const message = {
                  notification: { 
-                   title: 'GarçomExpress', 
-                   body: pushMsg 
+                   title: pushTitle, 
+                   body: msgFinal 
                  },
                  data: {
                    event: String(event),
@@ -392,16 +405,15 @@ async function safePusherTrigger(channel, event, data) {
                    pedido_id: pId,
                    status: isCancelamento ? 'cancelado' : sStatus,
                    mesa_numero: String(mesaNum || ''),
-                   title: 'GarçomExpress',
-                   body: pushMsg,
+                   title: pushTitle,
+                   body: msgFinal,
                    sound: 'notificacao'
                  },
                  android: {
                    priority: 'high',
-                   ttl: 3600 * 1000,
                    notification: {
-                     title: 'GarçomExpress',
-                     body: pushMsg,
+                     title: pushTitle,
+                     body: msgFinal,
                      icon: 'ic_stat_notification',
                      color: '#e67e22',
                      sound: 'notificacao',
@@ -409,8 +421,7 @@ async function safePusherTrigger(channel, event, data) {
                      priority: 'high',
                      visibility: 'public',
                      tag: pId,
-                     ticker: pushMsg,
-                     clickAction: 'FCM_PLUGIN_ACTIVITY'
+                     ticker: msgFinal
                    }
                  },
                  token: sub.endpoint
@@ -418,29 +429,16 @@ async function safePusherTrigger(channel, event, data) {
                
                firebaseAppToUse.messaging().send(message)
                  .then((response) => {
-                   console.log(`✅ FCM (${isMotoboy ? 'Motoboy' : 'Garçom'}):`, response);
+                   console.log(`✅ FCM (${isMotoboy ? 'Motoboy' : 'Garçom'}) Sucesso:`, response);
                  })
                  .catch(async (error) => {
+                   console.error(`❌ FCM Erro:`, error.message);
                    if (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered') {
                       await query("DELETE FROM push_subscriptions WHERE id = ?", [sub.id]);
                    }
                  });
-             }
-          }
-        }
-               
-               firebaseAppToUse.messaging().send(message)
-                 .then((response) => {
-                   console.log(`✅ FCM Nativo (${isMotoboy ? 'Motoboy' : 'Garçom'}) enviado com sucesso:`, response);
-                 })
-                 .catch(async (error) => {
-                   console.error(`❌ Erro enviando FCM Nativo (${isMotoboy ? 'Motoboy' : 'Garçom'}):`, error);
-                   // Remove tokens inválidos
-                   if (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered') {
-                      console.log('🗑️ Removendo token FCM inativo:', sub.endpoint);
-                      await query("DELETE FROM push_subscriptions WHERE id = ?", [sub.id]);
-                   }
-                 });
+             } else {
+               console.warn(`⚠️ Firebase App não configurado para ${isMotoboy ? 'Motoboy' : 'Garçom'}`);
              }
           }
         }
