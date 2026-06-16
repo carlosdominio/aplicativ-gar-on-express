@@ -1,0 +1,32 @@
+workflows:
+  android-motoboy-debug:
+    name: Motoboy App Debug APK
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    working_directory: motoboy-app-nativo
+    environment:
+      node: 20
+      java: 17
+      groups:
+        - google_play # Opcional
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+      - name: Add Android platform (if missing)
+        script: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+      - name: Capacitor Sync
+        script: |
+          npx cap sync android
+      - name: Build Android Debug APK
+        script: |
+          cd android && ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/apk/debug/app-debug.apk
+    publishing:
+      email:
+        recipients:
+          - YOUR_EMAIL_HERE # Altere para o seu e-mail se quiser receber aviso
