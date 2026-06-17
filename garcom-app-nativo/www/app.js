@@ -40,8 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function registerNativePush() {
   console.log("🔔 Solicitando registro de Notificações...");
   try {
-    if (!window.Capacitor || !window.Capacitor.Plugins) return;
-    
     const { PushNotifications } = window.Capacitor.Plugins;
     if (!PushNotifications) return;
 
@@ -473,26 +471,29 @@ function exibirMesas() {
     }
 
     grid.innerHTML = mesasExibidas.map(mesa => {
-      let cronometroHtml = '';
       let statusTexto = mesa.status.toUpperCase();
       let classeBloqueada = !caixaAberto ? 'caixa-fechado' : '';
+      let cronometroHtml = '';
 
       if (caixaAberto && (mesa.status === 'ocupada' || mesa.status === 'fechando')) {
         const min = calcularMinutos(mesa.data_pedido);
-        cronometroHtml = `<div class="mesa-tempo">${min}m</div>`;
+        cronometroHtml = `<div class="cronometro">${min}m</div>`;
       }
 
+      // IMPORTANTE: Mapeamento rigoroso das classes CSS para os estados da mesa
+      const classeStatus = (mesa.status === 'ocupada' || mesa.status === 'fechando') ? 'ocupada' : 'livre';
+
       return `
-        <div class="mesa-card ${mesa.status} ${classeBloqueada}" data-id="${mesa.id}">
-          <div class="mesa-numero">${mesa.numero}</div>
-          <div class="mesa-status">${statusTexto}</div>
+        <div class="mesa ${classeStatus} ${classeBloqueada}" data-id="${mesa.id}">
+          <h3>Mesa ${mesa.numero}</h3>
+          <p>${statusTexto}</p>
           ${cronometroHtml}
           ${mesa.solicitou_fechamento ? '<div class="badge-fechamento">💰</div>' : ''}
         </div>
       `;
     }).join('');
 
-    grid.querySelectorAll('.mesa-card').forEach(mesaEl => {
+    grid.querySelectorAll('.mesa').forEach(mesaEl => {
       mesaEl.onclick = () => {
         if (!caixaAberto) {
           mostrarAlerta("O CAIXA ESTÁ FECHADO!", "Aviso", "⚠️");
