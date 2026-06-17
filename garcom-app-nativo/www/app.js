@@ -2035,5 +2035,3 @@ function verQRCodeMesa() {
   fecharOpcoes();
   mostrarAlerta(html, "QR CODE DA MESA", "📱");
 }
-");
-}
