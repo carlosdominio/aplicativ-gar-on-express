@@ -608,7 +608,16 @@ async function configurarPusher() {
 
     channel.bind('novo-pedido', (data) => {
       console.log('📢 Evento recebido: novo-pedido', data);
-      // Garçom NÃO toca som para novo pedido (apenas ADM/Cozinha)
+      // Garçom toca som suave para novos pedidos (ex: pedidos via QR Code)
+      tocarCampainha(true);
+
+      // Extrai número da mesa se disponível
+      const mesaStr = data.mesa_numero ? `Mesa ${data.mesa_numero}` : (data.mesa_id ? `Mesa ${data.mesa_id}` : 'Mesa');
+
+      // Mostra Toast e Notificação Nativa
+      mostrarToast(`Novo pedido recebido da ${mesaStr}`, 'info', `✨ NOVO PEDIDO - ${mesaStr}`);
+      exibirNotificacaoNativa(`✨ ${mesaStr}: NOVO PEDIDO`, `Um novo pedido foi realizado na ${mesaStr}.`, `novo-${Date.now()}`);
+
       clearTimeout(timeoutPusher);
       timeoutPusher = setTimeout(() => carregarMesas(), 50);
     });
