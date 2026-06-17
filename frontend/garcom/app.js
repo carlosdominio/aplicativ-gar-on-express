@@ -38,80 +38,105 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function registerNativePush() {
+  debugLog("Iniciando registro de Push...");
   try {
+    if (!window.Capacitor || !window.Capacitor.Plugins) {
+        debugLog("Capacitor.Plugins não disponível");
+        return;
+    }
+    
     const { PushNotifications } = window.Capacitor.Plugins;
-    if (!PushNotifications) return;
-
-    // Cria o canal de notificação com o som personalizado no Android
-    if (window.Capacitor.getPlatform() === 'android') {
-      await PushNotifications.createChannel({
-        id: 'pedidos',
-        name: 'Alertas de Pedidos',
-        description: 'Notificações de novos pedidos e chamados',
-        sound: 'notificacao',
-        importance: 5,
-        visibility: 1,
-        vibration: true
-      });
+    if (!PushNotifications) {
+        debugLog("Plugin PushNotifications não encontrado");
+        return;
     }
 
-    let permStatus = await PushNotifications.checkPermissions();
+    // Cria o canal de notificação com o som personalizado no Android
+    try {
+        if (window.Capacitor.getPlatform() === 'android') {
+          debugLog("Configurando Canal Android...");
+          await PushNotifications.createChannel({
+            id: 'pedidos',
+            name: 'Alertas de Pedidos',
+            description: 'Notificações de novos pedidos e chamados',
+            sound: 'notificacao',
+            importance: 5,
+            visibility: 1,
+            vibration: true
+          });
+          debugLog("Canal configurado com sucesso");
+        }
+    } catch(e) { debugLog("Erro canal (não fatal): " + e.message); }
+
+    debugLog("Checando permissões...");
+    let permStatus = { receive: 'prompt' };
+    try {
+        permStatus = await PushNotifications.checkPermissions();
+    } catch(e) { debugLog("Erro checkPermissions: " + e.message); }
+
     if (permStatus.receive === 'prompt') {
-      permStatus = await PushNotifications.requestPermissions();
+      debugLog("Solicitando permissões...");
+      try {
+          permStatus = await PushNotifications.requestPermissions();
+      } catch(e) { debugLog("Erro requestPermissions: " + e.message); }
     }
 
     if (permStatus.receive !== 'granted') {
-      console.warn('❌ Permissão de notificação negada.');
+      debugLog("Permissão negada");
       return;
     }
 
-    await PushNotifications.register();
+    debugLog("Chamando PushNotifications.register()...");
+    // Chamada isolada para evitar crash
+    try {
+        await PushNotifications.register();
+        debugLog("Registro solicitado com sucesso!");
+    } catch(e) { 
+        debugLog("ERRO CRÍTICO NO REGISTER: " + e.message);
+        alert("Erro ao registrar notificações: " + e.message);
+    }
 
-    PushNotifications.addListener('registration', async (token) => {
-      console.log('🔥 Token FCM recebido:', token.value);
-      await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('garcom_token')
-        },
-        body: JSON.stringify({
-          endpoint: token.value,
-          keys: { p256dh: '', auth: '' },
-          isNative: true
-        })
-      });
-    });
+    // Listeners com proteção individual
+    try {
+        PushNotifications.addListener('registration', async (token) => {
+          debugLog("Token FCM Recebido!");
+          try {
+              await fetch('/api/subscribe', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + localStorage.getItem('garcom_token')
+                },
+                body: JSON.stringify({
+                  endpoint: token.value,
+                  keys: { p256dh: '', auth: '' },
+                  isNative: true
+                })
+              });
+              debugLog("Token enviado ao servidor");
+          } catch(e) { debugLog("Erro ao enviar token: " + e.message); }
+        });
+    } catch(e) { debugLog("Erro listener registration: " + e.message); }
 
-    PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-      console.log('📩 Notificação recebida:', notification);
-      
-      // Tenta tocar o som manualmente se estiver em primeiro plano
-      try {
-        const audio = new Audio('notificacao.mp3');
-        await audio.play();
-      } catch (e) { console.error("Erro ao tocar áudio foreground:", e); }
+    try {
+        PushNotifications.addListener('pushNotificationReceived', async (notification) => {
+          debugLog("Notificação recebida em foreground");
+          try {
+            const audio = new Audio('notificacao.mp3');
+            await audio.play().catch(() => {});
+          } catch (e) { }
 
-      // Vibração Nativa (Haptics)
-      if (window.Capacitor && window.Capacitor.Plugins.Haptics) {
-        try {
-          await window.Capacitor.Plugins.Haptics.vibrate();
-        } catch (e) { console.error("Erro vibração:", e); }
-      }
+          if (window.Capacitor && window.Capacitor.Plugins.Haptics) {
+            try { await window.Capacitor.Plugins.Haptics.vibrate(); } catch (e) {}
+          }
 
-      if (typeof carregarMesas === 'function') carregarMesas();
-    });
-
-    // --- NOVO: TRATAMENTO DE CLIQUE NA NOTIFICAÇÃO ---
-    PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-      console.log('🖱️ Clique na notificação detectado:', notification);
-      // Ao clicar, garante que os dados estão atualizados
-      if (typeof carregarMesas === 'function') carregarMesas();
-      // Tenta focar na janela do app (nativo já faz isso, mas aqui reforçamos)
-    });
+          if (typeof carregarMesas === 'function') carregarMesas();
+        });
+    } catch(e) { debugLog("Erro listener received: " + e.message); }
 
   } catch (error) {
-    console.error('❌ Erro Push Nativo:', error);
+    debugLog("Erro fatal no Push: " + error.message);
+    alert("Erro nas notificações: " + error.message);
   }
 }
 
