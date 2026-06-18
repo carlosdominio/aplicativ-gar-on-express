@@ -316,14 +316,14 @@ async function safePusherTrigger(channel, event, data) {
         let pushMsg = '';
         const mesaNum = data.mesa_numero || (data.pedido ? data.pedido.mesa_numero : 'BALCÃO');
         
-        if (event === 'novo-pedido') pushMsg = `🚀 NOVO PEDIDO: Mesa ${mesaNum}`;
-        else if (event === 'pedido-cancelado') pushMsg = `❌ CANCELADO: Mesa ${mesaNum}`;
-        else if (event === 'chamado-garcom') pushMsg = `🛎️ CHAMADO: Mesa ${mesaNum}`;
-        else if (event === 'pedido-pronto') pushMsg = `🍳 PRONTO: Mesa ${mesaNum}`;
-        else if (event === 'rascunho-recebido') pushMsg = `📝 RASCUNHO: Mesa ${mesaNum}`;
-        else if (event === 'solicitacao-fechamento-cliente') pushMsg = `💰 FECHAMENTO: Mesa ${mesaNum}`;
+        if (event === 'novo-pedido') pushMsg = `🚀 NOVO PEDIDO: ${mesaNum}`;
+        else if (event === 'pedido-cancelado') pushMsg = `❌ CANCELADO: ${mesaNum}`;
+        else if (event === 'chamado-garcom') pushMsg = `🛎️ CHAMADO: ${mesaNum}`;
+        else if (event === 'pedido-pronto') pushMsg = `🍳 PRONTO: ${mesaNum}`;
+        else if (event === 'rascunho-recebido') pushMsg = `📝 RASCUNHO: ${mesaNum}`;
+        else if (event === 'solicitacao-fechamento-cliente') pushMsg = `💰 FECHAMENTO: ${mesaNum}`;
         else if (event === 'status-atualizado') {
-           if (data.status === 'servido' || data.status === 'entregue') pushMsg = `✅ ENTREGUE: Mesa ${mesaNum}`;
+           if (data.status === 'servido' || data.status === 'entregue') pushMsg = `✅ ENTREGUE: ${mesaNum}`;
            else if (data.status === 'saiu_entrega') pushMsg = `🛵 SAIU ENTREGA: ${mesaNum}`;
            else return true; // Ignora outros status para não "notificar pra tudo"
         }
@@ -1350,7 +1350,7 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
     await query("DELETE FROM pedido_itens WHERE id = ?", [id]);
     const itensRestantes = (await query("SELECT status FROM pedido_itens WHERE pedido_id = ?", [item.pedido_id])).rows;
     if (itensRestantes.length === 0) {
-      const pedido = (await query("SELECT mesa_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [item.pedido_id])).rows[0];
+      const pedido = (await query("SELECT mesa_id, m.numero, p.garcom_id FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [item.pedido_id])).rows[0];
       await query("DELETE FROM pedidos WHERE id = ?", [item.pedido_id]);
       if (pedido && pedido.mesa_id) {
         await query("UPDATE mesas SET status = 'livre' WHERE id = ?", [pedido.mesa_id]);
@@ -1367,6 +1367,7 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
       await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
         pedido_id: item.pedido_id, 
         mesa_numero: mesaNum,
+        garcom_id: pedido ? pedido.garcom_id : null,
         mensagem: `🚨 O Pedido #${item.pedido_id} (Mesa ${mesaNum}) foi CANCELADO.` 
       });
 
@@ -1405,6 +1406,7 @@ app.delete('/api/pedidos/:id', async (req, res) => {
       await safePusherTrigger('garconnexpress', 'pedido-cancelado', { 
         pedido_id: id, 
         mesa_numero: mesaNum,
+        garcom_id: pedido.garcom_id,
         mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi REMOVIDO pelo Admin.` 
       });
     }
@@ -1986,7 +1988,7 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
       }
       await query("UPDATE pedido_itens SET status = 'cancelado' WHERE pedido_id = ?", [id]);
     }
-    const pm = (await query("SELECT p.mesa_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
+    const pm = (await query("SELECT p.mesa_id, p.garcom_id, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
     const mesaNum = pm ? pm.numero || 'BALCÃO' : 'BALCÃO';
 
     // Se o status for cancelado ou entregue, libera a mesa e o código
@@ -2008,6 +2010,7 @@ app.put('/api/pedidos/:id/status', async (req, res) => {
             id: id,
             pedido_id: id, 
             mesa_numero: mesaNum,
+            garcom_id: pm.garcom_id,
             mensagem: `🚨 O Pedido #${id} (Mesa ${mesaNum}) foi CANCELADO pelo Admin.` 
           });
         }

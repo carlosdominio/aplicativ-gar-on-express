@@ -633,6 +633,7 @@ async function configurarPusher() {
     });
 
     channel.bind('novo-pedido', (data) => {
+      if (data.garcom_id === 'DELIVERY' || (data.pedido && data.pedido.garcom_id === 'DELIVERY')) return;
       console.log('📢 Evento recebido: novo-pedido', data);
       // Garçom toca som suave para novos pedidos (ex: pedidos via QR Code)
       tocarCampainha(true);
@@ -649,6 +650,7 @@ async function configurarPusher() {
     });
 
     channel.bind('status-atualizado', (data) => {
+      if (data && (data.garcom_id === 'DELIVERY' || (data.pedido && data.pedido.garcom_id === 'DELIVERY'))) return;
       console.log('📢 Status atualizado no garçom:', data);
       
       clearTimeout(timeoutPusher);
@@ -684,6 +686,7 @@ async function configurarPusher() {
     });
 
     channel.bind('pedido-cancelado', (data) => {
+      if (data.garcom_id === 'DELIVERY' || (data.pedido && data.pedido.garcom_id === 'DELIVERY')) return;
       console.log('📢 Evento recebido: pedido-cancelado', data);
       const msg = data.mensagem || `🚨 Pedido #${data.pedido_id} foi REMOVIDO pelo Admin.`;
 

@@ -603,8 +603,19 @@ async function configurarPusher() {
       const pusherConfig = await configRes.json();
       pusherInstancia = new Pusher(pusherConfig.key, { cluster: pusherConfig.cluster, forceTLS: true });
       const channel = pusherInstancia.subscribe('garconnexpress');
-      channel.bind('novo-pedido', () => carregarMesas());
+      channel.bind('novo-pedido', (data) => {
+         if (data && (data.garcom_id === 'DELIVERY' || (data.pedido && data.pedido.garcom_id === 'DELIVERY'))) return;
+         carregarMesas();
+      });
       channel.bind('chamado-garcom', (data) => alert("Chamado na mesa " + data.mesa_numero));
+      channel.bind('status-atualizado', (data) => {
+         if (data && (data.garcom_id === 'DELIVERY' || (data.pedido && data.pedido.garcom_id === 'DELIVERY'))) return;
+         carregarMesas();
+      });
+      channel.bind('pedido-cancelado', (data) => {
+         if (data && (data.garcom_id === 'DELIVERY' || (data.pedido && data.pedido.garcom_id === 'DELIVERY'))) return;
+         carregarMesas();
+      });
     } catch (e) { console.error("Erro Pusher:", e); }
 }
 
