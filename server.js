@@ -18,6 +18,9 @@ const ioClient = require('socket.io-client');
 const webpush = require('web-push');
 const admin = require('firebase-admin');
 
+// Configuração de ambiente
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 // --- Configuração VAPID (Web Push - Navegador) ---
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BMyiv6uhCaW8LUu4EsraMpa-aiSYPEScoustJawyZDCgW0JmT9_UH4cQipSyEY5RZVNQuNvEu7cfNfumLAn_0i8';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'E4g3M62wJcFlgy8IeJzB_VlKE6fkfvTqETIall5pce4';
@@ -30,27 +33,55 @@ webpush.setVapidDetails(
 
 // --- Configuração Firebase Admin (App Nativo Android/iOS) ---
 try {
-  let serviceAccount;
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    console.log('📦 Firebase Admin inicializado via Variável de Ambiente.');
-  } else {
-    serviceAccount = require('./firebase-adminsdk.json');
-    console.log('📦 Firebase Admin inicializado via Arquivo Local.');
+  // Inicializa App Padrão (Garçom)
+  if (admin.apps.length === 0) {
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      console.log('📦 Firebase Admin (Garçom) inicializado via Variável de Ambiente.');
+    } else {
+      try {
+        serviceAccount = require('./firebase-adminsdk.json');
+        console.log('📦 Firebase Admin (Garçom) inicializado via Arquivo Local.');
+      } catch (e) {
+        console.log('⚠️ Arquivo firebase-adminsdk.json não encontrado.');
+      }
+    }
+
+    if (serviceAccount) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      console.log('✅ Firebase Admin (Garçom) pronto.');
+    }
   }
 
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('✅ Firebase Admin SDK pronto.');
+  // Inicializa App Secundário (Motoboy) se houver configuração
+  const hasMotoboyApp = admin.apps.find(app => app.name === 'motoboy');
+  if (!hasMotoboyApp) {
+    let serviceAccountMotoboy;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_MOTOBOY) {
+      serviceAccountMotoboy = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_MOTOBOY);
+      console.log('📦 Firebase Admin (Motoboy) inicializado via Variável de Ambiente.');
+    } else {
+      try {
+        serviceAccountMotoboy = require('./firebase-motoboy-adminsdk.json');
+        console.log('📦 Firebase Admin (Motoboy) inicializado via Arquivo Local.');
+      } catch (e) {
+        // Silencioso se não houver arquivo específico para motoboy
+      }
+    }
+
+    if (serviceAccountMotoboy) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccountMotoboy)
+      }, 'motoboy');
+      console.log('✅ Firebase Admin (Motoboy) pronto.');
+    }
   }
 } catch (error) {
-  console.log('⚠️ Firebase Admin SDK não configurado:', error.message);
+  console.log('⚠️ Erro ao configurar Firebase Admin SDK:', error.message);
 }
-
-// Configuração de ambiente
-dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
@@ -379,7 +410,12 @@ async function safePusherTrigger(channel, event, data) {
                  token: sub.endpoint
                };
                
-               admin.messaging().send(message)
+               // Seleciona a instância correta do Firebase Admin
+               const firebaseAppToUse = (targetApp === 'motoboy' && admin.apps.find(a => a.name === 'motoboy')) 
+                 ? admin.app('motoboy') 
+                 : admin;
+
+               firebaseAppToUse.messaging().send(message)
                  .then((response) => {
                    console.log(`✅ FCM Nativo (${targetApp}) enviado:`, response);
                  })
