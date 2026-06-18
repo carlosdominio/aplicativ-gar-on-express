@@ -1389,7 +1389,7 @@ app.delete('/api/pedidos/itens/:id', async (req, res) => {
 app.delete('/api/pedidos/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const pedido = (await query("SELECT p.mesa_id, p.status, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
+    const pedido = (await query("SELECT p.mesa_id, p.garcom_id, p.status, m.numero FROM pedidos p LEFT JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id])).rows[0];
     const itens = (await query("SELECT menu_id, quantidade FROM pedido_itens WHERE pedido_id = ?", [id])).rows;
     for (const item of itens) await query("UPDATE menu SET estoque = CASE WHEN estoque = -1 THEN -1 ELSE estoque + ? END WHERE id = ?", [item.quantidade, item.menu_id]);
     await query("DELETE FROM pedido_itens WHERE pedido_id = ?", [id]);
