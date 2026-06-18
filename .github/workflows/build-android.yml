@@ -2,6 +2,11 @@ name: Build Android APK (Garçom App)
 
 on:
   workflow_dispatch: # Permite rodar manualmente com um clique
+  push:
+    branches:
+      - fix-build-motoboy
+    paths:
+      - 'garcom-app-nativo/**'
 
 jobs:
   build:
