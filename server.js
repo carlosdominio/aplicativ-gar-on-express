@@ -364,12 +364,18 @@ async function safePusherTrigger(channel, event, data) {
         else if (event === 'solicitacao-fechamento-cliente') pushMsg = `💰 FECHAMENTO: ${mesaFormatada}`;
         else if (event === 'status-atualizado') {
            if (data.status === 'entregue') {
-               pushMsg = `✅ ENTREGUE: ${mesaFormatada}`;
+               if (isDelivery) {
+                   pushMsg = `✅ ENTREGUE: ${mesaFormatada}`;
+               } else {
+                   return true; // Ignora para mesas de salão (evita duplicidade de "Entregue")
+               }
            } else if (data.status === 'servido') {
                // No Delivery, 'servido' significa que o motoboy pegou o pedido e 'Saiu para entrega'
                pushMsg = isDelivery ? `🛵 SAIU PARA ENTREGA: ${mesaFormatada}` : `✅ ENTREGUE: ${mesaFormatada}`;
            } else if (data.status === 'saiu_entrega') {
                pushMsg = `🛵 SAIU PARA ENTREGA: ${mesaFormatada}`;
+           } else if (data.status === 'liberada') {
+               pushMsg = `🔓 MESA LIBERADA: ${mesaFormatada}`;
            } else {
                return true; // Ignora outros status para não "notificar pra tudo"
            }

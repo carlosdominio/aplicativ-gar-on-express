@@ -8,7 +8,7 @@ let configCozinhaCategorias = []; // Estado global das categorias da cozinha
 // --- INTEGRAÇÃO CAPACITOR NATIVA ---
 let isNativeApp = (window.Capacitor && window.Capacitor.isNativePlatform()) || 
                   window.location.protocol === 'capacitor:' || 
-                  window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port;
+                  (window.location.hostname === 'localhost' && (window.location.protocol === 'http:' || window.location.protocol === 'https:') && !window.location.port);
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Re-checa se o Capacitor carregou depois
@@ -623,7 +623,7 @@ async function configurarPusher() {
 
       // Mostra Toast e Notificação Nativa
       mostrarToast(data.mensagem, 'success', '🍳 PEDIDO PRONTO');
-      exibirNotificacaoNativa('🍳 COZINHA: PEDIDO PRONTO!', data.mensagem, `pronto-${Date.now()}`);
+
 
       // Mostra apenas alerta informativo
       mostrarAlerta(data.mensagem, "🍳 COZINHA: PEDIDO PRONTO!", "🍳");
@@ -649,7 +649,7 @@ async function configurarPusher() {
 
       // Mostra Toast e Notificação Nativa
       mostrarToast(`Novo pedido recebido da ${mesaStr}`, 'info', `✨ NOVO PEDIDO - ${mesaStr}`);
-      exibirNotificacaoNativa(`✨ ${mesaStr}: NOVO PEDIDO`, `Um novo pedido foi realizado na ${mesaStr}.`, `novo-${Date.now()}`);
+
 
       clearTimeout(timeoutPusher);
       timeoutPusher = setTimeout(() => carregarMesas(), 50);
@@ -677,7 +677,7 @@ async function configurarPusher() {
           if (msg) {
             mostrarToast(msg, 'info');
             tocarCampainha(true); // Som suave para atualizações normais
-            exibirNotificacaoNativa('📢 ATUALIZAÇÃO DE PEDIDO', msg, tagId);
+
 
             if (data.status === 'liberada') {
                if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
@@ -701,7 +701,7 @@ async function configurarPusher() {
 
       tocarCampainha(); // Som normal (mais forte) para cancelamento
       mostrarToast(msg, 'error', `❌ ${mesaStr}: REMOVIDO`);
-      exibirNotificacaoNativa(`❌ ${mesaStr}: PEDIDO REMOVIDO`, msg, `cancel-${data.pedido_id}`);
+
 
       // Reset de estado se for a mesa atual
       if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
