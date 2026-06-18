@@ -1648,6 +1648,9 @@ app.put('/api/pedidos/:id/atualizar-itens', async (req, res) => {
       const resMesa = await query("SELECT m.numero FROM pedidos p JOIN mesas m ON p.mesa_id = m.id WHERE p.id = ?", [id]);
       const mesaNum = resMesa.rows[0] ? resMesa.rows[0].numero : 'BALCÃO';
       
+      // Busca garcom_id para notificação
+      const pMesa = (await query("SELECT garcom_id FROM pedidos WHERE id = ?", [id])).rows[0];
+
       // Verifica se há itens para a cozinha
       const temItemCozinha = await checkTemItemCozinha(itens.map(i => i.menu_id));
       
@@ -1657,7 +1660,7 @@ app.put('/api/pedidos/:id/atualizar-itens', async (req, res) => {
         safePusherTrigger('garconnexpress', 'menu-atualizado', {}),
         safePusherTrigger('garconnexpress', 'novo-pedido', { 
           para_cozinha: temItemCozinha,
-          pedido: { id: id, mesa_numero: mesaNum, status: 'recebido' } 
+          pedido: { id: id, mesa_numero: mesaNum, status: 'recebido', garcom_id: pMesa ? pMesa.garcom_id : null } 
         })
       ]);
     } else {
