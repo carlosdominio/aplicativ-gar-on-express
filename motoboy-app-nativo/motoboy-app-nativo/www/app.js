@@ -234,10 +234,21 @@ const App = {
 
             PushNotifications.addListener('pushNotificationReceived', (notification) => {
                 App.loadPedidos();
-                const pId = String(notification.id || notification.data?.pedido_id || notification.data?.id || '');
-                const eventKey = `push_${pId}`;
+                const pId = String(notification.data?.pedido_id || '');
+                const status = String(notification.data?.status || '');
+                const event = String(notification.data?.event || '');
                 
-                if (pId && !App.state.notifiedEvents.has(eventKey)) {
+                let eventKey = '';
+                if (pId) {
+                    if (event === 'novo-pedido') eventKey = `novo_${pId}`;
+                    else if (event === 'pedido-cancelado') eventKey = `cancelado_${pId}`;
+                    else if (event === 'status-atualizado' && status) eventKey = `${status}_${pId}`;
+                    else eventKey = `push_${pId}`;
+                } else {
+                    eventKey = `push_${notification.id}`;
+                }
+                
+                if (eventKey && !App.state.notifiedEvents.has(eventKey)) {
                     App.state.notifiedEvents.add(eventKey);
                     setTimeout(() => App.state.notifiedEvents.delete(eventKey), 15000);
                     

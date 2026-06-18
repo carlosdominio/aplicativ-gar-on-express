@@ -382,6 +382,9 @@ async function safePusherTrigger(channel, event, data) {
         }
         else pushMsg = `Notificação: ${event}`;
 
+        const pId = String(data.pedido_id || data.id || (data.pedido ? (data.pedido.id || data.pedido.pedido_id) : '') || '');
+        const statusVal = String(data.status || '');
+
         for (const sub of subs) {
           // FILTRO: Só envia se o app_type da inscrição coincidir com o alvo do evento
           if (sub.app_type !== targetApp) continue;
@@ -401,7 +404,9 @@ async function safePusherTrigger(channel, event, data) {
                  data: {
                    event: event,
                    click_action: 'FCM_PLUGIN_ACTIVITY',
-                   sound: 'notificacao'
+                   sound: 'notificacao',
+                   pedido_id: pId,
+                   status: statusVal
                  },
                  android: {
                    priority: 'high',
