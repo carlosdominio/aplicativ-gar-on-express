@@ -2512,6 +2512,7 @@ app.get('/api/pedidos/mesa/:mesaId', async (req, res) => {
 });
 
 app.get('/api/mesas', ensureDbInitialized, async (req, res) => { 
+  checkAndNotifyDelayedOrders();
   try {
     res.json((await query(`
       SELECT m.*, 
