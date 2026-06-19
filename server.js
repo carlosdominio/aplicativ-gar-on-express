@@ -589,7 +589,7 @@ app.get('/api/cron/check-delayed-orders', ensureDbInitialized, async (req, res) 
     for (const p of delayedOrders) {
       const isDelivery = p.garcom_id === 'DELIVERY';
       const targetApp = isDelivery ? 'motoboy' : 'garcom';
-      const pushTitle = isDelivery ? '🚨 ENTREGA EM ATRASO!' : '🚨 PEDIDO EM ATRASO!';
+      const pushTitle = isDelivery ? '🔥 MOTOBOY: ENTREGA ATRASADA!' : '🔥 GARÇOM: PEDIDO ATRASADO!';
       
       const mesaName = p.mesa_numero ? (String(p.mesa_numero).toUpperCase().includes('MESA') ? p.mesa_numero : `Mesa ${p.mesa_numero}`) : 'BALCÃO';
       const pushMsg = isDelivery 
