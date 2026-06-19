@@ -415,13 +415,23 @@ async function safePusherTrigger(channel, event, data) {
         // Adiciona a cozinha como alvo se houver itens para cozinha ou se o pedido foi cancelado
         if (event === 'novo-pedido' || event === 'pedido-cancelado') {
           const pId = data.pedido_id || data.id || (data.pedido ? data.pedido.id : null);
-          let enviaCozinha = true; // Por padrão para cancelamentos
-          if (event === 'novo-pedido' && pId) {
-            if (data.para_cozinha !== undefined) {
-              enviaCozinha = data.para_cozinha;
-            } else {
-              const itensIds = data.itens ? data.itens.map(i => i.menu_id) : [];
-              enviaCozinha = await checkTemItemCozinha(itensIds);
+          let enviaCozinha = false;
+          if (pId) {
+            if (event === 'novo-pedido') {
+              if (data.para_cozinha !== undefined) {
+                enviaCozinha = data.para_cozinha;
+              } else {
+                const itensIds = data.itens ? data.itens.map(i => i.menu_id) : [];
+                enviaCozinha = await checkTemItemCozinha(itensIds);
+              }
+            } else if (event === 'pedido-cancelado') {
+              try {
+                const itensCancelados = (await query("SELECT menu_id FROM pedido_itens WHERE pedido_id = ?", [pId])).rows;
+                const itensIds = itensCancelados.map(i => i.menu_id);
+                enviaCozinha = await checkTemItemCozinha(itensIds);
+              } catch (e) {
+                enviaCozinha = true; // Fallback se der erro
+              }
             }
           }
           if (enviaCozinha) {
