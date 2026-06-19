@@ -352,7 +352,7 @@ async function safePusherTrigger(channel, event, data) {
         }
         else pushMsg = `Notificação: ${event}`;
         
-        const payload = JSON.stringify({ title: 'GarçomExpress', body: pushMsg, event });
+        const payload = JSON.stringify({ title: 'Motoboy Pro', body: pushMsg, event });
         
         // Deduplicação de tokens para evitar envios repetidos ao mesmo aparelho
         const uniqueSubs = [];
@@ -395,13 +395,13 @@ async function safePusherTrigger(channel, event, data) {
              if (firebaseAppToUse) {
                const message = {
                  notification: {
-                   title: 'GarçomExpress',
+                   title: 'Motoboy Pro',
                    body: pushMsg
                  },
                  data: {
                    event: event,
                    sound: 'notificacao',
-                   title: 'GarçomExpress',
+                   title: 'Motoboy Pro',
                    body: pushMsg
                  },
                  android: {

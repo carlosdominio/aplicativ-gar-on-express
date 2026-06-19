@@ -400,7 +400,14 @@ async function safePusherTrigger(channel, event, data) {
           if (sub.endpoint.includes('fcm.googleapis.com') || sub.endpoint.startsWith('https://')) {
              // Web Push logic (could also be filtered here if needed, but the focus is Native FCM)
              const payload = JSON.stringify({ title: pushTitle, body: pushMsg, event });
-             webpush.sendNotification(sub, payload).catch(e => console.error('Erro WebPush:', e.message));
+             const pushSubscription = {
+               endpoint: sub.endpoint,
+               keys: {
+                 p256dh: sub.p256dh || '',
+                 auth: sub.auth || ''
+               }
+             };
+             webpush.sendNotification(pushSubscription, payload).catch(e => console.error('Erro WebPush:', e.message));
           } else {
              // Tratamento para Token Nativo (Capacitor/Firebase SDK)
              if (admin.apps.length > 0) {

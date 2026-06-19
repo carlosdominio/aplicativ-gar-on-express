@@ -43,36 +43,35 @@
   </div>
 
   <header>
-    <div class="header-content" style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
-      <div class="header-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <div>
-          <h1 style="margin: 0; font-size: 1.2rem;">GarçomExpress</h1>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <p id="garcom-nome-exibicao" style="margin: 0; font-size: 0.8rem;">Aguardando Login...</p>
-            <span id="caixa-status-badge" class="badge-caixa" style="display:none;"></span>
+    <div class="header-content">
+      <div class="header-info">
+        <div class="brand-group">
+          <h1>GarçomExpress</h1>
+          <div class="user-status">
+            <p id="garcom-nome-exibicao">Aguardando Login...</p>
+            <span id="caixa-status-badge" class="badge-caixa"></span>
           </div>
         </div>
-        <button onclick="logout()" style="width: auto; background: rgba(255,255,255,0.1); color: #fff; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 6px; margin-bottom: 0; font-weight: bold; flex-shrink: 0;">SAIR</button>
+        <button onclick="logout()" class="btn-logout">SAIR</button>
       </div>
-      <div class="header-controls" style="display:flex; align-items:center; gap:10px;">
-        <button id="btn-header-mesas" onclick="voltarParaMesas()" style="display:none; width: auto; background: #e74c3c; color: #fff; font-size: 0.8rem; border: none; padding: 6px 12px; border-radius: 6px; margin-bottom: 0; font-weight: bold; align-items: center; gap: 8px;">
+      <div class="header-controls">
+        <button id="btn-header-mesas" onclick="voltarParaMesas()" class="btn-mesas-back">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
           MESAS
         </button>
         
-        <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; white-space: nowrap;">
-          <span id="label-som" style="color: white; font-size: 0.75rem; font-weight: bold;">SOM</span>
+        <div class="toggle-container">
+          <span id="label-som">SOM</span>
           <label class="switch">
             <input type="checkbox" id="check-som" onchange="alternarSom()">
             <span class="slider"></span>
           </label>
         </div>
 
-        <!-- Botão Pausar Atendimento (Toggle Style) -->
-        <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; white-space: nowrap;">
-          <span id="label-pausa" style="color: white; font-size: 0.75rem; font-weight: bold;">FILA</span>
+        <div class="toggle-container">
+          <span id="label-pausa">FILA</span>
           <label class="switch">
             <input type="checkbox" id="check-pausa" onchange="togglePausa()">
             <span class="slider" id="slider-pausa"></span>

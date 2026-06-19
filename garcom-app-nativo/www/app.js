@@ -52,10 +52,12 @@ async function limparNotificacoesNativas() {
   }
 }
 
-// Limpa notificações quando o app volta para primeiro plano
+// Limpa notificações quando o app volta para primeiro plano OU quando vai para segundo plano (ao sair do app)
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && isNativeApp) {
-    limparNotificacoesNativas();
+  if (isNativeApp) {
+    if (document.visibilityState === 'visible' || document.visibilityState === 'hidden') {
+      limparNotificacoesNativas();
+    }
   }
 });
 

@@ -203,9 +203,9 @@ const App = {
             // Limpa ao abrir
             await this.clearNotifications();
 
-            // Limpa ao voltar para primeiro plano
+            // Limpa ao voltar para primeiro plano OU ao ir para segundo plano (ao sair do app)
             document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible') {
+                if (document.visibilityState === 'visible' || document.visibilityState === 'hidden') {
                     await this.clearNotifications();
                 }
             });
