@@ -611,7 +611,7 @@ async function checkAndNotifyDelayedOrders() {
       SELECT p.id, p.garcom_id, p.created_at, m.numero as mesa_numero
       FROM pedidos p
       LEFT JOIN mesas m ON p.mesa_id = m.id
-      WHERE p.status NOT IN ('entregue', 'cancelado', 'rascunho')
+      WHERE p.status NOT IN ('entregue', 'cancelado', 'rascunho', 'servido', 'aguardando_fechamento')
         AND (p.notificado_atraso = 0 OR p.notificado_atraso IS NULL)
     `);
 
