@@ -1,4 +1,4 @@
-window.onerror = function(msg, url, line) {
+﻿window.onerror = function(msg, url, line) {
   console.log('🚀 Admin v1.2.0 Iniciado');
   const msgStr = String(msg || '');
   if (msgStr.includes('WebSocket') || msgStr.includes('Pusher') || msgStr.includes('connection')) {
@@ -4657,6 +4657,7 @@ async function configurarPusher() {
       carregarStatusCaixa();
       
       if (data.status === 'fechado') {
+          limparNotificacoes();
           mostrarToast('O caixa foi FECHADO com sucesso!', 'warning', '💰 CAIXA');
           adicionarNotificacao('💰 CAIXA FECHADO', 'O expediente foi encerrado com sucesso.', '💰');
       } else if (data.status === 'aberto') {
