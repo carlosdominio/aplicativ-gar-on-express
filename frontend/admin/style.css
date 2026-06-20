@@ -667,7 +667,7 @@ button.btn-entregue { background-color: #95a5a6; }
   left: 0;
   top: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background-color: rgba(0,0,0,0.6);
   align-items: center;
   justify-content: center;
@@ -1233,7 +1233,7 @@ button.btn-entregue { background-color: #95a5a6; }
   display: flex;
   flex-direction: column;
   gap: 0.5rem; /* Reduzido de 1.2rem para aproximar as mesas */
-  height: calc(100vh - 230px); /* Aumentado o espaço disponível para caberem 4 mesas */
+  height: calc(100dvh - 230px); /* Aumentado o espaço disponível para caberem 4 mesas */
   overflow-y: auto; /* Scroll apenas aqui */
   padding-right: 5px;
   
@@ -1642,7 +1642,7 @@ input:checked + .slider:before {
   background: #fff;
   border-radius: 15px;
   border: 1px solid #e2e8f0;
-  height: calc(100vh - 180px); /* Altura fixa para caber perfeitamente na tela */
+  height: calc(100dvh - 180px); /* Altura fixa para caber perfeitamente na tela */
   margin-top: 15px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
