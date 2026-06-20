@@ -41,7 +41,8 @@ html::-webkit-scrollbar-thumb {
 body {
   font-family: Arial, sans-serif;
   background-color: #f5f5f5;
-  overflow: hidden; /* Desativa o scroll fora para manter tudo fixo na tela */
+  overflow-x: hidden; /* Impede vazamento horizontal */
+  overflow-y: auto; /* Permite scroll vertical para habilitar o header fixo (sticky) */
 }
 
 .paginacao-controles {
@@ -85,6 +86,7 @@ header {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 2000;
