@@ -2092,12 +2092,18 @@ app.put('/api/pedidos/:id/solicitar-fechamento', async (req, res) => {
     const pagamentosStr = pagamentos_detalhados ? JSON.stringify(pagamentos_detalhados) : null;
     const formaPagamentoFinal = (num_pessoas > 1 && pagamentos_detalhados) ? 'Múltiplas' : (forma_pagamento || 'Dinheiro');
 
+    const pStatusAtual = (await query("SELECT status FROM pedidos WHERE id = ?", [id])).rows[0];
+    const prevStatus = pStatusAtual ? pStatusAtual.status : null;
+
     // Ativa fechamento_liberado quando o garçom processa a solicitação
     await query(`UPDATE pedidos SET status = 'aguardando_fechamento', forma_pagamento = ?, desconto = ?, acrescimo = ?, valor_recebido = ?, troco = ?, total = ?, num_pessoas = ?, valor_por_pessoa = ?, cobrar_taxa = ?, fechamento_liberado = TRUE, pagamentos_detalhados = ? WHERE id = ?`, 
       [formaPagamentoFinal, desconto || 0, acrescimo || 0, valor_recebido || 0, troco || 0, totalFinal, num_pessoas || 1, valor_por_pessoa || totalFinal, (req.body.cobrar_taxa !== undefined ? (req.body.cobrar_taxa ? 1 : 0) : 1), pagamentosStr, id]);
     
     if (mesa_id) await query("UPDATE mesas SET status = 'fechando' WHERE id = ?", [mesa_id]);
-    await notifyStatus(id, mesa_id, 'aguardando_fechamento');
+    
+    if (prevStatus !== 'aguardando_fechamento') {
+      await notifyStatus(id, mesa_id, 'aguardando_fechamento');
+    }
 
     // Notifica o cliente que o cupom de conferência foi liberado
     await safePusherTrigger('garconnexpress', `fechamento-liberado-mesa-${mesa_id}`, {
