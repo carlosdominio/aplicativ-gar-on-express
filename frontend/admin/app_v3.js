@@ -1,4 +1,4 @@
-﻿window.onerror = function(msg, url, line) {
+window.onerror = function(msg, url, line) {
   console.log('🚀 Admin v1.2.0 Iniciado');
   const msgStr = String(msg || '');
   if (msgStr.includes('WebSocket') || msgStr.includes('Pusher') || msgStr.includes('connection')) {
@@ -574,6 +574,10 @@ async function carregarStatusWhatsApp() {
 
     if (toggle) toggle.checked = status.enabled;
     if (numberEl) numberEl.textContent = status.number || 'Não configurado';
+    const inputConfigBot = document.getElementById('config-bot-numero');
+    if (inputConfigBot && status.number !== 'Não configurado' && status.number !== 'Erro ao carregar') {
+        inputConfigBot.value = status.number;
+    }
 
     // Atualiza o iframe dinamicamente para o bot configurado
     const iframe = document.getElementById('whatsapp-iframe');
@@ -5949,3 +5953,26 @@ async function salvarTextosBot() {
 document.addEventListener('DOMContentLoaded', () => {
   carregarTextosBot();
 });
+
+async function salvarNumeroBotZap() {
+  const numInput = document.getElementById('config-bot-numero');
+  if (!numInput) return;
+  const number = numInput.value.trim();
+  try {
+    const res = await fetch('/api/whatsapp-number', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number })
+    });
+    const data = await res.json();
+    if (data.success) {
+      mostrarToast('Número do robô atualizado com sucesso!', 'sucesso');
+      if (typeof carregarStatusWhatsApp === 'function') carregarStatusWhatsApp();
+    } else {
+      mostrarToast('Erro ao atualizar número', 'erro');
+    }
+  } catch (e) {
+    console.error('Erro ao salvar número do robô:', e);
+    mostrarToast('Erro ao salvar número', 'erro');
+  }
+}
