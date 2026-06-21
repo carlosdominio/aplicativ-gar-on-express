@@ -5918,23 +5918,25 @@ function renderCustomMenus() {
     
     list.forEach((item, index) => {
       const row = document.createElement('div');
-      row.style.cssText = "display: flex; gap: 10px; align-items: flex-start; background: white; padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px;";
+      row.style.cssText = "display: flex; gap: 15px; align-items: flex-start; background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 10px; transition: border-color 0.2s;";
+      row.onmouseover = () => row.style.borderColor = '#94a3b8';
+      row.onmouseout = () => row.style.borderColor = '#e2e8f0';
       
       row.innerHTML = `
-        <div style="flex: 0 0 60px;">
-          <label style="font-size:0.75rem; color:#64748b;">Opção (Nº)</label>
-          <input type="text" value="${item.option || ''}" onchange="updateCustomMenu('${type}', ${index}, 'option', this.value)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; text-align:center;">
+        <div style="flex: 0 0 70px;">
+          <label style="font-size:0.75rem; font-weight: 600; color:#475569; margin-bottom: 5px; display: block;">Opção (Nº)</label>
+          <input type="text" value="${item.option || ''}" onchange="updateCustomMenu('${type}', ${index}, 'option', this.value)" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; text-align:center; font-weight:bold; font-size: 1rem; color: #0f172a; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
         </div>
         <div style="flex: 1;">
-          <label style="font-size:0.75rem; color:#64748b;">Título no Menu</label>
-          <input type="text" value="${item.title || ''}" onchange="updateCustomMenu('${type}', ${index}, 'title', this.value)" placeholder="Ex: Promoções" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+          <label style="font-size:0.75rem; font-weight: 600; color:#475569; margin-bottom: 5px; display: block;">Título no Menu</label>
+          <input type="text" value="${item.title || ''}" onchange="updateCustomMenu('${type}', ${index}, 'title', this.value)" placeholder="Ex: Promoções do Dia" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size: 0.95rem; color: #0f172a; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
         </div>
         <div style="flex: 2;">
-          <label style="font-size:0.75rem; color:#64748b;">Resposta do Robô</label>
-          <textarea rows="2" onchange="updateCustomMenu('${type}', ${index}, 'response', this.value)" placeholder="A resposta que o robô vai dar..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">${item.response || ''}</textarea>
+          <label style="font-size:0.75rem; font-weight: 600; color:#475569; margin-bottom: 5px; display: block;">Mensagem de Resposta do Robô</label>
+          <textarea rows="3" onchange="updateCustomMenu('${type}', ${index}, 'response', this.value)" placeholder="Digite a resposta que o robô deve enviar quando o cliente escolher esta opção..." style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-family: inherit; font-size: 0.95rem; line-height: 1.4; color: #0f172a; resize: vertical; min-height: 80px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">${item.response || ''}</textarea>
         </div>
-        <div style="flex: 0 0 40px; display: flex; align-items: center; justify-content: center; padding-top: 20px;">
-          <button onclick="removeCustomMenu('${type}', ${index})" style="background: #ef4444; color: white; border: none; width: 32px; height: 32px; border-radius: 4px; cursor: pointer;" title="Remover"><i class="fa-solid fa-trash"></i></button>
+        <div style="flex: 0 0 45px; display: flex; align-items: center; justify-content: center; padding-top: 25px;">
+          <button onclick="removeCustomMenu('${type}', ${index})" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'" title="Remover Opção"><i class="fa-solid fa-trash-can" style="font-size: 1.1rem;"></i></button>
         </div>
       `;
       container.appendChild(row);
@@ -5955,8 +5957,8 @@ window.addCustomMenu = function(type) {
   renderCustomMenus();
 };
 
-window.removeCustomMenu = function(type, index) {
-  if (confirm('Tem certeza que deseja remover esta opção?')) {
+window.removeCustomMenu = async function(type, index) {
+  if (await mostrarConfirmacao('Tem certeza que deseja excluir permanentemente esta opção extra do menu?', 'Excluir Opção', 'Sim, Excluir', 'Cancelar', '🗑️')) {
     if (type === 'main') {
       customMenusMain.splice(index, 1);
     } else {
