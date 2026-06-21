@@ -232,9 +232,11 @@ async function sendWhatsAppMessage(text, targetNumber = null) {
     if (whatsappSocket && whatsappSocket.connected && numbersList.length > 0) {
       // Remove duplicados e limpa os números
       const uniqueNumbers = [...new Set(numbersList.map(n => n.replace(/\D/g, '')))];
-      console.log(`📤 [WhatsApp] Bot CONECTADO. Enviando para: ${uniqueNumbers.join(', ')}`);
+      console.log(`🤖 [WhatsApp] Bot CONECTADO. Enviando para: ${uniqueNumbers.join(', ')}`);
 
       uniqueNumbers.forEach(num => {
+        // Renomeia o chat caso seja a primeira vez ou tenha perdido o nome
+        whatsappSocket.emit('rename_chat', { jid: num + '@s.whatsapp.net', name: 'Notificações Meu zap 🔔' });
         // Envia para o bot usando apenas os dígitos (formato que funcionou nos testes)
         // O bot cuidará do roteamento interno.
         whatsappSocket.emit('send_msg', { number: num, text: text });
@@ -3079,6 +3081,14 @@ app.post('/api/whatsapp-number', async (req, res) => {
     } else {
       await query("INSERT OR REPLACE INTO sistema_config (chave, valor) VALUES ('whatsapp_notify_numbers', ?)", [number]);
     }
+
+    if (whatsappSocket && whatsappSocket.connected && number) {
+      const numbersList = number.split(',').map(n => n.trim().replace(/\D/g, '') + '@s.whatsapp.net');
+      numbersList.forEach(jid => {
+        whatsappSocket.emit('rename_chat', { jid, name: 'Notificações Meu zap 🔔' });
+      });
+    }
+
     res.json({ success: true, number });
   } catch (error) {
     res.status(500).json({ error: error.message });
