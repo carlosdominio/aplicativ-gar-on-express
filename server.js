@@ -3067,10 +3067,34 @@ app.get('/api/whatsapp-status', async (req, res) => {
       numbersDisplay = process.env.WHATSAPP_NOTIFY_NUMBER;
     }
 
+    let currentRealStatus = whatsappRealStatus;
+    let isSocketConnected = whatsappSocket ? whatsappSocket.connected : false;
+    
+    // Tenta buscar o status síncrono diretamente da API do robô para evitar falso-desconectado em cold-starts do Vercel
+    if (botUrlFinal) {
+      try {
+        const fetchStatusUrl = botUrlFinal.endsWith('/') ? `${botUrlFinal}status` : `${botUrlFinal}/status`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // Timeout rápido de 2s
+        const syncRes = await fetch(fetchStatusUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (syncRes.ok) {
+          const syncData = await syncRes.json();
+          if (syncData && syncData.status) {
+            currentRealStatus = syncData.status;
+            isSocketConnected = true; // Se respondeu HTTP, consideramos que o servidor está vivo
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Falha ao buscar status síncrono do robô, usando fallback de memória:', err.message);
+      }
+    }
+
     res.json({
       configured: !!botUrlFinal,
-      connected: whatsappSocket ? whatsappSocket.connected : false,
-      realStatus: whatsappRealStatus,
+      connected: isSocketConnected,
+      realStatus: currentRealStatus,
       enabled: isEnabled,
       number: numbersDisplay,
       botUrl: botUrlFinal || ''
