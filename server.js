@@ -789,7 +789,11 @@ async function notifyStatus(pedidoId, mesaDbId, status, mesaNumPredefined = null
 
     // Notificação WhatsApp em paralelo/background para o ADMIN
     if (status === 'aguardando_fechamento') {
-      sendWhatsAppMessage(`🛎️ *SOLICITAÇÃO DE FECHAMENTO*\n📍 Local: ${mesaNum}\n💰 O cliente solicitou a conta.`).catch(e => console.error('Erro Wpp:', e.message));
+      if (mesaNum && mesaNum.toString().toUpperCase().startsWith('DELIVERY')) {
+        sendWhatsAppMessage(`✅ *PEDIDO ENTREGUE E FINALIZADO*\n📍 Local: ${mesaNum}\n💰 O delivery foi concluído com sucesso.`).catch(e => console.error('Erro Wpp:', e.message));
+      } else {
+        sendWhatsAppMessage(`🛎️ *SOLICITAÇÃO DE FECHAMENTO*\n📍 Local: ${mesaNum}\n💰 O cliente solicitou a conta.`).catch(e => console.error('Erro Wpp:', e.message));
+      }
     } else if (status === 'cancelado') {
       sendWhatsAppMessage(`❌ *PEDIDO CANCELADO*\n📍 Local: ${mesaNum}\n🗑️ O pedido foi removido do sistema.`).catch(e => console.error('Erro Wpp:', e.message));
     }
