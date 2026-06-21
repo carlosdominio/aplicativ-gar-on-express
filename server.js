@@ -158,12 +158,24 @@ const DEFAULT_BOT_URL = 'https://meu-zap-bot.onrender.com/';
 const botUrlFinal = process.env.WHATSAPP_BOT_URL || DEFAULT_BOT_URL;
 
 let whatsappSocket = null;
+let whatsappRealStatus = 'DESCONECTADO';
 const clientesEmAtendimento = new Map(); // Armazena { numero: timestamp } - ESCOPO GLOBAL
 
 if (botUrlFinal) {
   whatsappSocket = ioClient(botUrlFinal, {
     reconnection: true,
     reconnectionAttempts: Infinity
+  });
+
+  whatsappSocket.on('status', (data) => {
+    if (data && data.status) {
+      whatsappRealStatus = data.status;
+    }
+  });
+
+  // Se a conexão via websocket cair, marca como desconectado
+  whatsappSocket.on('disconnect', () => {
+    whatsappRealStatus = 'DESCONECTADO';
   });
 
   whatsappSocket.on('new_msg', async (data) => {
@@ -3058,6 +3070,7 @@ app.get('/api/whatsapp-status', async (req, res) => {
     res.json({
       configured: !!botUrlFinal,
       connected: whatsappSocket ? whatsappSocket.connected : false,
+      realStatus: whatsappRealStatus,
       enabled: isEnabled,
       number: numbersDisplay,
       botUrl: botUrlFinal || ''

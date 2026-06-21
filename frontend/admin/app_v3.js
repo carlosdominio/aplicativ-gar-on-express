@@ -562,14 +562,22 @@ async function carregarStatusWhatsApp() {
       badge.textContent = 'NÃO CONFIGURADO';
       badge.style.background = '#fee2e2';
       badge.style.color = '#ef4444';
-    } else if (status.connected) {
+    } else if (status.realStatus === 'CONECTADO') {
       badge.textContent = 'CONECTADO';
       badge.style.background = '#dcfce7';
       badge.style.color = '#166534';
+    } else if (status.realStatus === 'AGUARDANDO QR') {
+      badge.textContent = 'AGUARDANDO QR';
+      badge.style.background = '#fef3c7'; // Amarelo/Laranja claro
+      badge.style.color = '#b45309'; // Laranja escuro
+    } else if (status.connected && status.realStatus !== 'DESCONECTADO') {
+      badge.textContent = status.realStatus ? status.realStatus.toUpperCase() : 'CONECTADO';
+      badge.style.background = '#e0f2fe';
+      badge.style.color = '#0369a1';
     } else {
       badge.textContent = 'DESCONECTADO';
-      badge.style.background = '#fef9c3';
-      badge.style.color = '#854d0e';
+      badge.style.background = '#fee2e2'; // Vermelho claro para desconectado
+      badge.style.color = '#ef4444'; // Vermelho escuro
     }
 
     if (toggle) toggle.checked = status.enabled;
