@@ -802,6 +802,22 @@
               <h3><i class="fa-solid fa-message"></i> Textos do Robô Zap (Menu)</h3>
               <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Edite todas as respostas que o robô envia automaticamente para o cliente.</p>
               
+              <!-- CONSTRUTOR DE MENUS DINÂMICOS -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #334155; font-size: 1rem;"><i class="fa-solid fa-layer-group"></i> Construtor de Menus Dinâmicos</h4>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                  <button class="btn" style="background: #10b981; color: white;" onclick="addCustomMenu('main')"><i class="fa-solid fa-plus"></i> Opção ao Menu Principal</button>
+                  <button class="btn" style="background: #0ea5e9; color: white;" onclick="addCustomMenu('delivery')"><i class="fa-solid fa-plus"></i> Opção ao Menu de Delivery</button>
+                </div>
+                
+                <h5 style="margin: 15px 0 5px 0; color: #475569; font-size: 0.9rem;">Opções do Menu Principal:</h5>
+                <div id="custom-menus-main-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;"></div>
+                
+                <h5 style="margin: 15px 0 5px 0; color: #475569; font-size: 0.9rem;">Opções do Menu de Delivery:</h5>
+                <div id="custom-menus-delivery-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+              </div>
+              <!-- FIM DO CONSTRUTOR -->
+              
               <div class="modal-form-group">
                 <label>Boas-Vindas Normal</label>
                 <textarea id="bot-txt-welcome" rows="4" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;"></textarea>

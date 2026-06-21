@@ -5901,6 +5901,79 @@ const defaultsBot = {
     store_closed: "Olá {nome}! No momento estamos *FECHADOS* 🌙\n\n⏰ *Horário de Funcionamento:*\nTerça a Domingo: das 18h às 02h\n\n🏠 *Endereço:* Rua Demócrito Gracindo, 132 - Ponta Grossa\n\n_Aguardamos seu pedido em breve!_ 🛵"
 };
 
+// Estado dos menus dinâmicos
+let customMenusMain = [];
+let customMenusDelivery = [];
+
+function renderCustomMenus() {
+  const renderList = (list, containerId, type) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    
+    if (list.length === 0) {
+      container.innerHTML = `<div style="font-size:0.85rem; color:#94a3b8; font-style:italic;">Nenhuma opção dinâmica cadastrada.</div>`;
+      return;
+    }
+    
+    list.forEach((item, index) => {
+      const row = document.createElement('div');
+      row.style.cssText = "display: flex; gap: 10px; align-items: flex-start; background: white; padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px;";
+      
+      row.innerHTML = `
+        <div style="flex: 0 0 60px;">
+          <label style="font-size:0.75rem; color:#64748b;">Opção (Nº)</label>
+          <input type="text" value="${item.option || ''}" onchange="updateCustomMenu('${type}', ${index}, 'option', this.value)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; text-align:center;">
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size:0.75rem; color:#64748b;">Título no Menu</label>
+          <input type="text" value="${item.title || ''}" onchange="updateCustomMenu('${type}', ${index}, 'title', this.value)" placeholder="Ex: Promoções" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div style="flex: 2;">
+          <label style="font-size:0.75rem; color:#64748b;">Resposta do Robô</label>
+          <textarea rows="2" onchange="updateCustomMenu('${type}', ${index}, 'response', this.value)" placeholder="A resposta que o robô vai dar..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">${item.response || ''}</textarea>
+        </div>
+        <div style="flex: 0 0 40px; display: flex; align-items: center; justify-content: center; padding-top: 20px;">
+          <button onclick="removeCustomMenu('${type}', ${index})" style="background: #ef4444; color: white; border: none; width: 32px; height: 32px; border-radius: 4px; cursor: pointer;" title="Remover"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  };
+
+  renderList(customMenusMain, 'custom-menus-main-container', 'main');
+  renderList(customMenusDelivery, 'custom-menus-delivery-container', 'delivery');
+}
+
+window.addCustomMenu = function(type) {
+  const newItem = { option: '', title: '', response: '' };
+  if (type === 'main') {
+    customMenusMain.push(newItem);
+  } else {
+    customMenusDelivery.push(newItem);
+  }
+  renderCustomMenus();
+};
+
+window.removeCustomMenu = function(type, index) {
+  if (confirm('Tem certeza que deseja remover esta opção?')) {
+    if (type === 'main') {
+      customMenusMain.splice(index, 1);
+    } else {
+      customMenusDelivery.splice(index, 1);
+    }
+    renderCustomMenus();
+  }
+};
+
+window.updateCustomMenu = function(type, index, field, value) {
+  if (type === 'main') {
+    customMenusMain[index][field] = value;
+  } else {
+    customMenusDelivery[index][field] = value;
+  }
+};
+
 async function carregarTextosBot() {
   try {
     const res = await fetch('/api/bot-responses');
@@ -5920,6 +5993,10 @@ async function carregarTextosBot() {
       document.getElementById('bot-txt-menu4').value = data.menu4 || defaultsBot.menu4;
       document.getElementById('bot-txt-menu5').value = data.menu5 || defaultsBot.menu5;
       document.getElementById('bot-txt-store-closed').value = data.store_closed || defaultsBot.store_closed;
+      
+      customMenusMain = data.customMenusMain || [];
+      customMenusDelivery = data.customMenusDelivery || [];
+      renderCustomMenus();
     }
   } catch (e) {
     console.error('Erro ao carregar textos do bot:', e);
@@ -5937,7 +6014,9 @@ async function salvarTextosBot() {
     menu3: document.getElementById('bot-txt-menu3').value,
     menu4: document.getElementById('bot-txt-menu4').value,
     menu5: document.getElementById('bot-txt-menu5').value,
-    store_closed: document.getElementById('bot-txt-store-closed').value
+    store_closed: document.getElementById('bot-txt-store-closed').value,
+    customMenusMain: customMenusMain,
+    customMenusDelivery: customMenusDelivery
   };
 
   try {
