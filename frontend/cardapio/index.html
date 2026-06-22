@@ -871,7 +871,7 @@
                     let priceHtml = `R$ ${i.preco.toFixed(2)}`;
                     
                     if (i.em_promocao === true || i.em_promocao === 'true' || i.em_promocao === 1 || i.preco_original) {
-                        promoBadge = `<div style="position: absolute; top: -10px; left: -10px; background: #e74c3c; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75em; font-weight: bold; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.2); letter-spacing: 1px;">PROMOÇÃO</div>`;
+                        promoBadge = `<div style="background: #e74c3c; color: white; padding: 3px 8px; border-radius: 8px; font-size: 0.65em; font-weight: bold; letter-spacing: 1px; text-align: center; width: max-content; margin-top: -5px;">PROMOÇÃO</div>`;
                         if (i.preco_original && parseFloat(i.preco_original) > parseFloat(i.preco)) {
                             priceHtml = `<span style="text-decoration: line-through; color: #999; font-size: 0.8em; margin-right: 5px;">R$ ${parseFloat(i.preco_original).toFixed(2)}</span>R$ ${i.preco.toFixed(2)}`;
                         }
@@ -879,8 +879,10 @@
 
                     section.innerHTML += `
                         <div class="menu-item" style="position: relative;">
-                            ${promoBadge}
-                            ${i.imagem ? `<img src="${i.imagem}" class="item-img">` : `<div class="item-placeholder">${i.nome[0]}</div>`}
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                ${i.imagem ? `<img src="${i.imagem}" class="item-img">` : `<div class="item-placeholder">${i.nome[0]}</div>`}
+                                ${promoBadge}
+                            </div>
                             <div class="item-info"><h3>${i.nome}</h3><p class="desc">${i.descricao||''}</p><div class="price">${priceHtml}</div>
                                 <div class="controls">${qty>0 ? `<button class="btn-qty" onclick="updateCart(${i.id},-1)">-</button><span class="qty">${qty}</span><button class="btn-qty" onclick="updateCart(${i.id},1)">+</button>` : `<button class="btn-add-initial" onclick="updateCart(${i.id},1)">Adicionar</button>`}</div>
                             </div>
