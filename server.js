@@ -3407,7 +3407,7 @@ app.post('/api/bot-responses', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
-module.exports = app;
+
 
 
 
