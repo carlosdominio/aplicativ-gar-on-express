@@ -696,9 +696,14 @@ async function configurarPusher() {
           const tagId = `status-${data.pedido_id}-${data.status}`;
           let msg = '';
           
-          if (data.status === 'liberada') msg = `✅ Mesa ${nMesa} liberada`;
-          else if (data.status === 'servido') msg = `🚚 Pedido da Mesa ${nMesa} entregue!`;
-          else if (data.status === 'itens_atualizados') msg = `📝 Pedido da Mesa ${nMesa} atualizado pelo Admin`;
+          let strMesa = nMesa.toString();
+          if (!strMesa.toLowerCase().startsWith('mesa') && strMesa.toLowerCase() !== 'balcão') {
+             strMesa = `Mesa ${strMesa}`;
+          }
+          
+          if (data.status === 'liberada') msg = `✅ ${strMesa} liberada`;
+          else if (data.status === 'servido') msg = `🍽️ Pedido da ${strMesa} entregue!`;
+          else if (data.status === 'itens_atualizados') msg = `📝 Pedido da ${strMesa} atualizado pelo Admin`;
           
           // Removido o 'cancelado' daqui para evitar duplicidade com o evento 'pedido-cancelado'
 
