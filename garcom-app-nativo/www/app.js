@@ -149,6 +149,10 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function subscribeToPush() {
+  if (window.Capacitor && window.Capacitor.isNative) {
+    console.log('Ambiente nativo detectado, ignorando Web Push para evitar duplicidade.');
+    return;
+  }
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -692,9 +696,14 @@ async function configurarPusher() {
           const tagId = `status-${data.pedido_id}-${data.status}`;
           let msg = '';
           
-          if (data.status === 'liberada') msg = `✅ Mesa ${nMesa} liberada`;
-          else if (data.status === 'servido') msg = `🚚 Pedido da Mesa ${nMesa} entregue!`;
-          else if (data.status === 'itens_atualizados') msg = `📝 Pedido da Mesa ${nMesa} atualizado pelo Admin`;
+          let strMesa = nMesa.toString();
+          if (!strMesa.toLowerCase().startsWith('mesa') && strMesa.toLowerCase() !== 'balcão') {
+             strMesa = `Mesa ${strMesa}`;
+          }
+          
+          if (data.status === 'liberada') msg = `✅ ${strMesa} liberada`;
+          else if (data.status === 'servido') msg = `🍽️ Pedido da ${strMesa} entregue!`;
+          else if (data.status === 'itens_atualizados') msg = `📝 Pedido da ${strMesa} atualizado pelo Admin`;
           
           // Removido o 'cancelado' daqui para evitar duplicidade com o evento 'pedido-cancelado'
 
@@ -705,8 +714,8 @@ async function configurarPusher() {
 
             if (data.status === 'liberada') {
                if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
-                  fecharOpcoes();
-                  fecharResumoMesa();
+                  document.getElementById('modal-resumo-mesa').style.display = 'none';
+                  document.getElementById('modal-opcoes').style.display = 'none';
                   voltarParaMesas();
                }
             }
@@ -729,8 +738,8 @@ async function configurarPusher() {
 
       // Reset de estado se for a mesa atual
       if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
-          fecharOpcoes();
-          fecharResumoMesa();
+          document.getElementById('modal-resumo-mesa').style.display = 'none';
+          document.getElementById('modal-opcoes').style.display = 'none';
           voltarParaMesas();
       }
       
@@ -767,7 +776,6 @@ async function configurarPusher() {
       console.log('📢 Evento recebido: chamado-garcom', data);
       tocarCampainha();
       mostrarAlerta(data.mensagem, "🛎️ CHAMADO DE CLIENTE", "🛎️");
-      exibirNotificacaoNativa("🛎️ CHAMADO DE CLIENTE", data.mensagem, `chamado-${data.mesa_id}`);
     });
 
     channel.bind('menu-atualizado', (data) => {
@@ -780,14 +788,12 @@ async function configurarPusher() {
       console.log('📢 Evento recebido: rascunho-recebido', data);
       tocarCampainha();
       mostrarRascunho(data);
-      exibirNotificacaoNativa("📝 RASCUNHO RECEBIDO", `Mesa ${data.mesa_numero} enviou itens para o carrinho.`, `rascunho-${data.mesa_id}`);
     });
 
     channel.bind('solicitacao-fechamento-cliente', (data) => {
       console.log('📢 Evento recebido: solicitacao-fechamento-cliente', data);
       tocarCampainha();
       mostrarAlerta(data.mensagem, "🙋‍♂️ SOLICITAÇÃO DE FECHAMENTO", "💰");
-      exibirNotificacaoNativa("💰 SOLICITAÇÃO DE FECHAMENTO", data.mensagem, `fechamento-${data.mesa_id}`);
       
       clearTimeout(timeoutPusher);
       timeoutPusher = setTimeout(() => carregarMesas(), 50);
@@ -1043,9 +1049,21 @@ function exibirMesas() {
   const grid = document.getElementById('mesas-grid');
   if (!grid) return;
 
+  const fechamentosAtivos = mesas.filter(m => m.solicitou_fechamento || m.status === 'fechando');
+  
+  const contadorEl = document.getElementById('contador-fechamentos');
+  if (contadorEl) {
+    if (fechamentosAtivos.length > 0) {
+      contadorEl.innerText = fechamentosAtivos.length;
+      contadorEl.style.display = 'inline-block';
+    } else {
+      contadorEl.style.display = 'none';
+    }
+  }
+
   let mesasExibidas = mesas;
   if (filtroMesaAtual === 'fechamentos') {
-    mesasExibidas = mesas.filter(m => m.solicitou_fechamento || m.status === 'fechando');
+    mesasExibidas = fechamentosAtivos;
   }
 
   grid.innerHTML = mesasExibidas.map(mesa => {
@@ -1462,6 +1480,9 @@ function voltarParaMesas() {
         document.getElementById('pedido').classList.add('hidden');
         document.getElementById('mesas').classList.remove('hidden');
         document.getElementById('btn-header-mesas').style.display = 'none';
+        pedidoAtual = [];
+        mesaAtual = null;
+        pedidoAbertoNaMesa = null;
         atualizarBloqueioScroll(); // Destrava o scroll
       }
     });
@@ -1469,6 +1490,10 @@ function voltarParaMesas() {
     document.getElementById('pedido').classList.add('hidden');
     document.getElementById('mesas').classList.remove('hidden');
     document.getElementById('btn-header-mesas').style.display = 'none';
+    pedidoAtual = [];
+    mesaAtual = null;
+    pedidoAbertoNaMesa = null;
+    atualizarBloqueioScroll();
   }
 }
 
