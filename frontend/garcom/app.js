@@ -709,8 +709,8 @@ async function configurarPusher() {
 
             if (data.status === 'liberada') {
                if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
-                  fecharOpcoes();
-                  fecharResumoMesa();
+                  document.getElementById('modal-resumo-mesa').style.display = 'none';
+                  document.getElementById('modal-opcoes').style.display = 'none';
                   voltarParaMesas();
                }
             }
@@ -733,8 +733,8 @@ async function configurarPusher() {
 
       // Reset de estado se for a mesa atual
       if (mesaAtual && (mesaAtual.id == data.mesa_id || mesaAtual.numero == data.mesa_numero)) {
-          fecharOpcoes();
-          fecharResumoMesa();
+          document.getElementById('modal-resumo-mesa').style.display = 'none';
+          document.getElementById('modal-opcoes').style.display = 'none';
           voltarParaMesas();
       }
       
@@ -1466,6 +1466,9 @@ function voltarParaMesas() {
         document.getElementById('pedido').classList.add('hidden');
         document.getElementById('mesas').classList.remove('hidden');
         document.getElementById('btn-header-mesas').style.display = 'none';
+        pedidoAtual = [];
+        mesaAtual = null;
+        pedidoAbertoNaMesa = null;
         atualizarBloqueioScroll(); // Destrava o scroll
       }
     });
@@ -1473,6 +1476,10 @@ function voltarParaMesas() {
     document.getElementById('pedido').classList.add('hidden');
     document.getElementById('mesas').classList.remove('hidden');
     document.getElementById('btn-header-mesas').style.display = 'none';
+    pedidoAtual = [];
+    mesaAtual = null;
+    pedidoAbertoNaMesa = null;
+    atualizarBloqueioScroll();
   }
 }
 
