@@ -1069,6 +1069,7 @@ async function initDb() {
     await addCol('pedidos', 'num_pessoas', 'INTEGER DEFAULT 1');
     await addCol('pedidos', 'valor_por_pessoa', 'REAL');
     await addCol('pedidos', 'solicitou_fechamento', 'BOOLEAN DEFAULT FALSE');
+    await addCol('pedidos', 'fechamento_solicitado_em', 'TIMESTAMP');
     await addCol('pedidos', 'fechamento_liberado', 'BOOLEAN DEFAULT FALSE');
     await addCol('menu', 'estoque', 'INTEGER DEFAULT -1');
     await addCol('menu', 'validade', 'DATE');
@@ -2226,7 +2227,7 @@ app.post('/api/cliente/solicitar-conta', async (req, res) => {
     // 1. Atualiza o banco de dados
     // NÃO muda o status da mesa para 'fechando' ainda. 
     // Mantém 'ocupada' para o garçom processar primeiro, mas marca a flag de solicitação.
-    await query("UPDATE pedidos SET solicitou_fechamento = TRUE WHERE id = ?", [pedido.id]);
+    await query("UPDATE pedidos SET solicitou_fechamento = TRUE, fechamento_solicitado_em = COALESCE(fechamento_solicitado_em, CURRENT_TIMESTAMP) WHERE id = ?", [pedido.id]);
     await query("UPDATE mesas SET status = 'ocupada' WHERE id = ?", [mesaId]); 
 
     // 2. Busca número da mesa para a notificação
@@ -2270,7 +2271,7 @@ app.put('/api/pedidos/:id/solicitar-fechamento', async (req, res) => {
     const prevStatus = pStatusAtual ? pStatusAtual.status : null;
 
     // Ativa fechamento_liberado quando o garçom processa a solicitação
-    await query(`UPDATE pedidos SET status = 'aguardando_fechamento', forma_pagamento = ?, desconto = ?, acrescimo = ?, valor_recebido = ?, troco = ?, total = ?, num_pessoas = ?, valor_por_pessoa = ?, cobrar_taxa = ?, fechamento_liberado = TRUE, pagamentos_detalhados = ? WHERE id = ?`, 
+    await query(`UPDATE pedidos SET status = 'aguardando_fechamento', forma_pagamento = ?, desconto = ?, acrescimo = ?, valor_recebido = ?, troco = ?, total = ?, num_pessoas = ?, valor_por_pessoa = ?, cobrar_taxa = ?, fechamento_liberado = TRUE, fechamento_solicitado_em = COALESCE(fechamento_solicitado_em, CURRENT_TIMESTAMP), pagamentos_detalhados = ? WHERE id = ?`, 
       [formaPagamentoFinal, desconto || 0, acrescimo || 0, valor_recebido || 0, troco || 0, totalFinal, num_pessoas || 1, valor_por_pessoa || totalFinal, (req.body.cobrar_taxa !== undefined ? (req.body.cobrar_taxa ? 1 : 0) : 1), pagamentosStr, id]);
     
     if (mesa_id) await query("UPDATE mesas SET status = 'fechando' WHERE id = ?", [mesa_id]);
@@ -2725,6 +2726,7 @@ app.get('/api/mesas', ensureDbInitialized, async (req, res) => {
         ) as garcom_id,
         (SELECT p.status FROM pedidos p WHERE p.mesa_id = m.id AND p.status NOT IN ('entregue', 'cancelado', 'rascunho') ORDER BY p.id DESC LIMIT 1) as pedido_status,
         (SELECT p.solicitou_fechamento FROM pedidos p WHERE p.mesa_id = m.id AND p.status NOT IN ('entregue', 'cancelado', 'rascunho') ORDER BY p.id DESC LIMIT 1) as solicitou_fechamento,
+        (SELECT p.fechamento_solicitado_em FROM pedidos p WHERE p.mesa_id = m.id AND p.status NOT IN ('entregue', 'cancelado', 'rascunho') ORDER BY p.id DESC LIMIT 1) as fechamento_solicitado_em,
         (SELECT p.fechamento_liberado FROM pedidos p WHERE p.mesa_id = m.id AND p.status NOT IN ('entregue', 'cancelado', 'rascunho') ORDER BY p.id DESC LIMIT 1) as fechamento_liberado,
         (SELECT ca.codigo FROM codigos_acesso ca WHERE ca.mesa_id = m.id AND ca.status = 'ativo' ORDER BY ca.id DESC LIMIT 1) as codigo_acesso
       FROM mesas m ORDER BY m.numero
@@ -2770,7 +2772,7 @@ app.post('/api/cliente/meus-pedidos', async (req, res) => {
       : "STRFTIME('%Y-%m-%d %H:%M:%S', created_at) >= STRFTIME('%Y-%m-%d %H:%M:%S', ?)";
 
     const pedidosSessao = (await query(`
-      SELECT id, total, status, cobrar_taxa, desconto, acrescimo, solicitou_fechamento, fechamento_liberado 
+      SELECT id, total, status, cobrar_taxa, desconto, acrescimo, solicitou_fechamento, fechamento_solicitado_em, fechamento_liberado 
       FROM pedidos 
       WHERE mesa_id = ? 
       AND (

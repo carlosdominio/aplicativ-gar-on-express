@@ -2663,8 +2663,12 @@ async function exibirPedidos() {
       let classeAlertaAtraso = '';
 
       // ALERTA DE ATRASO: Para pedidos recebidos ou mesas aguardando fechamento (pendências)
-      if ((statusGeral === 'recebido' || (isAguardando && !isDelivery)) && pedido.created_at) {
-        minutosCronometro = calcularMinutos(pedido.created_at);
+      let dataBaseCronometro = pedido.created_at;
+      if (isAguardando && !isDelivery && pedido.fechamento_solicitado_em) {
+        dataBaseCronometro = pedido.fechamento_solicitado_em;
+      }
+      if ((statusGeral === 'recebido' || (isAguardando && !isDelivery)) && dataBaseCronometro) {
+        minutosCronometro = calcularMinutos(dataBaseCronometro);
         if (minutosCronometro >= 10) classeAlertaAtraso = 'alerta-borda-pisca';
       }
 
@@ -2731,7 +2735,7 @@ async function exibirPedidos() {
           <div>
             <h3 style="display:flex; align-items:center; gap:8px;">
               ${mesaNomeExibicao}
-              <span class="pedido-cronometro" data-created-at="${pedido.created_at || ''}" style="font-size:0.8rem; background:#2c3e50; padding:2px 8px; border-radius:12px; color:#fff; ${minutosCronometro === null ? 'display:none;' : ''}">
+              <span class="pedido-cronometro" data-created-at="${dataBaseCronometro || ''}" style="font-size:0.8rem; background:#2c3e50; padding:2px 8px; border-radius:12px; color:#fff; ${minutosCronometro === null ? 'display:none;' : ''}">
                 ⏱️ ${minutosCronometro === null ? '' : `${minutosCronometro} min`}
               </span>
             </h3>

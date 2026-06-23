@@ -1103,8 +1103,13 @@ function exibirMesas() {
         statusTexto = '🔥 PRONTO PARA ENTREGA';
       }
 
-      // SÓ MOSTRA O CRONÔMETRO SE TIVER PEDIDO E NÃO ESTIVER "SERVIDO"
-      if (mesa.pedido_created_at && mesa.pedido_status !== 'servido') {
+      if (mesa.solicitou_fechamento || mesa.status === 'fechando') {
+        if (mesa.fechamento_solicitado_em) {
+          const minutosEspera = calcularMinutos(mesa.fechamento_solicitado_em);
+          cronometroHtml = `<div class="cronometro" style="background:#e74c3c; color:white;">💳 ${minutosEspera} min</div>`;
+          if (minutosEspera >= 5) classeAlerta = 'alerta-atraso';
+        }
+      } else if (mesa.pedido_created_at && mesa.pedido_status !== 'servido') {
         const minutos = calcularMinutos(mesa.pedido_created_at);
         cronometroHtml = `<div class="cronometro">⏱️ ${minutos} min</div>`;
         if (minutos >= 10 && mesa.status !== 'fechando' && !mesa.solicitou_fechamento) classeAlerta = 'alerta-atraso';
