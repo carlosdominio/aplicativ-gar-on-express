@@ -1049,9 +1049,21 @@ function exibirMesas() {
   const grid = document.getElementById('mesas-grid');
   if (!grid) return;
 
+  const fechamentosAtivos = mesas.filter(m => m.solicitou_fechamento || m.status === 'fechando');
+  
+  const contadorEl = document.getElementById('contador-fechamentos');
+  if (contadorEl) {
+    if (fechamentosAtivos.length > 0) {
+      contadorEl.innerText = fechamentosAtivos.length;
+      contadorEl.style.display = 'inline-block';
+    } else {
+      contadorEl.style.display = 'none';
+    }
+  }
+
   let mesasExibidas = mesas;
   if (filtroMesaAtual === 'fechamentos') {
-    mesasExibidas = mesas.filter(m => m.solicitou_fechamento || m.status === 'fechando');
+    mesasExibidas = fechamentosAtivos;
   }
 
   grid.innerHTML = mesasExibidas.map(mesa => {
